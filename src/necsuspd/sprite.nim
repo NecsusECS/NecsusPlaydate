@@ -2,6 +2,9 @@ import playdate/api, positioned, necsus, vmath, time, viewport, util
 import std/[options, strformat, macros, sequtils]
 
 type
+    ZIndexValue = SomeInteger or enum
+        ## A value that can be used as a zindex
+
     AnchorLock* = enum
         AnchorTopLeft,
         AnchorTopMiddle,
@@ -161,14 +164,14 @@ proc `$`*[S : enum](anim: ptr Animation[S]): string =
 
 proc newBitmapSprite*(
     img: LCDBitmap,
-    zIndex: enum,
+    zIndex: ZIndexValue,
     anchor: AnchorPosition,
     absolutePos: bool = false
 ): Sprite =
     result.new()
     result.sprite = playdate.sprite.newSprite()
     result.sprite.setImage(img, kBitmapUnflipped)
-    `zIndex=`(result.sprite, ord(zIndex).int16)
+    result.sprite.zIndex = ord(zIndex).int16
     result.sprite.add()
     result.offset = result.sprite.offsetFix(anchor.toAnchor)
     result.absolutePos = absolutePos
@@ -178,14 +181,14 @@ proc newAssetSprite*[A](
     assets: SharedOrT[AssetTable[A]],
     asset: A,
     anchor: AnchorPosition,
-    zIndex: enum,
+    zIndex: ZIndexValue,
     absolutePos: bool = false,
 ): Sprite =
     newBitmapSprite(assets.unwrap.asset(asset).copy, anchor = anchor, zIndex = zIndex, absolutePos = absolutePos)
 
 proc newBlankSprite*(
     width, height: int32,
-    zIndex: enum,
+    zIndex: ZIndexValue,
     anchor: AnchorPosition,
     color: LCDColor = kColorWhite,
     absolutePos: bool = false
@@ -194,7 +197,7 @@ proc newBlankSprite*(
 
 template newBlankSprite*(
     width, height: int,
-    zIndex: enum,
+    zIndex: ZIndexValue,
     anchor: AnchorPosition,
     color: LCDColor = kColorWhite,
     absolutePos: bool = false
@@ -222,7 +225,7 @@ proc `[]`[S](anim: ptr Animation[S], frame: int32): LCDBitmap =
 proc newSheet*[S](
     assets: SharedOrT[SheetTable[S]],
     def: AnimationDef[S],
-    zIndex: enum,
+    zIndex: ZIndexValue,
     absolutePos: bool = false,
 ): Animation[S] =
 
