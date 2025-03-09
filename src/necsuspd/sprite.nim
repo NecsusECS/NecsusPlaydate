@@ -58,7 +58,7 @@ type
         frameCache: seq[LCDBitmap]
         frame: int32
         nextFrameTime: float32
-        offset: IVec2
+        anchorOffset, manualOffset: IVec2
         absolutePos: bool
         paused: bool
 
@@ -69,7 +69,7 @@ type
     SpriteObj* = object
         image: LCDBitmap
         sprite: LCDSprite
-        offset: IVec2
+        anchorOffset, manualOffset: IVec2
         absolutePos: bool
 
     Sprite* = ref SpriteObj
@@ -159,7 +159,7 @@ proc `$`*[S : enum](def: AnimationDef[S] | AnimationDefObj[S]): string =
     fmt"AnimationDef({def.sheet}, frames={def.frames}, tpf={def.timePerFrame}, {def.anchor}, loop={def.loop})"
 
 proc `$`*[S : enum](anim: ptr Animation[S]): string =
-    fmt"Animation({$S}, {anim.def}, frame={anim.frame}, nextFrameAt={anim.nextFrameTime}, offset={anim.offset}, " &
+    fmt"Animation({$S}, {anim.def}, frame={anim.frame}, nextFrameAt={anim.nextFrameTime}, " &
         fmt"absolutePos={anim.absolutePos}, paused={anim.paused})"
 
 proc newBitmapSprite*(
@@ -173,7 +173,7 @@ proc newBitmapSprite*(
     result.sprite.setImage(img, kBitmapUnflipped)
     result.sprite.zIndex = ord(zIndex).int16
     result.sprite.add()
-    result.offset = result.sprite.offsetFix(anchor.toAnchor)
+    result.anchorOffset = result.sprite.offsetFix(anchor.toAnchor)
     result.absolutePos = absolutePos
     result.sprite.setOpaque(false)
 
@@ -204,13 +204,18 @@ template newBlankSprite*(
 ): Sprite =
     newBlankSprite(width.int32, height.int32, zIndex, anchor, color, absolutePos)
 
+proc offset*(sprite: Sprite | Animation): IVec2 {.inline.} = sprite.manualOffset
+
+proc `offset=`*(sprite: Sprite | Animation, offset: IVec2) {.inline.} =
+    sprite.manualOffset = offset
+
 proc change*[S](animation: ptr Animation[S] | Animation[S], def: AnimationDef[S]) =
     ## Changes the animation currently runnig for a sprite
     assert(animation.def.sheet == def.sheet)
     animation.def = def
     animation.frame = 0
     animation.nextFrameTime = 0
-    animation.offset = animation.sprite.offsetFix(def.anchor.toAnchor)
+    animation.anchorOffset = animation.sprite.offsetFix(def.anchor.toAnchor)
 
 proc `paused=`*[S](animation: ptr Animation[S], pause: bool) =
     ## Pauses this animation
@@ -250,8 +255,9 @@ proc newSheet*[S](
 template move(movable, viewport) =
     let viewportOffset = ivec2(viewport.x, viewport.y)
     let noViewport = ivec2(0, 0)
-    for (sprite, pos) in movable:
-        let absolutePos = pos.toIVec2 + sprite.offset - (if sprite.absolutePos: noViewport else: viewportOffset)
+    for (parent, pos) in movable:
+        let viewportOffset = if sprite.absolutePos: noViewport else: viewportOffset
+        let absolutePos = pos.toIVec2 + sprite.anchorOffset + sprite.manualOffset - viewportOffset
         sprite.sprite.moveTo(absolutePos.x.cfloat, absolutePos.y.cfloat)
 
 proc buidSpriteMover*[S](): auto =
@@ -363,7 +369,8 @@ proc `$`*(sprite: Sprite): string =
 proc reset*[S](anim: Animation[S]) =
     anim.frame = 0
     anim.nextFrameTime = 0.0
-    anim.offset = ivec2(0, 0)
+    anim.manualOffset = ivec2(0, 0)
+    anim.anchorOffset = ivec2(0, 0)
     anim.paused = false
 
 proc hidden*(sprite: Animation | Sprite): auto =
