@@ -71,6 +71,7 @@ type
         sprite: LCDSprite
         anchorOffset, manualOffset: IVec2
         absolutePos: bool
+        link: Sprite
 
     Sprite* = ref SpriteObj
 
@@ -204,6 +205,25 @@ template newBlankSprite*(
 ): Sprite =
     newBlankSprite(width.int32, height.int32, zIndex, anchor, color, absolutePos)
 
+iterator linked*[S](sprite: Animation[S]): Animation[S] =
+    yield sprite
+
+iterator linked*(sprite: Sprite): Sprite =
+    var current = sprite
+    while current != nil:
+        yield current
+        current = current.link
+
+proc link*(sprite: Sprite): Sprite {.inline.} = sprite.link
+
+proc `link=`*(parent, child: Sprite) {.inline.} =
+    assert(parent.link == nil)
+    assert(child != nil)
+    when compileOption("assertions"):
+        for sprite in child.linked:
+            assert(addr(sprite) != addr(parent))
+    parent.link = child
+
 proc offset*(sprite: Sprite | Animation): IVec2 {.inline.} = sprite.manualOffset
 
 proc `offset=`*(sprite: Sprite | Animation, offset: IVec2) {.inline.} =
@@ -221,7 +241,7 @@ proc `paused=`*[S](animation: ptr Animation[S], pause: bool) =
     ## Pauses this animation
     animation.paused = pause
 
-proc `[]`[S](anim: ptr Animation[S], frame: int32): LCDBitmap =
+proc `[]`[S](anim: Animation[S], frame: int32): LCDBitmap =
     ## Return a frame from an animation
     assert(anim.frameCache.len > frame)
     assert(not anim.frameCache[frame].isNil)
@@ -247,7 +267,7 @@ proc newSheet*[S](
     for i in 0..<frames:
         result.frameCache[i] = table.getBitmap(i)
 
-    result.sprite.setImage((addr result)[result.frame], kBitmapUnflipped)
+    result.sprite.setImage(result[result.frame], kBitmapUnflipped)
     `zIndex=`(result.sprite, ord(zIndex).int16)
     result.sprite.add()
     change(addr result, def)
@@ -256,15 +276,16 @@ template move(movable, viewport) =
     let viewportOffset = ivec2(viewport.x, viewport.y)
     let noViewport = ivec2(0, 0)
     for (parent, pos) in movable:
-        let viewportOffset = if sprite.absolutePos: noViewport else: viewportOffset
-        let absolutePos = pos.toIVec2 + sprite.anchorOffset + sprite.manualOffset - viewportOffset
-        sprite.sprite.moveTo(absolutePos.x.cfloat, absolutePos.y.cfloat)
+        for sprite in parent.linked:
+            let viewportOffset = if sprite.absolutePos: noViewport else: viewportOffset
+            let absolutePos = pos.toIVec2 + sprite.anchorOffset + sprite.manualOffset - viewportOffset
+            sprite.sprite.moveTo(absolutePos.x.cfloat, absolutePos.y.cfloat)
 
 proc buidSpriteMover*[S](): auto =
     ## Builds a system that moves sprites so they match their position
     return proc (
-        sprites: Query[(ptr Sprite, Positioned)],
-        animated: Query[(ptr Animation[S], Positioned)],
+        sprites: Query[(Sprite, Positioned)],
+        animated: Query[(Animation[S], Positioned)],
         viewport: Shared[ViewPort],
         viewportTweaks: Query[(ViewPortTweak, )]
     ) =
@@ -279,31 +300,32 @@ proc buildSpriteAdvancer*[S](): auto =
     ## Moves ahead any sprite animations that need to be updated
     return proc(
         time: GameTime,
-        elements: FullQuery[(ptr Animation[S], Option[Unpausable])],
+        elements: FullQuery[(Animation[S], Option[Unpausable])],
         events: Outbox[Keyframe[S]]
     ) =
         let now = time.get.float32
-        for eid, (anim, unpausable) in elements:
-            if anim.sprite.visible and (not anim.paused or unpausable.isSome) and anim.nextFrameTime <= now:
+        for eid, (parent, unpausable) in elements:
+            for anim in parent.linked:
+                if anim.sprite.visible and (not anim.paused or unpausable.isSome) and anim.nextFrameTime <= now:
 
-                if anim.nextFrameTime == 0:
-                    anim.nextFrameTime = now
-                elif anim.frame == (anim.def.frames.len - 1):
-                    if anim.def.loop:
-                        anim.frame = 0
-                else:
-                    anim.frame += 1
+                    if anim.nextFrameTime == 0:
+                        anim.nextFrameTime = now
+                    elif anim.frame == (anim.def.frames.len - 1):
+                        if anim.def.loop:
+                            anim.frame = 0
+                    else:
+                        anim.frame += 1
 
-                let frame: Frame = anim.def.frames[anim.frame]
-                anim.nextFrameTime = now + frame.time
-                anim.sprite.setImage(anim[frame.cellId], kBitmapUnflipped)
-                if frame.isKeyframe:
-                    events(Keyframe[S](
-                        sheet: anim.def.sheet,
-                        keyframeValue: frame.keyframeValue,
-                        keyframeTypeId: frame.keyframeTypeId,
-                        entityId: eid,
-                    ))
+                    let frame: Frame = anim.def.frames[anim.frame]
+                    anim.nextFrameTime = now + frame.time
+                    anim.sprite.setImage(anim[frame.cellId], kBitmapUnflipped)
+                    if frame.isKeyframe:
+                        events(Keyframe[S](
+                            sheet: anim.def.sheet,
+                            keyframeValue: frame.keyframeValue,
+                            keyframeTypeId: frame.keyframeTypeId,
+                            entityId: eid,
+                        ))
 
 proc getImage*(sprite: Sprite | ptr Sprite): var LCDBitmap =
     if sprite.image.isNil:
