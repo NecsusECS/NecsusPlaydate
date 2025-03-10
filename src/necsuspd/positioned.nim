@@ -1,26 +1,31 @@
 import vmath, vec_tools, necsus, std/options, bumpy
 
 type
-    Positioned* {.byref.} = object
+    Positioned* = object
         ## A Position of a thing that can be rendered
         pos: IVec2
         lastPos: IVec2
         offset: IVec2
+        precision: int32
 
-    Follower* {.byref.} = object
+    Follower* = object
         ## Tracks one object from another
         leader: EntityId
         offset: IVec2
 
-proc positioned*(x, y: SomeInteger): auto =
-    Positioned(pos: ivec2(x.int32, y.int32), lastPos: ivec2(x.int32, y.int32))
+proc positioned*(coords: IVec2, precision: int32 = 0): auto =
+    Positioned(pos: coords, lastPos: coords, precision: precision)
 
-proc positioned*(coords: IVec2): auto =
-    Positioned(pos: coords, lastPos: coords)
+proc positioned*(x, y: SomeInteger, precision: int32 = 0): auto =
+    positioned(ivec2(x.int32, y.int32), precision)
 
-proc toIVec2*(pos: Positioned | ptr Positioned): IVec2 = pos.pos + pos.offset
+proc toIVec2*(pos: Positioned | ptr Positioned): IVec2 =
+    let joined = pos.pos + pos.offset
+    result = ivec2(joined.x shr pos.precision, joined.y shr pos.precision)
 
-proc toVec2*(pos: Positioned | ptr Positioned): Vec2 = pos.toIVec2.toVec2
+proc toVec2*(pos: Positioned | ptr Positioned): Vec2 =
+    let joined = pos.pos + pos.offset
+    result = vec2(joined.x / (2 ^ pos.precision), joined.y / (2 ^ pos.precision))
 
 proc x*(pos: Positioned | ptr Positioned): auto = pos.toIVec2.x
 
@@ -32,6 +37,8 @@ template assign(name) =
 
 assign(y)
 assign(x)
+
+proc pos*(pos: Positioned | ptr Positioned): IVec2 = pos.pos
 
 proc `pos=`*(pos: ptr Positioned, newPos: IVec2) =
     pos.lastPos = pos.pos
