@@ -2,311 +2,324 @@
 ## Types generated from: https://kayahr.github.io/aseprite/aseprite.schema.json
 ##
 
-import std/[macros, json, jsonutils, options, strformat, tables, sets, algorithm], playdate/api
+import
+  std/[macros, json, jsonutils, options, strformat, tables, sets, algorithm],
+  playdate/api
 import sprite, strutils, vmath, triggerBox, util
 
 type
-    AseFrame* = object
-        duration*: int32
-        filename*: string
-        frame*: AseRectangle
-        rotated*, trimmed*: bool
-        sourceSize*: AseSize
-        spriteSourceSize*: AseRectangle
+  AseFrame* = object
+    duration*: int32
+    filename*: string
+    frame*: AseRectangle
+    rotated*, trimmed*: bool
+    sourceSize*: AseSize
+    spriteSourceSize*: AseRectangle
 
-    AseBlendMode* = enum
-        normal,
-        darken,
-        multiply,
-        color_burn,
-        lighten,
-        screen,
-        color_dodge,
-        addition,
-        overlay,
-        soft_light,
-        hard_light,
-        difference,
-        exclusion,
-        subtract,
-        divide,
-        hsl_hue,
-        hsl_saturation,
-        hsl_color,
-        hsl_luminosity
+  AseBlendMode* = enum
+    normal
+    darken
+    multiply
+    color_burn
+    lighten
+    screen
+    color_dodge
+    addition
+    overlay
+    soft_light
+    hard_light
+    difference
+    exclusion
+    subtract
+    divide
+    hsl_hue
+    hsl_saturation
+    hsl_color
+    hsl_luminosity
 
-    AseDirection* = enum
-        forward,
-        reverse,
-        pingpong
+  AseDirection* = enum
+    forward
+    reverse
+    pingpong
 
-    AseFormat* = enum
-        RGBA8888,
-        I8
+  AseFormat* = enum
+    RGBA8888
+    I8
 
-    AseFrameTag* = object
-        name*: string
-        `from`*: int32
-        to*: int32
-        direction*: AseDirection
-        color*: string
-        data: string
-        repeat: string
+  AseFrameTag* = object
+    name*: string
+    `from`*: int32
+    to*: int32
+    direction*: AseDirection
+    color*: string
+    data: string
+    repeat: string
 
-    AseCel* = tuple[frame: int32, data: string]
+  AseCel* = tuple[frame: int32, data: string]
 
-    AseLayer* = object
-        blendMode*: AseBlendMode
-        color*: string
-        data*: string
-        group*: string
-        name*: string
-        opacity*: int32
-        cels*: seq[AseCel]
+  AseLayer* = object
+    blendMode*: AseBlendMode
+    color*: string
+    data*: string
+    group*: string
+    name*: string
+    opacity*: int32
+    cels*: seq[AseCel]
 
-    AseMeta* = object
-        app*: string
-        format*: AseFormat
-        frameTags*: seq[AseFrameTag]
-        image*: string
-        layers*: seq[AseLayer]
-        scale*: string
-        size*: AseSize
-        slices*: seq[AseSlice]
-        version*: string
+  AseMeta* = object
+    app*: string
+    format*: AseFormat
+    frameTags*: seq[AseFrameTag]
+    image*: string
+    layers*: seq[AseLayer]
+    scale*: string
+    size*: AseSize
+    slices*: seq[AseSlice]
+    version*: string
 
-    AsePoint* = tuple[x, y: int32]
+  AsePoint* = tuple[x, y: int32]
 
-    AseRectangle* = tuple[h, w, x, y: int32]
+  AseRectangle* = tuple[h, w, x, y: int32]
 
-    AseSize* = tuple[h, w: int32]
+  AseSize* = tuple[h, w: int32]
 
-    AseSlice* = object
-        color*: string
-        data*: string
-        keys*: seq[AseSliceKey]
-        name*: string
+  AseSlice* = object
+    color*: string
+    data*: string
+    keys*: seq[AseSliceKey]
+    name*: string
 
-    AseSliceKey* = object
-        bounds*: AseRectangle
-        frame*: int32
+  AseSliceKey* = object
+    bounds*: AseRectangle
+    frame*: int32
 
-    SpriteSheet* = object
-        frames*: seq[AseFrame]
-        meta*: AseMeta
+  SpriteSheet* = object
+    frames*: seq[AseFrame]
+    meta*: AseMeta
 
-    KeyframeTable[K: enum] = Table[int32, K]
+  KeyframeTable[K: enum] = Table[int32, K]
 
 proc findTag*(sheet: SpriteSheet, name: string): Option[AseFrameTag] =
-    let lowercase = name.toLowerAscii
-    for tag in sheet.meta.frameTags:
-        if tag.name == name or tag.name == lowercase or tag.name == name:
-            return some(tag)
+  let lowercase = name.toLowerAscii
+  for tag in sheet.meta.frameTags:
+    if tag.name == name or tag.name == lowercase or tag.name == name:
+      return some(tag)
 
 proc error(sheet: SpriteSheet, message: string) =
-    let fullError = fmt"{message} for {sheet.meta.image}"
-    raise newException(AssertionDefect, fullError)
+  let fullError = fmt"{message} for {sheet.meta.image}"
+  raise newException(AssertionDefect, fullError)
 
 proc eventFrames*(sheet: SpriteSheet, event: string): seq[int32] =
-    ## Returns the frames at which an event occurs
-    for layer in sheet.meta.layers:
-        for cel in layer.cels:
-            if cel.data == event:
-                result.add(cel.frame)
+  ## Returns the frames at which an event occurs
+  for layer in sheet.meta.layers:
+    for cel in layer.cels:
+      if cel.data == event:
+        result.add(cel.frame)
 
 iterator frames(sheet: SpriteSheet, tag: AseFrameTag): (int32, AseFrame) =
-    for i in tag.`from`..tag.to:
-        yield (i, sheet.frames[i])
+  for i in tag.`from` .. tag.to:
+    yield (i, sheet.frames[i])
 
 proc timeUntil*(sheet: SpriteSheet, tagName: string, event: string): float32 =
-    ## Returns the total time elapsed until the given event is reached
-    let tag = sheet.findTag(tagName).orElse:
-        sheet.error(fmt"Tag {tagName} does not exist")
-        return
+  ## Returns the total time elapsed until the given event is reached
+  let tag = sheet.findTag(tagName).orElse:
+    sheet.error(fmt"Tag {tagName} does not exist")
+    return
 
-    let eventFrames = sheet.eventFrames(event)
+  let eventFrames = sheet.eventFrames(event)
 
-    var accum: float32
-    for i, frame in frames(sheet, tag):
-        accum += frame.duration.float32 / 1000
-        if i in eventFrames:
-            return accum
+  var accum: float32
+  for i, frame in frames(sheet, tag):
+    accum += frame.duration.float32 / 1000
+    if i in eventFrames:
+      return accum
 
-    sheet.error(fmt"Could not find event {event} in tag {tagName}")
+  sheet.error(fmt"Could not find event {event} in tag {tagName}")
 
 proc findSlice*(sheet: SpriteSheet, name: string): Option[AseSlice] =
-    ## Returns the first AseSliceKey for a named slice or fails the compile
-    for slice in sheet.meta.slices:
-        if slice.name == name:
-            return some(slice)
+  ## Returns the first AseSliceKey for a named slice or fails the compile
+  for slice in sheet.meta.slices:
+    if slice.name == name:
+      return some(slice)
 
 proc slice*(sheet: SpriteSheet, name: string): AseSlice =
-    ## Returns the first AseSliceKey for a named slice or fails the compile
-    let found = sheet.findSlice(name)
-    if found.isSome: return found.get else: sheet.error(fmt"Could not find '{name}' slice")
+  ## Returns the first AseSliceKey for a named slice or fails the compile
+  let found = sheet.findSlice(name)
+  if found.isSome:
+    return found.get
+  else:
+    sheet.error(fmt"Could not find '{name}' slice")
 
 proc firstKey*(slice: AseSlice, sheet: SpriteSheet): AseSliceKey =
-    ## Returns the first AseSliceKey for a named slice or fails the compile
-    if slice.keys.len == 0:
-        sheet.error(fmt"Slice keys for '{slice.name}' must not be empty (has {slice.keys.len})")
-        return
-    return slice.keys[0]
+  ## Returns the first AseSliceKey for a named slice or fails the compile
+  if slice.keys.len == 0:
+    sheet.error(
+      fmt"Slice keys for '{slice.name}' must not be empty (has {slice.keys.len})"
+    )
+    return
+  return slice.keys[0]
 
 proc hitBox*(sheet: SpriteSheet): AseRectangle =
-    ## Returns the dimensions of the hitbox
-    sheet.slice("HitBox").firstKey(sheet).bounds
+  ## Returns the dimensions of the hitbox
+  sheet.slice("HitBox").firstKey(sheet).bounds
 
 proc center*(rect: AseRectangle): IVec2 =
-    ## Returns the dimensions of the hitbox
-    ivec2(rect.x + (rect.w div 2), rect.y + (rect.h div 2))
+  ## Returns the dimensions of the hitbox
+  ivec2(rect.x + (rect.w div 2), rect.y + (rect.h div 2))
 
 proc center*(sliceKey: AseSliceKey): IVec2 =
-    ## Returns the first AseSliceKey for a named slice or fails the compile
-    sliceKey.bounds.center
+  ## Returns the first AseSliceKey for a named slice or fails the compile
+  sliceKey.bounds.center
 
 proc readFrame(sheet: SpriteSheet, frame: SomeInteger): AseFrame {.discardable.} =
-    if frame >= sheet.frames.len:
-        sheet.error(fmt"Frame {frame} does not exist (Max frame is {sheet.frames.len - 1})")
-        return
-    return sheet.frames[frame.int32]
+  if frame >= sheet.frames.len:
+    sheet.error(fmt"Frame {frame} does not exist (Max frame is {sheet.frames.len - 1})")
+    return
+  return sheet.frames[frame.int32]
 
 proc anchorOffset*(sheet: SpriteSheet): IVec2 =
-    ## The offset of the anchor point relative to the top left of a sprite
-    let anchor = sheet.findSlice("Anchor")
-    let bounds = if anchor.isSome: anchor.get.firstKey(sheet).bounds else: sheet.hitBox
-    return ivec2(bounds.x + (bounds.w div 2), bounds.y + bounds.h)
+  ## The offset of the anchor point relative to the top left of a sprite
+  let anchor = sheet.findSlice("Anchor")
+  let bounds =
+    if anchor.isSome:
+      anchor.get.firstKey(sheet).bounds
+    else:
+      sheet.hitBox
+  return ivec2(bounds.x + (bounds.w div 2), bounds.y + bounds.h)
 
 proc anchorPoint*(sheet: SpriteSheet): IVec2 =
-    ## The anchor point from which to calculate other positions for a sprite
-    let frame = sheet.readFrame(0)
-    let frameCoord = ivec2(frame.sourceSize.w div 2, frame.sourceSize.h)
-    return frameCoord - sheet.anchorOffset
+  ## The anchor point from which to calculate other positions for a sprite
+  let frame = sheet.readFrame(0)
+  let frameCoord = ivec2(frame.sourceSize.w div 2, frame.sourceSize.h)
+  return frameCoord - sheet.anchorOffset
 
 proc sliceKeyAsOffset*(sheet: SpriteSheet, key: string): IVec2 =
-    ## Returns the offset of the center of a slice key relative to the anchor point of a sprite
-    let sliceKey = sheet.slice(key).firstKey(sheet).bounds.center
-    let anchor = sheet.anchorOffset
-    return sliceKey - anchor
+  ## Returns the offset of the center of a slice key relative to the anchor point of a sprite
+  let sliceKey = sheet.slice(key).firstKey(sheet).bounds.center
+  let anchor = sheet.anchorOffset
+  return sliceKey - anchor
 
 proc isLooped(sheet: SpriteSheet, tag: AseFrameTag): bool =
-    if tag.repeat != "" and tag.repeat != "1":
-        sheet.error(fmt"FrameTag repeat can only be '1' or blank. Found: {tag.repeat}")
-        return
-    return tag.repeat == ""
+  if tag.repeat != "" and tag.repeat != "1":
+    sheet.error(fmt"FrameTag repeat can only be '1' or blank. Found: {tag.repeat}")
+    return
+  return tag.repeat == ""
 
-proc createFrameDef(sheet: SpriteSheet, keyframes: KeyframeTable[enum], frameId: int32): Frame =
-    let duration = sheet.frames[frameId].duration.float32 / 1000'f32
-    if frameId in keyframes:
-        return frame(frameId, duration, keyframes[frameId])
-    else:
-        return frame(frameId, duration)
+proc createFrameDef(
+    sheet: SpriteSheet, keyframes: KeyframeTable[enum], frameId: int32
+): Frame =
+  let duration = sheet.frames[frameId].duration.float32 / 1000'f32
+  if frameId in keyframes:
+    return frame(frameId, duration, keyframes[frameId])
+  else:
+    return frame(frameId, duration)
 
 proc asAnimationDef[S: enum](
-    sheet: SpriteSheet,
-    tag: AseFrameTag,
-    sheetId: S,
-    keyframes: KeyframeTable[enum]
+    sheet: SpriteSheet, tag: AseFrameTag, sheetId: S, keyframes: KeyframeTable[enum]
 ): AnimationDef[S] =
-    ## Create an animation based on a aseprite tag
+  ## Create an animation based on a aseprite tag
 
-    # Read the frames to ensure they exist
-    discard sheet.readFrame(tag.`from`)
-    discard sheet.readFrame(tag.to)
+  # Read the frames to ensure they exist
+  discard sheet.readFrame(tag.`from`)
+  discard sheet.readFrame(tag.to)
 
-    var frames = newSeqOfCap[Frame](tag.to - tag.`from` + 1)
-    for frameId in (tag.`from`..tag.to):
-        frames.add(createFrameDef(sheet, keyframes, frameId))
+  var frames = newSeqOfCap[Frame](tag.to - tag.`from` + 1)
+  for frameId in (tag.`from` .. tag.to):
+    frames.add(createFrameDef(sheet, keyframes, frameId))
 
-    let anchor = sheet.anchorPoint
-    let anchorNode = (AnchorBottomMiddle, ivec2(anchor.x.int32, anchor.y.int32))
+  let anchor = sheet.anchorPoint
+  let anchorNode = (AnchorBottomMiddle, ivec2(anchor.x.int32, anchor.y.int32))
 
-    return animation(sheetId, frames, anchorNode, sheet.isLooped(tag))
+  return animation(sheetId, frames, anchorNode, sheet.isLooped(tag))
 
 proc findKeyframes[K: enum](sheet: SpriteSheet, ignore: set[K]): KeyframeTable[K] =
-    ## Searches the layers in a sprite sheet and creates a table of frame # to keyframe trigger
-    var usedKeyframes: set[K]
+  ## Searches the layers in a sprite sheet and creates a table of frame # to keyframe trigger
+  var usedKeyframes: set[K]
 
-    result = initTable[int32, K](ord(high(K)))
+  result = initTable[int32, K](ord(high(K)))
 
-    for layer in sheet.meta.layers:
-        for cel in layer.cels:
-            try:
-                let parsed = parseEnum[K](cel.data)
-                usedKeyframes.incl(parsed)
-                result[cel.frame] = parsed
-            except:
-                discard
+  for layer in sheet.meta.layers:
+    for cel in layer.cels:
+      try:
+        let parsed = parseEnum[K](cel.data)
+        usedKeyframes.incl(parsed)
+        result[cel.frame] = parsed
+      except:
+        discard
 
-    for key in K:
-        if key notin usedKeyframes and key notin ignore:
-            sheet.error(fmt"Keyframe '{key}' is not specified in sprite sheet")
+  for key in K:
+    if key notin usedKeyframes and key notin ignore:
+      sheet.error(fmt"Keyframe '{key}' is not specified in sprite sheet")
 
 proc strideToSpeed*(sheet: SpriteSheet, sliceName: string): float32 =
-    ## Calculate the speed from the position of a slice
-    let slice = sheet.slice(sliceName)
-    if slice.keys.len < 2:
-        sheet.error(fmt"Slice '{sliceName}' must have at least 2 keys")
-        return
+  ## Calculate the speed from the position of a slice
+  let slice = sheet.slice(sliceName)
+  if slice.keys.len < 2:
+    sheet.error(fmt"Slice '{sliceName}' must have at least 2 keys")
+    return
 
-    let sorted = slice.keys.sortedByIt(it.bounds.x)
-    let first = sorted[0]
-    let last = sorted[^1]
+  let sorted = slice.keys.sortedByIt(it.bounds.x)
+  let first = sorted[0]
+  let last = sorted[^1]
 
-    var totalMs = 0
-    for frame in min(first.frame, last.frame)..max(first.frame, last.frame):
-        totalMs += sheet.frames[frame].duration
+  var totalMs = 0
+  for frame in min(first.frame, last.frame) .. max(first.frame, last.frame):
+    totalMs += sheet.frames[frame].duration
 
-    result = (last.bounds.x - first.bounds.x).float32 / totalMs.float32 * 1000
+  result = (last.bounds.x - first.bounds.x).float32 / totalMs.float32 * 1000
 
 proc loadAsepriteJson*(path: string): SpriteSheet {.compileTime.} =
-    let json = parseJson(slurp(getProjectPath() & "/../" & path))
-    result.fromJson(json, Joptions(allowMissingKeys: true, allowExtraKeys: true))
+  let json = parseJson(slurp(getProjectPath() & "/../" & path))
+  result.fromJson(json, Joptions(allowMissingKeys: true, allowExtraKeys: true))
 
 proc animationTable*[A, K: enum](
-    sheet: SpriteSheet,
-    sheetId: enum,
-    ignore: set[A] = {},
-    ignoreKeyframes: set[K] = {},
+    sheet: SpriteSheet, sheetId: enum, ignore: set[A] = {}, ignoreKeyframes: set[K] = {}
 ): array[A, AnimationDef[typeof(sheetId)]] =
-    ## Creates a table of animation data based on a sprite sheet
-    let keyframeTable = findKeyframes[K](sheet, ignoreKeyframes)
-    for animation in A:
-        let tag = sheet.findTag(removeSuffix($animation, "Anim")).fallback(sheet.findTag($animation))
+  ## Creates a table of animation data based on a sprite sheet
+  let keyframeTable = findKeyframes[K](sheet, ignoreKeyframes)
+  for animation in A:
+    let tag = sheet.findTag(removeSuffix($animation, "Anim")).fallback(
+        sheet.findTag($animation)
+      )
 
-        let entry = if tag.isSome:
-            sheet.asAnimationDef(tag.get, sheetId, keyframeTable)
-        else:
-            if animation notin ignore:
-                sheet.error(fmt"FrameTag {animation} is missing")
-            nil
+    let entry =
+      if tag.isSome:
+        sheet.asAnimationDef(tag.get, sheetId, keyframeTable)
+      else:
+        if animation notin ignore:
+          sheet.error(fmt"FrameTag {animation} is missing")
+        nil
 
-        result[animation] = entry
+    result[animation] = entry
 
-type NoKeyframes = enum DummyKeyframe
+type NoKeyframes = enum
+  DummyKeyframe
 
 proc basicAnimationTable*[A: enum](
-    sheet: SpriteSheet,
-    sheetId: enum,
-    ignore: set[A] = {}
+    sheet: SpriteSheet, sheetId: enum, ignore: set[A] = {}
 ): array[A, AnimationDef[typeof(sheetId)]] =
-    ## Creates a table of animation data based on a sprite sheet
-    result = animationTable[A, NoKeyframes](sheet, sheetId, ignore, { DummyKeyframe })
+  ## Creates a table of animation data based on a sprite sheet
+  result = animationTable[A, NoKeyframes](sheet, sheetId, ignore, {DummyKeyframe})
 
 proc getTriggerBox*(sprite: SpriteSheet, sliceName: string, zIndex: enum): TriggerBox =
-    ## Creates the attack trigger box from a sprite sheet
-    let anchor = sprite.anchorOffset
-    let slice = sprite.slice(sliceName).firstKey(sprite)
-    let width = slice.bounds.w
-    let height = slice.bounds.h
-    let x = slice.bounds.x - anchor.x
-    let y = slice.bounds.y - anchor.y
-    return triggerBox(width = width, height = height, zIndex = zIndex, offset = ivec2(x.int32, y.int32))
+  ## Creates the attack trigger box from a sprite sheet
+  let anchor = sprite.anchorOffset
+  let slice = sprite.slice(sliceName).firstKey(sprite)
+  let width = slice.bounds.w
+  let height = slice.bounds.h
+  let x = slice.bounds.x - anchor.x
+  let y = slice.bounds.y - anchor.y
+  return triggerBox(
+    width = width, height = height, zIndex = zIndex, offset = ivec2(x.int32, y.int32)
+  )
 
 proc animationTime*(sheet: SpriteSheet, animation: enum): Option[int32] =
-    ## Returns the length of all the frames in a specific tag
-    let tag = sheet.findTag(removeSuffix($animation, "Anim")).fallback(sheet.findTag($animation)).orElse:
-        return none(int32)
-    var duration: int32
-    for _, frame in frames(sheet, tag):
-        duration += frame.duration
-    return some(duration)
+  ## Returns the length of all the frames in a specific tag
+  let tag = sheet
+    .findTag(removeSuffix($animation, "Anim"))
+    .fallback(sheet.findTag($animation)).orElse:
+      return none(int32)
+  var duration: int32
+  for _, frame in frames(sheet, tag):
+    duration += frame.duration
+  return some(duration)
