@@ -15,9 +15,10 @@ macro log*(args: varargs[typed]): untyped =
 
     if not defined(unittests):
       result.add quote do:
-        {.cast(gcsafe).}:
-          `msg` &= $playdate.system.getElapsedTime()
-        `msg` &= " "
+        if playdate != nil and playdate.system != nil:
+          {.cast(gcsafe).}:
+            `msg` &= $playdate.system.getElapsedTime()
+          `msg` &= " "
 
     for arg in args:
       result.add quote do:
@@ -29,7 +30,10 @@ macro log*(args: varargs[typed]): untyped =
     else:
       result.add quote do:
         {.cast(gcsafe).}:
-          playdate.system.logToConsole(`msg`)
+          if playdate == nil or playdate.system == nil:
+            echo `msg`
+          else:
+            playdate.system.logToConsole(`msg`)
 
 template orElse*[T](value: Option[T], otherwise: untyped): T =
   let resolved = value
