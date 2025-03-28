@@ -7,59 +7,61 @@ type
     StubFile = ref object
         content: string
 
-proc parseExample[T](content: string): auto =
-    static:
-        assert(T is Example)
-    return Example(foo: content)
-
-proc close(file: StubFile) =
+proc closeStub(file: StubFile) =
     discard
 
-proc readString(file: StubFile): string = file.content
+proc readStub(file: StubFile): string = file.content
 
 proc toBinary(example: Example): string = example.foo
 
 proc fromBinary(typ: typedesc[Example], binary: string): Example = Example(foo: binary)
 
+const relPath = "path/to/file.txt"
+const absPath = fmt"{getProjectPath()}/../path/to/file.txt"
+
 proc slurp(path: string): string =
-    assert(path == fmt"{getProjectPath()}/../path/to/file.txt", fmt"Path was: {path}")
-    return "bar"
+    assert(path == absPath, fmt"Path was: {path}")
+    return """{ "foo": "bar" }"""
 
 suite "Embedding data":
 
     test "Statically loading a file":
-        proc exists(path: string): bool = raiseAssert "Should not be called"
-
-        proc open(path: string): StubFile = raiseAssert "Should not be called"
-
-        let embedded = embedData(
-            Example,
-            "path/to/file.txt",
-            exists,
-            open,
-            slurp,
-            parseExample,
-            true
-        )
-
+        let embedded = embedData(Example, relPath, nil, slurp, nil, nil, nil, true)
         check(embedded == Example(foo: "bar"))
 
     test "Dynamically loading a file":
         proc exists(path: string): bool =
-            assert(path == "path/to/file.txt")
+            assert(path == relPath)
             return true
 
         proc open(path: string): StubFile =
-            assert(path == "path/to/file.txt")
-            return StubFile(content: "foobarbaz")
+            assert(path == relPath)
+            return StubFile(content: """{ "foo": "foobarbaz" }""")
+
+        let embedded = embedData(Example, relPath, exists, slurp, open, readStub, closeStub, false)
+
+        check(embedded == Example(foo: "foobarbaz"))
+
+    test "Dynamically loading an absolute file":
+        proc exists(path: string): bool =
+            if path == relPath:
+                return false
+            else:
+                assert(path == absPath, fmt"Path was: {path}")
+                return true
+
+        proc open(path: string): StubFile =
+            assert(path == absPath)
+            return StubFile(content: """{ "foo": "foobarbaz" }""")
 
         let embedded = embedData(
             Example,
-            "path/to/file.txt",
+            relPath,
             exists,
-            open,
             slurp,
-            parseExample,
+            open,
+            readStub,
+            closeStub,
             false
         )
 

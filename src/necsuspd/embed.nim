@@ -1,74 +1,87 @@
-import std/[macros, genasts], util
+import std/[macros, genasts, jsonutils, json], util
+
+proc parseForEmbed[T](content: string): T =
+  ## Parses the content of a file into a Nim object
+  when compiles(parse(T, content) is T):
+    return parse(T, content)
+  else:
+    return jsonTo(parseJson(content), T)
+
+template dynLoad[T](path: string, open, readString, close: untyped): T =
+  ## Opens and reads a file, returning the parsed content
+  block:
+    log "Dynamically loading from: ", path
+    let file = open(path)
+    try:
+      let content = readString(file)
+      assert(content != "")
+      parseForEmbed[T](content)
+    finally:
+      close(file)
 
 proc buildEmbed(
-    typ, path, exists, open, slurp, parse: NimNode, alwaysEmbed: bool
+    typ, path: NimNode,
+    exists, slurp, open, readString, close: NimNode,
+    alwaysEmbed: bool,
 ): NimNode =
   ## Embeds content from a file into the nim binary for release builds
-  let fullPath = genAst(path):
-    getProjectPath() & "/../" & path
+  let projPath = getProjectPath()
 
-  let embedded = genAst(fullPath, typ, parse, slurp):
+  let fullPath = genAst(path, projPath):
+    projPath & "/../" & path
+
+  let embedded = genAst(fullPath, typ, slurp):
     block:
-      const bin = toBinary(parse[typ](slurp(fullPath)))
+      log "Loading embedded data for ", fullPath
+      const bin = toBinary(parseForEmbed[typ](slurp(fullPath)))
       typ.fromBinary(bin)
 
   if alwaysEmbed:
     return embedded
 
-  let dynLoad = genSym(nskProc, "load")
-
-  let loadProc = genAst(typ, parse, open, dynLoad):
-    proc dynLoad(path: string): typ =
-      log "Dynamically loading from: ", path
-      let file = open(path)
-      try:
-        let content = file.readString()
-        assert(content != "")
-        return parse[typ](content)
-      finally:
-        file.close()
-
-  let build = genAst(path, fullPath, exists, embedded, dynLoad):
+  return genAst(path, fullPath, typ, exists, open, readString, close, embedded):
     block:
       if exists(path):
-        dynLoad(path)
+        dynLoad[typ](path, open, readString, close)
       else:
-        log "Dynamic load source does not exist: ", path, " -- using embedded value"
-        embedded
-
-  return genAst(build, typ, loadProc):
-    block:
-      loadProc
-      var built {.global.}: typ
-      once:
-        built = build
-      built
+        log "Dynamic load source does not exist: ", path
+        if exists(fullPath):
+          dynLoad[typ](fullPath, open, readString, close)
+        else:
+          log "Dynamic load source does not exist: ", fullPath
+          embedded
 
 when defined(unittests):
   macro embedData*(
       typ: typedesc,
       path: string,
-      exists, open, slurp, parse: untyped,
+      exists, slurp, open, readString, close: untyped,
       alwaysEmbed: static bool,
   ): auto =
-    buildEmbed(typ, path, exists, open, slurp, parse, alwaysEmbed)
+    buildEmbed(typ, path, exists, slurp, open, readString, close, alwaysEmbed)
 
 else:
   import playdate/api
 
   proc openForRead(path: string): auto =
+    assert(playdate != nil and playdate.file != nil)
     playdate.file.open(path, kFileRead)
 
   proc fileExists(path: string): bool =
-    playdate.file.exists(path)
+    if playdate != nil and playdate.file != nil:
+      result = playdate.file.exists(path)
 
-  macro embedData*(typ: typedesc, path: string, parse: untyped): auto =
+  proc closeFile(file: SDFile) =
+    file.close()
+
+  macro embedData*(typ: typedesc, path: string): auto =
     buildEmbed(
       typ,
       path,
       bindSym("fileExists"),
-      bindSym("openForRead"),
       bindSym("slurp"),
-      parse,
+      bindSym("openForRead"),
+      bindSym("readString"),
+      bindSym("closeFile"),
       defined(release),
     )
