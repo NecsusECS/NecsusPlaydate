@@ -16,8 +16,8 @@ proc toBinary(example: Example): string = example.foo
 
 proc fromBinary(typ: typedesc[Example], binary: string): Example = Example(foo: binary)
 
-const relPath = "path/to/file.txt"
-const absPath = fmt"{getProjectPath()}/../path/to/file.txt"
+const relPath = "tests/embed/example.json"
+const absPath = fmt"{getProjectPath()}/../{relPath}"
 
 proc slurp(path: string): string =
     assert(path == absPath, fmt"Path was: {path}")
@@ -44,15 +44,11 @@ suite "Embedding data":
 
     test "Dynamically loading an absolute file":
         proc exists(path: string): bool =
-            if path == relPath:
-                return false
-            else:
-                assert(path == absPath, fmt"Path was: {path}")
-                return true
+            assert(path == relPath)
+            return false
 
         proc open(path: string): StubFile =
-            assert(path == absPath)
-            return StubFile(content: """{ "foo": "foobarbaz" }""")
+            raiseAssert "Should not be called"
 
         let embedded = embedData(
             Example,

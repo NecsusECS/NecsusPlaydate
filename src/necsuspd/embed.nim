@@ -1,4 +1,4 @@
-import std/[macros, genasts, jsonutils, json], util
+import std/[macros, genasts, jsonutils, json], util, c
 
 proc parseForEmbed[T](content: string): T =
   ## Parses the content of a file into a Nim object
@@ -10,7 +10,6 @@ proc parseForEmbed[T](content: string): T =
 template dynLoad[T](path: string, open, readString, close: untyped): T =
   ## Opens and reads a file, returning the parsed content
   block:
-    log "Dynamically loading from: ", path
     let file = open(path)
     try:
       let content = readString(file)
@@ -30,26 +29,32 @@ proc buildEmbed(
   let fullPath = genAst(path, projPath):
     projPath & "/../" & path
 
-  let embedded = genAst(fullPath, typ, slurp):
+  result = genAst(fullPath, typ, slurp):
     block:
       log "Loading embedded data for ", fullPath
       const bin = toBinary(parseForEmbed[typ](slurp(fullPath)))
       typ.fromBinary(bin)
 
-  if alwaysEmbed:
-    return embedded
+  if not alwaysEmbed:
+    when not defined(device):
+      result = genAst(path, fullPath, typ, exists, open, readString, close, result):
+        block:
+          let content = c_readAll(fullPath)
+          if content != "":
+            log "Dynamically loading from: ", fullPath
+            parseForEmbed[typ](content)
+          else:
+            log "Dynamic load source does not exist: ", fullPath
+            result
 
-  return genAst(path, fullPath, typ, exists, open, readString, close, embedded):
-    block:
-      if exists(path):
-        dynLoad[typ](path, open, readString, close)
-      else:
-        log "Dynamic load source does not exist: ", path
-        if exists(fullPath):
-          dynLoad[typ](fullPath, open, readString, close)
+    result = genAst(path, typ, exists, open, readString, close, result):
+      block:
+        if exists(path):
+          log "Dynamically loading from: ", path
+          dynLoad[typ](path, open, readString, close)
         else:
-          log "Dynamic load source does not exist: ", fullPath
-          embedded
+          log "Dynamic load source does not exist: ", path
+          result
 
 when defined(unittests):
   macro embedData*(
