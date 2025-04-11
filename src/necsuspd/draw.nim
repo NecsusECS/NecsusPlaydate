@@ -87,11 +87,12 @@ proc setMany*[W: static int32](
     setMany(data, maskData, true, pixels)
 
 template drawContext*(img: LCDBitmap, exec: untyped) =
+  assert(img != nil)
   playdate.graphics.pushContext(img)
-  block:
-    defer:
-      playdate.graphics.popContext()
+  try:
     exec
+  finally:
+    playdate.graphics.popContext()
 
 template drawContext*(sprite: Sprite | ptr Sprite, exec: untyped) =
   sprite.markDirty()
