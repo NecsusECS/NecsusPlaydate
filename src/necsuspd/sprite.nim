@@ -1,4 +1,4 @@
-import playdate/api, positioned, necsus, vmath, time, viewport, util
+import playdate/api, positioned, necsus, vmath, time, viewport, util, vec_tools
 import std/[options, strformat, macros, sequtils]
 
 type
@@ -74,6 +74,23 @@ type
     link: Sprite
 
   Sprite* = ref SpriteObj
+
+proc offsetCellId*(frame: Frame, offset: int32): Frame =
+  ## Creates a copy of this frame with the cellId offset by a specific amount
+  result = frame
+  result.cellId = frame.cellId + offset
+
+proc scale*(anchor: Anchor, factor: float32): Anchor =
+  ## Scales an anchor by a given amount
+  result = anchor
+  result.offset = (anchor.offset.vec2 * factor).toIVec2
+
+proc modify*[S](def: AnimationDef[S], cellOffset: int32 = 0, anchorScale: float32 = 1.0): AnimationDef[S] =
+  ## Creates a copy of an AnimationDef with all the cellIds offset by a given amount
+  result = new(AnimationDef[S])
+  result[] = def[]
+  result.frames = def.frames.mapIt(it.offsetCellId(cellOffset))
+  result.anchor = def.anchor.scale(anchorScale)
 
 proc keyframe*(keyframe: Keyframe, typ: typedesc[enum]): Option[typ] =
   ## Extracts the keyframe as an enum
