@@ -264,29 +264,38 @@ proc `[]`[S](anim: Animation[S], frame: int32): LCDBitmap =
   assert(not anim.frameCache[frame].isNil)
   return anim.frameCache[frame]
 
-proc newSheet*[S](
+proc newSheet*[S : enum](
+    frames: seq[LCDBitmap],
+    def: AnimationDef[S],
+    zIndex: ZIndexValue,
+    absolutePos: bool = false,
+): Animation[S] =
+  assert(frames.allIt(it != nil))
+
+  result = Animation[S](
+    def: def,
+    sprite: playdate.sprite.newSprite(),
+    absolutePos: absolutePos,
+    frameCache: frames.toSeq,
+  )
+
+  result.sprite.setImage(result[result.frame], kBitmapUnflipped)
+  `zIndex=`(result.sprite, ord(zIndex).int16)
+  result.sprite.add()
+  change(addr result, def)
+
+proc newSheet*[S : enum](
     assets: SharedOrT[SheetTable[S]],
     def: AnimationDef[S],
     zIndex: ZIndexValue,
     absolutePos: bool = false,
 ): Animation[S] =
   let table = assets.unwrap.sheet(def.sheet)
-  let frames = table.getBitmapTableInfo.count
-
-  result = Animation[S](
-    def: def,
-    sprite: playdate.sprite.newSprite(),
-    absolutePos: absolutePos,
-    frameCache: newSeq[LCDBitmap](frames),
-  )
-
-  for i in 0 ..< frames:
-    result.frameCache[i] = table.getBitmap(i)
-
-  result.sprite.setImage(result[result.frame], kBitmapUnflipped)
-  `zIndex=`(result.sprite, ord(zIndex).int16)
-  result.sprite.add()
-  change(addr result, def)
+  let frameCount = table.getBitmapTableInfo.count
+  var frames = newSeq[LCDBitmap](frameCount)
+  for i in 0 ..< frameCount:
+    frames[i] = table.getBitmap(i)
+  newSheet[S](frames, def, zIndex, absolutePos)
 
 template move(movable, viewport) =
   let viewportOffset = ivec2(viewport.x, viewport.y)
