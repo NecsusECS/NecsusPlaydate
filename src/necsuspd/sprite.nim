@@ -85,12 +85,14 @@ proc scale*(anchor: Anchor, factor: float32): Anchor =
   result = anchor
   result.offset = (anchor.offset.vec2 * factor).toIVec2
 
-proc modify*[S](def: AnimationDef[S], cellOffset: int32 = 0, anchorScale: float32 = 1.0): AnimationDef[S] =
+proc modify*[S](
+    def: AnimationDef[S], cellOffset: int32 = 0, anchor: Anchor = def.anchor
+): AnimationDef[S] =
   ## Creates a copy of an AnimationDef with all the cellIds offset by a given amount
   result = new(AnimationDef[S])
   result[] = def[]
   result.frames = def.frames.mapIt(it.offsetCellId(cellOffset))
-  result.anchor = def.anchor.scale(anchorScale)
+  result.anchor = anchor
 
 proc keyframe*(keyframe: Keyframe, typ: typedesc[enum]): Option[typ] =
   ## Extracts the keyframe as an enum
