@@ -85,6 +85,9 @@ proc `/`*(a, b: FPInt32): FPInt32 =
   assert(a.precision == b.precision)
   return typeof(a)(a.int32.int64 shl a.precision / b.int32.int64)
 
+proc `div`*(a, b: FPInt32): FPInt32 {.inline.} =
+  a / b
+
 proc `$`*(d: FPInt32): string =
   $d.toFloat32
 
