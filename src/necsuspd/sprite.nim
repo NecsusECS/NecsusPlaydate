@@ -290,7 +290,7 @@ proc `[]`[S](anim: Animation[S], frame: int32): LCDBitmap =
   assert(not anim.frameCache[frame].isNil)
   return anim.frameCache[frame]
 
-proc newSheet*[S : enum](
+proc newSheet*[S: enum](
     frames: seq[LCDBitmap],
     def: AnimationDef[S],
     zIndex: ZIndexValue,
@@ -310,7 +310,7 @@ proc newSheet*[S : enum](
   result.sprite.add()
   change(addr result, def)
 
-proc newSheet*[S : enum](
+proc newSheet*[S: enum](
     assets: SharedOrT[SheetTable[S]],
     def: AnimationDef[S],
     zIndex: ZIndexValue,
