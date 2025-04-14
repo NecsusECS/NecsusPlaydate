@@ -265,6 +265,13 @@ proc offset*(sprite: Sprite | Animation): IVec2 {.inline.} =
 proc `offset=`*(sprite: Sprite | Animation, offset: IVec2) {.inline.} =
   sprite.manualOffset = offset
 
+proc softChange*[S](animation: ptr Animation[S] | Animation[S], def: AnimationDef[S]) =
+  ## Changes the animation currently runnig while trying not to modify the frame number
+  assert(animation.def.sheet == def.sheet)
+  animation.def = def
+  animation.frame = animation.frame.clamp(0'i32, def.frames.len.int32 - 1)
+  animation.anchorOffset = animation.sprite.offsetFix(def.anchor.toAnchor)
+
 proc change*[S](animation: ptr Animation[S] | Animation[S], def: AnimationDef[S]) =
   ## Changes the animation currently runnig for a sprite
   assert(animation.def.sheet == def.sheet)
