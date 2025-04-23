@@ -1,4 +1,4 @@
-import std/unittest, necsuspd/fixedpoint
+import std/[unittest, math], necsuspd/fixedpoint
 
 template defineTests(p: static Natural) =
   suite "Fixed point math at precision " & $p:
@@ -49,17 +49,21 @@ template defineTests(p: static Natural) =
       check 1.fp(p) == 1.0
       check 1.7.fp(p) == 1.7
 
+    test "Square root":
+      for i in 0..100:
+        check almostEqual(sqrt(i.fp(p)), sqrt(i.float32).fp(p))
+
 defineTests(4)
 defineTests(8)
 defineTests(16)
 
 suite "Variable fixed point precision":
   test "High":
-    check high(FPInt32[4]) == 134217728.0
-    check high(FPInt32[8]) == 8388608.0
-    check high(FPInt32[16]) == 32768.0
+    check high(FPInt32[4]).toFloat32 == 134217728.0
+    check high(FPInt32[8]).toFloat32 == 8388608.0
+    check high(FPInt32[16]).toFloat32 == 32768.0
 
   test "Low":
-    check low(FPInt32[4]) == -134217728.0
-    check low(FPInt32[8]) == -8388608.0
-    check low(FPInt32[16]) == -32768.0
+    check low(FPInt32[4]).toFloat32 == -134217728.0
+    check low(FPInt32[8]).toFloat32 == -8388608.0
+    check low(FPInt32[16]).toFloat32 == -32768.0

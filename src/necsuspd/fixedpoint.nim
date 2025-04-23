@@ -1,7 +1,7 @@
 ##
 ## Represents a floating point value using an integer and a precision
 ##
-import macros, vmath
+import macros, vmath, util
 
 type FPInt32*[P: static Natural] = distinct int32
   ## 32-bit fixed point integer with P bits of precision
@@ -18,10 +18,10 @@ proc fp8*(value: SomeNumber): FPInt32[8] =
   ## Convert a number to a 8 bit fixed point
   fp(value, 8)
 
-converter toInt32*(d: FPInt32): int32 =
+proc toInt32*(d: FPInt32): int32 =
   d.int32 shr d.precision
 
-converter toFloat32*(d: FPInt32): float32 =
+proc toFloat32*(d: FPInt32): float32 =
   d.int32 / (1 shl d.precision)
 
 macro precision*(num: FPInt32): Natural =
@@ -31,6 +31,9 @@ macro precision*(num: FPInt32): Natural =
   typ[0].expectKind(nnkSym)
   typ[1].expectKind(nnkIntLit)
   return typ[1]
+
+template `as`*(value: typed, prototype: FPInt32): typeof(prototype) =
+  typeof(prototype)(fp(value, prototype.precision))
 
 template defineMathOp(op: untyped) =
   proc `op`*(a, b: FPInt32): FPInt32 =
@@ -47,9 +50,9 @@ defineMathOp(`+`)
 defineMathOp(`-`)
 
 template defineFloatOp(op: untyped) =
-  proc `op`*(a, b: FPInt32): FPInt32 {.inline.} =
+  proc `op`*(a, b: FPInt32): typeof(a) {.inline.} =
     assert(a.precision == b.precision)
-    typeof(a)(fp(`op`(a.toFloat32, b.toFloat32), a.precision))
+    fp(`op`(a.toFloat32, b.toFloat32), a.precision) as a
 
 defineFloatOp(`arctan2`)
 
@@ -75,10 +78,10 @@ proc high(typ: typedesc[FPInt32]): typ =
 proc low(typ: typedesc[FPInt32]): typ =
   return typeof(result)(low(int32))
 
-proc `*`*(a, b: FPInt32): FPInt32 =
+proc `*`*(a, b: FPInt32): FPInt32 {.inline.} =
   # Fixed point multipliation
   assert(a.precision == b.precision)
-  return typeof(a)(a.int32.int64 * b.int32.int64 shr a.precision)
+  typeof(a)(a.int32.int64 * b.int32.int64 shr a.precision)
 
 proc `/`*(a, b: FPInt32): FPInt32 =
   # Fixed point division
@@ -87,6 +90,28 @@ proc `/`*(a, b: FPInt32): FPInt32 =
 
 proc `div`*(a, b: FPInt32): FPInt32 {.inline.} =
   a / b
+
+proc almostEqual*(a, b: FPInt32): bool {.inline.} =
+  abs(a.int32 - b.int32) <= 4
+
+proc sqrt*(value: FPInt32): typeof(value) =
+  ## Calculates the square root of a fixed point number without converting to a floating point
+  assert(value.int32 >= 0, "Cannot take square root of negative number")
+
+  const one = fp(1, value.precision).int32
+  if value.int32 == one or value.int32 == 0:
+    return value
+
+  const half = 0.5 as value
+  const epsilon = typeof(value)(8)
+
+  # Use Newton's method
+  result = value.toInt32.isqrt as value
+  for i in 0 .. 10:
+    let previous = result
+    result = half * (result + value / result)
+    if abs(result - previous) <= epsilon:
+      break
 
 proc `$`*(d: FPInt32): string =
   $d.toFloat32
@@ -113,7 +138,7 @@ proc toFPVec2*(ivec2: IVec2): FPVec2 =
   fpvec2(ivec2.x, ivec2.y)
 
 proc toIVec2*(vec: FPVec2): IVec2 =
-  ivec2(vec.x, vec.y)
+  ivec2(vec.x.toInt32, vec.y.toInt32)
 
 proc toVec2*(vec: FPVec2): Vec2 =
-  vec2(vec.x, vec.y)
+  vec2(vec.x.toFloat32, vec.y.toFloat32)
