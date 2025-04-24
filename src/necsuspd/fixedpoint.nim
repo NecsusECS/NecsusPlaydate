@@ -94,6 +94,15 @@ proc `div`*(a, b: FPInt32): FPInt32 {.inline.} =
 proc almostEqual*(a, b: FPInt32): bool {.inline.} =
   abs(a.int32 - b.int32) <= 4
 
+template defineInplace(op, baseOp: untyped) =
+  proc `op`*(a: var FPInt32, b: FPInt32) =
+    a = `baseOp`(a, b)
+
+defineInplace(`+=`, `+`)
+defineInplace(`-=`, `-`)
+defineInplace(`*=`, `*`)
+defineInplace(`/=`, `/`)
+
 proc sqrt*(value: FPInt32): typeof(value) =
   ## Calculates the square root of a fixed point number without converting to a floating point
   assert(value.int32 >= 0, "Cannot take square root of negative number")

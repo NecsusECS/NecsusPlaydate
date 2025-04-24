@@ -40,6 +40,21 @@ template defineTests(p: static Natural) =
       check 8.fp(p) / 4.fp(p) == 2.fp(p)
       check 11.25.fp(p) / 4.5.fp(p) == 2.5.fp(p)
 
+    test "In place operators":
+      var a = 2.fp(p)
+
+      a += 3.fp(p)
+      check a == 5.fp(p)
+
+      a -= 1.fp(p)
+      check a == 4.fp(p)
+
+      a *= 2.fp(p)
+      check a == 8.fp(p)
+
+      a /= 4.fp(p)
+      check a == 2.fp(p)
+
     test "toInt32":
       check 1.fp(p).toInt32 == 1
       check 1.5.fp(p).toInt32 == 1
@@ -50,7 +65,7 @@ template defineTests(p: static Natural) =
       check 1.7.fp(p) == 1.7
 
     test "Square root":
-      for i in 0..100:
+      for i in 0 .. 100:
         check almostEqual(sqrt(i.fp(p)), sqrt(i.float32).fp(p))
 
 defineTests(4)
