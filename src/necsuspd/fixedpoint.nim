@@ -35,16 +35,19 @@ macro precision*(num: FPInt32): Natural =
 template `as`*(value: typed, prototype: FPInt32): typeof(prototype) =
   typeof(prototype)(fp(value, prototype.precision))
 
+template defineMathInterop(op: untyped) =
+  proc `op`*(a: SomeInteger, b: FPInt32): FPInt32 =
+    (a as b.precision) `op` b
+
+  proc `op`*(a: FPInt32, b: SomeInteger): FPInt32 =
+    a `op` (b as a)
+
 template defineMathOp(op: untyped) =
   proc `op`*(a, b: FPInt32): FPInt32 =
     assert(a.precision == b.precision)
     typeof(a)(`op`(a.int32, b.int32))
 
-  proc `op`*(a: SomeInteger, b: FPInt32): FPInt32 =
-    fp(a, b.precision) `op` b
-
-  proc `op`*(a: FPInt32, b: SomeInteger): FPInt32 =
-    a `op` fp(b, a.precision)
+  defineMathInterop(op)
 
 defineMathOp(`+`)
 defineMathOp(`-`)
@@ -87,6 +90,9 @@ proc `/`*(a, b: FPInt32): FPInt32 =
   # Fixed point division
   assert(a.precision == b.precision)
   return typeof(a)(a.int32.int64 shl a.precision / b.int32.int64)
+
+defineMathInterop(`*`)
+defineMathInterop(`/`)
 
 proc `div`*(a, b: FPInt32): FPInt32 {.inline.} =
   a / b
