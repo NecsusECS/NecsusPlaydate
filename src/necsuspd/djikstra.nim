@@ -10,6 +10,11 @@ type
   DjikstraNode*[T, N] = tuple[stepCost, totalCost: T, next: N]
     ## A node in the resulting djikstra graph
 
+  DjikstraQueueNode*[T, N] = object
+    ## A unit of work while calculating the djikstra graph
+    node: N
+    cost: T
+
   DjikstraGraph*[T, N] = object
     ## Holds a precalculated graph of distances to a target node
     nodes: Table[N, DjikstraNode[T, N]]
@@ -29,9 +34,9 @@ proc `[]`*[T, N](graph: DjikstraGraph[T, N], node: N): DjikstraNode[T, N] =
   ## Returns the node in the graph for the input node
   graph.nodes[node]
 
-proc `<`[T, N](a, b: DjikstraNode[T, N]): bool =
+proc `<`*[T, N](a, b: DjikstraQueueNode[T, N]): bool =
   ## Define custom comparison proc for ordering the heap
-  a.priority < b.priority
+  a.cost < b.cost
 
 proc `$`*[T, N](graph: DjikstraGraph[T, N]): string =
   result = "{"
@@ -51,25 +56,25 @@ proc calculateDjikstra*[T, N: DjikstraRouteNode](
   result = DjikstraGraph[T, N](nodes: initTable[N, DjikstraNode[T, N]]())
 
   var processed = initHashSet[N]()
-  var queue = initHeapQueue[(T, N)]()
+  var queue = initHeapQueue[DjikstraQueueNode[T, N]]()
 
   # Initialize with targets
   for target in map.targets:
     let cost = map.cost(target, target)
     result.nodes[target] = (cost, cost, target)
-    queue.push((cost, target))
+    queue.push(DjikstraQueueNode[T, N](cost: cost, node: target))
 
   while queue.len > 0:
-    let (totalCost, node) = queue.pop()
+    let work = queue.pop()
 
-    if node notin processed:
-      processed.incl(node)
+    if work.node notin processed:
+      processed.incl(work.node)
 
       # Process all neighbors
-      for neighbor in map.neighbors(node):
-        let stepCost = map.cost(neighbor, node)
-        let neighborCost = totalCost + stepCost
+      for neighbor in map.neighbors(work.node):
+        let stepCost = map.cost(neighbor, work.node)
+        let neighborCost = work.cost + stepCost
 
         if neighbor notin result.nodes or neighborCost < result.nodes[neighbor].totalCost:
-          result.nodes[neighbor] = (stepCost, neighborCost, node)
-          queue.push((neighborCost, neighbor))
+          result.nodes[neighbor] = (stepCost, neighborCost, work.node)
+          queue.push(DjikstraQueueNode[T, N](cost: neighborCost, node: neighbor))

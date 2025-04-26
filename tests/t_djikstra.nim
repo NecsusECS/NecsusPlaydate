@@ -102,7 +102,7 @@ suite "Djikstra's algorithm":
       graph.directions(4) ==
         """
         X<<<
-        ^<<^
+        ^^^^
         ^<v^
         >>>X
         """.dedent
