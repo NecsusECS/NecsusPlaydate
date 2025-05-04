@@ -1,4 +1,4 @@
-import std/[unittest, strutils, strformat], necsuspd/djikstra
+import std/[unittest, strutils], necsuspd/djikstra
 
 type
   Point = tuple[x, y: int]

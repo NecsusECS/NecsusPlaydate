@@ -17,7 +17,7 @@ proc `$`(field: FlowField): string =
 proc contains(map: Map, point: IVec2): bool =
   point.x >= 0 and point.x < len(map) and point.y >= 0 and point.y < len(map[point.x])
 
-proc cost(map: Map, point: IVec2): int =
+proc totalCost(map: Map, point: IVec2): int =
   if contains(map, point):
     map[point.x][point.y]
   else:

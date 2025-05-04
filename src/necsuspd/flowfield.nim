@@ -5,7 +5,7 @@ type
     concept i
         ## An input from which a flow field can be generated.
         i.contains(IVec2) is bool
-        i.cost(IVec2) is SomeNumber
+        i.totalCost(IVec2) is SomeNumber
 
   FlowField*[W, H: static int32] = array[W, array[H, FPVec2]]
 
@@ -30,10 +30,10 @@ proc computeFlowField*[W, H: static int32](map: FlowFieldInput): FlowField[W, H]
   ## Compute a flow field of a given size
   for node in grid(W, H):
     var total = fpvec2(0, 0)
-    let nodeCost = map.cost(node)
+    let nodeCost = map.totalCost(node)
     for (neighbor, rel) in neighbors(node, W, H):
       if map.contains(neighbor):
-        let delta = nodeCost - map.cost(neighbor)
+        let delta = nodeCost - map.totalCost(neighbor)
         if delta > 0:
           total += rel
 
