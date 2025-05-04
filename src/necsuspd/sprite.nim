@@ -420,11 +420,25 @@ proc `zIndex=`*(sprite: Sprite | Animation, index: auto) {.inline.} =
 proc setImage*(sprite: Sprite, img: LCDBitmap) {.inline.} =
   sprite.sprite.setImage(img, kBitmapUnflipped)
 
+var debugCallbacks: seq[proc(debug: LCDBitmap)]
+
+proc debugDraw*(callback: proc(debug: LCDBitmap)) {.inline.} =
+  ## Registers a callback to be called when the debug bitmap is available.
+  when defined(simulator):
+    debugCallbacks.add(callback)
+
 proc drawSprites*() =
   ## draws all sprites
   playdate.sprite.drawSprites()
+
   if defined(showFPS):
     playdate.system.drawFPS(LCD_COLUMNS - 18, 4)
+
+  when defined(simulator):
+    var img = playdate.graphics.getDebugBitmap()
+    if img != nil:
+      for debug in debugCallbacks:
+        debug(img)
 
 proc remove*(sprite: Sprite | Animation) =
   sprite.sprite.remove()

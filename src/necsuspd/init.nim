@@ -37,6 +37,8 @@ template initNecsusPlaydate*(
       playdate.system.setUpdateCallback(update)
       playdate.graphics.setDrawMode(kDrawModeWhiteTransparent)
 
+      discard playdate.graphics.getDebugBitmap()
+
       reportError:
         log "Beginning app initialization"
         initNecsusApp
