@@ -1,4 +1,4 @@
-import std/[macros, options, strutils, macrocache]
+import std/[macros, options, strutils, macrocache, importutils]
 
 when not defined(unittests):
   import playdate/api
@@ -129,6 +129,17 @@ iterator flatten*[T](source: openArray[T]): auto =
 iterator items*[T](option: Option[T]): T =
   if option.isSome:
     yield option.unsafeGet
+
+template withValue*[T](source: Option[T], varname, ifExists: untyped) =
+  ## Reads a value from an Option, assigns it to a variable, and calls `ifExists` when it is `some`.
+  ## If the value is `none`, it calls `ifAbsent`.
+  privateAccess(Option)
+  let local {.cursor.} = source
+  if local.isSome:
+    template varname(): auto {.inject, used.} =
+      local.val
+
+    ifExists
 
 template arrayRepeat*(kind: typedesc, size: static[int32], values: untyped): untyped =
   ## Repeats an array with repeated values
