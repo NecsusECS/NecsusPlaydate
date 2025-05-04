@@ -30,6 +30,12 @@ type
 
         i.cost(N, N) is T
 
+proc cost*[T, N](graph: DjikstraGraph[T, N], node: N): T =
+  graph.nodes.getOrDefault(node).totalCost
+
+proc contains*[T, N](graph: DjikstraGraph[T, N], node: N): bool =
+  node in graph.nodes
+
 proc `[]`*[T, N](graph: DjikstraGraph[T, N], node: N): DjikstraNode[T, N] =
   ## Returns the node in the graph for the input node
   graph.nodes[node]

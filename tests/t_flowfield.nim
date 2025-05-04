@@ -1,4 +1,4 @@
-import std/[unittest, strutils], necsuspd/flowfield, vmath
+import std/[unittest, strutils], necsuspd/[flowfield, djikstra], vmath
 
 type Map[N] = array[N, array[N, int]]
 
@@ -44,3 +44,7 @@ suite "FlowField":
 
         """.dedent
     )
+
+  test "Generate a flow field from a djikstra map":
+    var djikstra: DjikstraGraph[int32, IVec2]
+    discard computeFlowField[3, 3](djikstra)
