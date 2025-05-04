@@ -1,4 +1,4 @@
-import fixedpoint, vmath
+import fixedpoint, vmath, std/strformat
 
 type
   FlowFieldInput* =
@@ -7,7 +7,7 @@ type
         i.contains(IVec2) is bool
         i.totalCost(IVec2) is SomeNumber
 
-  FlowField*[W, H: static int32] = array[W, array[H, FPVec2]]
+  FlowField*[W, H: static int32] = array[H, array[W, FPVec2]]
 
 export fixedpoint
 
