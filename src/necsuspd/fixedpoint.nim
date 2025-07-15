@@ -152,6 +152,8 @@ proc fpvec2*(x, y: SomeInteger): FPVec2 =
 proc toFPVec2*(ivec2: IVec2): FPVec2 =
   fpvec2(ivec2.x, ivec2.y)
 
+template toFPVec2*(vec2: FPVec2): FPVec2 = vec2
+
 proc toIVec2*(vec: FPVec2): IVec2 =
   ivec2(vec.x.toInt32, vec.y.toInt32)
 
