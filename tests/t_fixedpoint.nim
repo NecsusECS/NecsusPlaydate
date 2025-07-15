@@ -68,6 +68,13 @@ template defineTests(p: static Natural) =
       for i in 0 .. 100:
         check almostEqual(sqrt(i.fp(p)), sqrt(i.float32).fp(p))
 
+    test "arctan2":
+      let arc = arctan2(1.fp(p), 1.fp(p))
+      # check almostEqual(arctan2(1.fp(p), 1.fp(p)), PI / 4.fp(p))
+      # check almostEqual(arctan2(1.fp(p), -1.fp(p)), 3 * PI / 4.fp(p))
+      # check almostEqual(arctan2(-1.fp(p), 1.fp(p)), -PI / 4.fp(p))
+      # check almostEqual(arctan2(-1.fp(p), -1.fp(p)), -3 * PI / 4.fp(p))
+
 defineTests(4)
 defineTests(8)
 defineTests(16)

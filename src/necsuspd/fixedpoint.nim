@@ -55,7 +55,7 @@ defineMathOp(`-`)
 template defineFloatOp(op: untyped) =
   proc `op`*(a, b: FPInt32): typeof(a) {.inline.} =
     assert(a.precision == b.precision)
-    fp(`op`(a.toFloat32, b.toFloat32), a.precision) as a
+    `op`(a.toFloat32, b.toFloat32) as a
 
 defineFloatOp(`arctan2`)
 
