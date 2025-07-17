@@ -1,4 +1,4 @@
-import fixedpoint, vmath, std/strformat
+import fpvec, vmath, std/strformat
 
 type
   FlowFieldInput* =

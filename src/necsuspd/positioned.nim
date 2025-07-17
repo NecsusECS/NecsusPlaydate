@@ -1,4 +1,4 @@
-import vmath, vec_tools, necsus, std/options, bumpy, fixedpoint
+import vmath, vec_tools, necsus, std/options, bumpy, fpvec
 
 type
   Positioned* = object ## A Position of a thing that can be rendered

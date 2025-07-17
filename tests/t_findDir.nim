@@ -1,4 +1,4 @@
-import unittest, necsuspd/[findDir, positioned, fixedpoint], options
+import unittest, necsuspd/[findDir, positioned], options, fixedpoint
 
 suite "Find Dir":
   iterator entities(): auto =
