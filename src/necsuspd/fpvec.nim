@@ -8,9 +8,10 @@ export fixedpoint
 const FPVecPrecision* {.intDefine.} = 6
 
 type
-  FPVec2* = GVec2[FPInt32[FPVecPrecision]]
-  FPVec3* = GVec3[FPInt32[FPVecPrecision]]
-  FPVec4* = GVec4[FPInt32[FPVecPrecision]]
+  FPInt* = FPInt32[FPVecPrecision]
+  FPVec2* = GVec2[FPInt]
+  FPVec3* = GVec3[FPInt]
+  FPVec4* = GVec4[FPInt]
 
 proc fp*(value: SomeInteger, precision: static Natural = FPVecPrecision): FPInt32[precision] =
   ## Creates a fixed point number
