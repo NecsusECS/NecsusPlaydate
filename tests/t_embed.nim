@@ -28,7 +28,7 @@ proc slurp(path: string): string =
 
 suite "Embedding data":
   test "Statically loading a file":
-    let embedded = embedData(Example, relPath, nil, slurp, nil, nil, nil, true)
+    let embedded = embedDataTest(Example, relPath, nil, slurp, nil, nil, nil, true)
     check(embedded == Example(foo: "bar"))
 
   test "Dynamically loading a file":
@@ -41,7 +41,7 @@ suite "Embedding data":
       return StubFile(content: """{ "foo": "foobarbaz" }""")
 
     let embedded =
-      embedData(Example, relPath, exists, slurp, open, readStub, closeStub, false)
+      embedDataTest(Example, relPath, exists, slurp, open, readStub, closeStub, false)
 
     check(embedded == Example(foo: "foobarbaz"))
 
@@ -54,6 +54,6 @@ suite "Embedding data":
       raiseAssert "Should not be called"
 
     let embedded =
-      embedData(Example, relPath, exists, slurp, open, readStub, closeStub, false)
+      embedDataTest(Example, relPath, exists, slurp, open, readStub, closeStub, false)
 
     check(embedded == Example(foo: "foobarbaz"))

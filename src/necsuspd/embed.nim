@@ -57,7 +57,7 @@ proc buildEmbed(
           result
 
 when defined(unittests):
-  macro embedData*(
+  macro embedDataTest*(
       typ: typedesc,
       path: string,
       exists, slurp, open, readString, close: untyped,
