@@ -13,11 +13,15 @@ type
   FPVec3* = GVec3[FPInt]
   FPVec4* = GVec4[FPInt]
 
-proc fp*(value: SomeInteger, precision: static Natural = FPVecPrecision): FPInt32[precision] =
+proc fp*(
+    value: SomeInteger, precision: static Natural = FPVecPrecision
+): FPInt32[precision] =
   ## Creates a fixed point number
   FPInt32[precision](value shl precision)
 
-proc fp*(value: SomeFloat, precision: static Natural = FPVecPrecision): FPInt32[precision] =
+proc fp*(
+    value: SomeFloat, precision: static Natural = FPVecPrecision
+): FPInt32[precision] =
   ## Creates a fixed point number
   FPInt32[precision](int32(value * (1 shl precision)))
 
@@ -37,3 +41,24 @@ proc toIVec2*(vec: FPVec2): IVec2 =
 
 proc toVec2*(vec: FPVec2): Vec2 =
   vec2(vec.x.toFloat, vec.y.toFloat)
+
+proc nudge*(base, towards: FPVec2, strength: FPInt = fp(0.2)): FPVec2 =
+  ## Nudges a vector towards its direction
+  result = base
+  if towards != fpvec2(0, 0):
+    result += towards.normalize() * strength
+
+proc limitedAdjust*(current, preferred: FPVec2, maxDelta: FPInt): FPVec2 =
+  ## Adjusts the current direction towards the preferred direction,
+  ## but limits the maximum delta between them
+
+  let delta = preferred - current
+  let deltaLength = delta.length
+
+  # If the delta is already within limits, just return the preferred direction
+  return
+    if deltaLength <= maxDelta:
+      preferred
+    else:
+      # Scale the delta to the maximum allowed length and add to current
+      current + (delta * (maxDelta / deltaLength))
