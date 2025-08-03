@@ -57,6 +57,8 @@ proc buildEmbed(
           result
 
 when defined(unittests):
+  import std/os
+
   macro embedDataTest*(
       typ: typedesc,
       path: string,
@@ -64,6 +66,17 @@ when defined(unittests):
       alwaysEmbed: static bool,
   ): auto =
     buildEmbed(typ, path, exists, slurp, open, readString, close, alwaysEmbed)
+
+  proc openForRead(path: string): auto =
+    var handle: File
+    assert(open(handle, path, fmRead), "Could not open file")
+    return handle
+
+  proc readString(handle: File): string =
+    readAll(handle)
+
+  proc closeFile(handle: File) =
+    close(handle)
 
 else:
   import playdate/api
@@ -79,14 +92,14 @@ else:
   proc closeFile(file: SDFile) =
     file.close()
 
-  macro embedData*(typ: typedesc, path: string): auto =
-    buildEmbed(
-      typ,
-      path,
-      bindSym("fileExists"),
-      bindSym("slurp"),
-      bindSym("openForRead"),
-      bindSym("readString"),
-      bindSym("closeFile"),
-      defined(release),
-    )
+macro embedData*(typ: typedesc, path: string): auto =
+  buildEmbed(
+    typ,
+    path,
+    bindSym("fileExists"),
+    bindSym("slurp"),
+    bindSym("openForRead"),
+    bindSym("readString"),
+    bindSym("closeFile"),
+    defined(release),
+  )
