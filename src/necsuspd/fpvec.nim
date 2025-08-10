@@ -45,7 +45,7 @@ proc toVec2*(vec: FPVec2): Vec2 =
 proc nudge*(base, towards: FPVec2, strength: FPInt = fp(0.2)): FPVec2 =
   ## Nudges a vector towards its direction
   result = base
-  if towards != fpvec2(0, 0):
+  if towards.lengthSq > 0:
     result += towards.normalize() * strength
 
 proc limitedAdjust*(current, preferred: FPVec2, maxDelta: FPInt): FPVec2 =

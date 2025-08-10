@@ -37,4 +37,4 @@ proc computeFlowField*[W, H: static int32](map: FlowFieldInput): FlowField[W, H]
         if delta > 0:
           total += rel
 
-    result[node.y][node.x] = if total == fpvec2(0, 0): total else: total.normalize
+    result[node.y][node.x] = if total.lengthSq > 0: total.normalize else: total
