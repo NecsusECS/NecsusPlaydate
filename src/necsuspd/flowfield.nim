@@ -1,4 +1,4 @@
-import fpvec, vmath, std/strformat
+import fpvec, vmath
 
 type
   FlowFieldInput* =
@@ -7,7 +7,7 @@ type
         i.contains(IVec2) is bool
         i.totalCost(IVec2) is SomeNumber
 
-  FlowField*[W, H: static int32] = array[H, array[W, FPVec2]]
+  FlowField*[W, H: static int32] = ref array[H, array[W, FPVec2]]
 
 export fixedpoint
 
@@ -28,6 +28,7 @@ iterator neighbors(
 
 proc computeFlowField*[W, H: static int32](map: FlowFieldInput): FlowField[W, H] =
   ## Compute a flow field of a given size
+  result.new()
   for node in grid(W, H):
     var total = fpvec2(0, 0)
     let nodeCost = map.totalCost(node)

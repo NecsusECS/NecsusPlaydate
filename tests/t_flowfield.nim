@@ -4,7 +4,7 @@ type Map[N] = array[N, array[N, int]]
 
 proc `$`(field: FlowField): string =
   result = ""
-  for row in field:
+  for row in field[]:
     for elem in row:
       result.add "("
       result.add $elem.x
