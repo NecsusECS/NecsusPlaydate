@@ -1,4 +1,4 @@
-import vmath, vec_tools, necsus, std/options, bumpy, fpvec
+import vmath, vec_tools, necsus, std/[options, strformat], bumpy, fpvec
 
 type
   Positioned* = object ## A Position of a thing that can be rendered
@@ -7,6 +7,9 @@ type
   Follower* = object ## Tracks one object from another
     leader: EntityId
     offset: FPVec2
+
+proc `$`*(coords: Positioned): string =
+  fmt"({coords.pos.x}, {coords.pos.y})"
 
 proc positioned*(coords: FPVec2): auto =
   Positioned(pos: coords, lastPos: coords)
