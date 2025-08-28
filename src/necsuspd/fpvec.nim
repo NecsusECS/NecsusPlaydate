@@ -88,3 +88,22 @@ proc limitedAdjust*(current, preferred: FPVec2, maxDelta: FPInt): FPVec2 =
     else:
       # Scale the delta to the maximum allowed length and add to current
       current + (delta * (maxDelta / deltaLength))
+
+proc rayPointsAtCircle*(origin, direction, center: GVec2, radius: auto): bool =
+  ## Returns whether a ray starting at `origin` with direction `direction`
+  ## intersects a circle centered at `center` with radius `radius`.
+  let f = center - origin
+  let dirLen2 = dot(direction, direction)
+
+  if dirLen2 == 0:
+    # Degenerate ray: it's just a point
+    return dot(f, f) <= radius*radius
+
+  let proj = dot(f, direction) / dirLen2
+
+  if proj < 0:
+    # Closest point is behind the origin
+    return dot(f, f) <= radius*radius
+  else:
+    let dist2 = dot(f, f) - (dot(f, direction) * dot(f, direction)) / dirLen2
+    return dist2 <= radius*radius

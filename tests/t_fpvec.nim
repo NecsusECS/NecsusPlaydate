@@ -41,3 +41,25 @@ suite "rayPointsAtLine tests":
     check rayPointsAtLine(
       fpvec2(0, 0), fpvec2(1000, 1), fpvec2(500, 1), fpvec2(1500, 1)
     )
+
+suite "rayPointsAtCircle":
+  test "Ray points directly at circle and hits":
+    check rayPointsAtCircle(fpvec2(0, 0), fpvec2(1, 0), fpvec2(5, 0), 1.0.fp)
+
+  test "Ray points away from circle":
+    check not rayPointsAtCircle(fpvec2(0, 0), fpvec2(-1, 0), fpvec2(5, 0), 1.0.fp)
+
+  test "Ray starts inside circle":
+    check rayPointsAtCircle(fpvec2(5, 0), fpvec2(1, 0), fpvec2(5, 0), 1.0.fp)
+
+  test "Ray grazes circle tangentially":
+    check rayPointsAtCircle(fpvec2(0, 1), fpvec2(1, 0), fpvec2(5, 0), 1.0.fp)
+
+  test "Degenerate ray inside circle":
+    check rayPointsAtCircle(fpvec2(5, 0), fpvec2(0, 0), fpvec2(5, 0), 1.0.fp)
+
+  test "Degenerate ray outside circle":
+    check not rayPointsAtCircle(fpvec2(0, 0), fpvec2(0, 0), fpvec2(5, 0), 1.0.fp)
+
+  test "Ray hits only with larger radius":
+    check rayPointsAtCircle(fpvec2(0, 0), fpvec2(1, 0), fpvec2(5, 2), 3.0)
