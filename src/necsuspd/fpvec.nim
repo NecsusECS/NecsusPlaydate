@@ -42,6 +42,32 @@ proc toIVec2*(vec: FPVec2): IVec2 =
 proc toVec2*(vec: FPVec2): Vec2 =
   vec2(vec.x.toFloat, vec.y.toFloat)
 
+proc cross*(a, b: GVec2): auto =
+  ## Calculates the 2D "cross product" of two vectors, returning a scalar.
+  ## This is equivalent to treating the 2D vectors as 3D vectors with a zero z-component
+  ## and returning the z-component of the 3D cross product.
+  return a.x * b.y - a.y * b.x
+
+proc rayPointsAtLine*(origin, direction, pointA, pointB: GVec2): bool =
+  ## Returns true if the ray defined by `origin` and `direction` intersects the
+  ## line segment defined by [`pointA`, `pointB`].
+  let segmentVector = pointB - pointA
+  let offset = pointA - origin
+  let denominator = cross(direction, segmentVector)
+
+  if denominator != 0:
+    let t: FPInt = cross(offset, segmentVector) / denominator
+    let u: FPInt = cross(offset, direction) / denominator
+    return (t >= 0) and (u >= 0) and (u <= 1)
+  elif cross(offset, direction) != 0:
+    # Parallel case
+    return false
+  else:
+    # Collinear: check if ray overlaps the segment at all
+    let projectionA = dot(pointA - origin, direction)
+    let projectionB = dot(pointB - origin, direction)
+    return projectionA >= 0 or projectionB >= 0
+
 proc nudge*(base, towards: FPVec2, strength: FPInt = fp(0.2)): FPVec2 =
   ## Nudges a vector towards its direction
   result = base
