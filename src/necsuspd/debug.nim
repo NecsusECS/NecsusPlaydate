@@ -1,4 +1,4 @@
-import macros, necsus, playdate/api, util
+import macros, necsus, util
 
 type
   DebugKey* = char ## A single key pressed by the user.
@@ -15,9 +15,12 @@ macro debugSys*(system: typed): untyped =
       proc `name`*() =
         discard
 
+when not defined(unittests):
+  import playdate/api
+
 proc debugInputHandler*(messages: Outbox[DebugInput]) {.startupSys.} =
   ## Attaches a handler for debug input messages.
-  when not defined(danger):
+  when not defined(danger) and not defined(unittests):
     playdate.system.setSerialMessageCallback(
       proc(msg: string) =
         log "Debug message received: ", msg
