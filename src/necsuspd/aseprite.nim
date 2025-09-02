@@ -4,7 +4,8 @@
 
 import
   std/[macros, json, jsonutils, options, strformat, tables, sets, algorithm],
-  playdate/api, playdate/util/initreqs
+  playdate/api,
+  playdate/util/initreqs
 import sprite, strutils, vmath, triggerBox, util
 
 type
@@ -215,6 +216,13 @@ proc createFrameDef(
   else:
     return frame(frameId, duration)
 
+proc anchorLock(data: string): AnchorLock =
+  ## Given the 'userdata' field, extract the anchor lock information
+  for item in data.splitWhitespace():
+    if item.startsWith("Anchor"):
+      return parseEnum[AnchorLock](item)
+  return AnchorBottomMiddle
+
 proc asAnimationDef[S: enum](
     sheet: SpriteSheet, tag: AseFrameTag, sheetId: S, keyframes: KeyframeTable[enum]
 ): AnimationDef[S] =
@@ -229,7 +237,7 @@ proc asAnimationDef[S: enum](
     frames.add(createFrameDef(sheet, keyframes, frameId))
 
   let anchor = sheet.anchorPoint
-  let anchorNode = (AnchorBottomMiddle, ivec2(anchor.x.int32, anchor.y.int32))
+  let anchorNode = (tag.data.anchorLock(), ivec2(anchor.x.int32, anchor.y.int32))
 
   return animation(sheetId, frames, anchorNode, sheet.isLooped(tag))
 
