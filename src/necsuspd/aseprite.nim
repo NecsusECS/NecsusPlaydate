@@ -4,7 +4,7 @@
 
 import
   std/[macros, json, jsonutils, options, strformat, tables, sets, algorithm],
-  playdate/api
+  playdate/api, playdate/util/initreqs
 import sprite, strutils, vmath, triggerBox, util
 
 type
@@ -107,6 +107,7 @@ proc findTag*(sheet: SpriteSheet, name: string): Option[AseFrameTag] =
 
 proc error(sheet: SpriteSheet, message: string) =
   let fullError = fmt"{message} for {sheet.meta.image}"
+  pdlog(fullError)
   raise newException(AssertionDefect, fullError)
 
 proc eventFrames*(sheet: SpriteSheet, event: string): seq[int32] =
