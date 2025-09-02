@@ -409,7 +409,7 @@ proc visible*(sprite: Sprite | Animation): bool {.inline.} =
   sprite.sprite.visible
 
 proc `visible=`*(sprite: Sprite | Animation, visible: bool) {.inline.} =
-  sprite.sprite.visible = visible
+  `visible=`(sprite.sprite, visible)
 
 proc `zIndex`*(sprite: Sprite | Animation): int16 {.inline.} =
   sprite.sprite.zIndex
