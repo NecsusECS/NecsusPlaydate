@@ -1,3 +1,5 @@
+import vmath
+
 when not defined(unittests):
   import playdate/api
 else:
@@ -22,6 +24,15 @@ type
   CrankAngle* = float32 ## The angle of the crank
 
   CrankDelta* = float32 ## The change in the angle of the crank
+
+proc asVector*(button: PDButton): IVec2 =
+  ## Returns a button push as a vector
+  case button:
+  of kButtonLeft: ivec2(-1, 0)
+  of kButtonRight: ivec2(1, 0)
+  of kButtonUp: ivec2(0, -1)
+  of kButtonDown: ivec2(0, 1)
+  of kButtonB, kButtonA: ivec2(0, 0)
 
 when not defined(unittests):
   import necsus
