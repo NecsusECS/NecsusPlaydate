@@ -2,6 +2,7 @@ import vmath
 
 when not defined(unittests):
   import playdate/api
+  export PDButton, PDButtons
 else:
   type
     PDButton* = enum

@@ -1,4 +1,4 @@
-import options, positioned, vmath, math
+import options, positioned, vmath, math, inputs
 
 type
   FindDir* = enum
@@ -52,27 +52,24 @@ template findDir*[T](
         resultDistance = distance
   output
 
-when not defined(unittests):
-  import playdate/api
+proc asFindDir*(button: PDButton): Option[FindDir] =
+  return
+    case button
+    of kButtonLeft:
+      some(FindLeft)
+    of kButtonRight:
+      some(FindRight)
+    of kButtonUp:
+      some(FindUp)
+    of kButtonDown:
+      some(FindDown)
+    else:
+      return none(FindDir)
 
-  proc asFindDir*(button: PDButton): Option[FindDir] =
-    return
-      case button
-      of kButtonLeft:
-        some(FindLeft)
-      of kButtonRight:
-        some(FindRight)
-      of kButtonUp:
-        some(FindUp)
-      of kButtonDown:
-        some(FindDown)
-      else:
-        return none(FindDir)
-
-  template findDir*[T](
-      elements: untyped, direction: PDButton, origin: Positioned
-  ): Option[Found[T]] =
-    var output: Option[Found[T]]
-    for dir in direction.asFindDir:
-      output = findDir[T](elements, dir, origin)
-    output
+template findDir*[T](
+    elements: untyped, direction: PDButton, origin: Positioned
+): Option[Found[T]] =
+  var output: Option[Found[T]]
+  for dir in direction.asFindDir:
+    output = findDir[T](elements, dir, origin)
+  output
