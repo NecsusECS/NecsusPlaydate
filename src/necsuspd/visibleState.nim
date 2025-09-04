@@ -1,28 +1,35 @@
-import necsus, sprite, playdate/api, util
+import necsus, sprite, playdate/api, util, std/bitops
 
 type
-  VisibleState*[T: enum] = object
-    states: set[T]
+  StateType = uint32
+
+  VisibleState* = object
+    states: StateType
+    typeId: int32
 
   EvaluateVisibleState* = object
 
-proc visibility*[T: enum](states: set[T]): VisibleState[T] =
+proc visibility*[T: enum](states: set[T]): VisibleState =
   ## Creates a VisibleState instance
-  return VisibleState[T](states: states)
+  result.typeId = getTypeId(T)
+  for value in states:
+    assert(ord(value) <= high(StateType).int)
+    result.states = result.states or ord(value).StateType
 
-proc visibility*[T: enum](states: varargs[T]): VisibleState[T] =
+proc visibility*[T: enum](states: varargs[T]): VisibleState =
   ## Creates a VisibleState instance
   var fullList: set[T]
   for state in states:
     incl(fullList, state)
   return visibility(fullList)
 
-proc isVisible*[T](visibility: VisibleState[T], state: Shared[T]): bool =
-  return state.get in visibility.states
+proc isVisible*[T](visibility: VisibleState, state: Shared[T]): bool =
+  assert(visibility.typeId == getTypeId(T))
+  return state.get in cast[set[T]](visibility.states)
 
-template updateVisility(visibleState, entities: typed) =
+template updateVisility(T, visibleState, entities: typed) =
   for eid, (visibility, entity) in entities:
-    let expect = visibleState in visibility.states
+    let expect = (visibleState.ord.StateType and visibility.states) > 0
     if expect != entity.visible:
       log "Changing entity visibility for ", eid, " to ", expect
       entity.visible = expect
@@ -32,11 +39,11 @@ template defineVisibleStateSystems*(name: untyped, T, S: typed): untyped =
   proc evalVisibleState(
       _: EvaluateVisibleState,
       state: Shared[T],
-      sprites: FullQuery[(ptr VisibleState[T], Sprite)],
-      anims: FullQuery[(ptr VisibleState[T], Animation[S])],
+      sprites: FullQuery[(VisibleState, Sprite)],
+      anims: FullQuery[(VisibleState, Animation[S])],
   ) {.eventSys.} =
-    updateVisility(state.get, sprites)
-    updateVisility(state.get, anims)
+    updateVisility(T, state.get, sprites)
+    updateVisility(T, state.get, anims)
 
   proc name(
       state: Shared[T], previous: Local[T], trigger: Outbox[EvaluateVisibleState]
