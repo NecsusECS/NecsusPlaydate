@@ -21,3 +21,19 @@ proc bounds*(
 proc calculateX*(alignment: Alignment, elementWidth, left, right: int32): int32 =
   ## Returns the X coordinate needed to align an element of the given width
   bounds(alignment, elementWidth, left, right).left
+
+proc alignment1d*[T](size: T, alignment: Alignment): T =
+  ## Returns the 0 rooted alignment of an element of the given width
+  return
+    case alignment
+    of AlignLeft:
+      0
+    of AlignRight:
+      size
+    of AlignCenter:
+      size div 2
+
+proc alignment2d*(size: auto, horizAlign, vertAlign: Alignment): auto =
+  ## Returns the 0 rooted alignment of an element of the given size
+  return
+    (x: alignment1d(size.width, horizAlign), y: alignment1d(size.height, vertAlign))
