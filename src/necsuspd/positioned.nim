@@ -30,10 +30,10 @@ proc toVec2*(pos: Positioned | ptr Positioned): Vec2 =
   pos.toFPVec2().toVec2()
 
 proc x*(pos: Positioned | ptr Positioned): auto =
-  pos.x
+  pos.pos.x.toInt + pos.offset.x.toInt
 
 proc y*(pos: Positioned | ptr Positioned): auto =
-  pos.y
+  pos.pos.y.toInt + pos.offset.y.toInt
 
 template assign(name) =
   proc `name=`*(pos: ptr Positioned, value: int32) =
