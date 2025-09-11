@@ -296,7 +296,9 @@ proc newSheet*[S: enum](
     zIndex: ZIndexValue,
     absolutePos: bool = false,
 ): Animation[S] =
-  assert(frames.allIt(it != nil))
+  when compileOption("assertions"):
+    for frame in frames:
+      assert(not frame.isNil)
 
   result = Animation[S](
     def: def,
