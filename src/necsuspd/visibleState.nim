@@ -1,4 +1,4 @@
-import necsus, sprite, playdate/api, util, std/bitops
+import necsus, sprite, playdate/api, util, std/[bitops, strutils]
 
 type
   StateType = uint32
@@ -14,7 +14,7 @@ proc visibility*[T: enum](states: set[T]): VisibleState =
   result.typeId = getTypeId(T)
   for value in states:
     assert(ord(value) <= high(StateType).int)
-    result.states = result.states or ord(value).StateType
+    result.states.flipBit(value.ord.StateType)
 
 proc visibility*[T: enum](states: varargs[T]): VisibleState =
   ## Creates a VisibleState instance
@@ -29,10 +29,13 @@ proc isVisible*[T](visibility: VisibleState, state: Shared[T]): bool =
 
 template updateVisility(T, visibleState, entities: typed) =
   for eid, (visibility, entity) in entities:
-    let expect = (visibleState.ord.StateType and visibility.states) > 0
-    if expect != entity.visible:
-      log "Changing entity visibility for ", eid, " to ", expect
-      entity.visible = expect
+    if visibility.typeId == getTypeId(T):
+      let currentState = 1.StateType shl visibleState.ord.StateType
+      let entityVisibility = visibility.states
+      let expect = bitand(currentState, entityVisibility) > 0
+      if expect != entity.visible:
+        log "Changing entity visibility for ", eid, " to ", expect, " for state ", visibleState
+        entity.visible = expect
 
 template defineVisibleStateSystems*(name: untyped, T, S: typed): untyped =
   ## Shows sprites only when a specific game state is set
