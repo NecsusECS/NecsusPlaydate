@@ -1,4 +1,4 @@
-import playdate/api, dither, value, math, sprite
+import playdate/api, dither, math, sprite
 
 type
   PrecalculatedFade* = ref object
@@ -47,10 +47,10 @@ proc full*(fade: PrecalculatedFade, sprite: Sprite) =
   sprite.markDirty
 
 proc draw*(
-    fade: PrecalculatedFade, sprite: Sprite, existingValue: Val[FadeState], t: float32
+    fade: PrecalculatedFade, sprite: Sprite, existingValue: ptr FadeState, t: float32
 ) =
   let newIndex = round((fade.images.len - 1).float32 * t.clamp(0.0, 1.0)).toInt
   if existingValue.read.int != newIndex:
-    existingValue := FadeState(newIndex)
+    existingValue[] = FadeState(newIndex)
     discard sprite.getImage.setBitmapMask(fade.images[newIndex])
     sprite.markDirty
