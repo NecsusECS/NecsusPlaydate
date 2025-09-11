@@ -58,8 +58,9 @@ proc `offset=`*(pos: ptr Positioned, offset: IVec2 | FPVec2) =
 proc lastPos*(pos: Positioned): auto =
   pos.lastPos
 
-proc angle*(pos: Positioned): FPInt32 =
-  (pos.lastPos - pos.pos).angle.toDegrees * -1
+proc angle*(pos: Positioned): FPInt =
+  let delta: FPVec2 = pos.lastPos - pos.pos
+  return delta.angle.radToDeg * -1
 
 proc follow*(leader: EntityId, offset: FPVec2 = fpvec2(0, 0)): Follower =
   ## Creates a follower
