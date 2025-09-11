@@ -448,17 +448,6 @@ proc remove*(sprite: Sprite | Animation) =
 proc add*(sprite: Sprite | Animation) =
   sprite.sprite.add()
 
-proc resetPooledValue*(sprite: Sprite) =
-  sprite.sprite.remove()
-
-proc restorePooledValue*(sprite: Sprite) =
-  sprite.sprite.add()
-
-proc resetPooledValue*(bitmap: LCDBitmap) =
-  discard
-
-proc restorePooledValue*(bitmap: LCDBitmap) =
-  discard
 
 proc `$`*(sprite: Sprite): string =
   {.cast(gcsafe).}:
@@ -472,7 +461,29 @@ proc reset*[S](anim: Animation[S]) =
   anim.manualOffset = ivec2(0, 0)
   anim.anchorOffset = ivec2(0, 0)
   anim.paused = false
+  anim.visible = true
 
 proc hidden*(sprite: Animation | Sprite): auto =
   sprite.sprite.visible = false
   return sprite
+
+proc resetPooledValue*(sprite: Sprite) =
+  sprite.sprite.remove()
+
+proc restorePooledValue*(sprite: Sprite) =
+  sprite.sprite.add()
+  sprite.sprite.visible = true
+
+proc resetPooledValue*(bitmap: LCDBitmap) =
+  discard
+
+proc restorePooledValue*(bitmap: LCDBitmap) =
+  discard
+
+proc restorePooledValue*(sprite: Animation) =
+  sprite.add()
+  change(addr sprite, sprite.def)
+
+proc resetPooledValue*(sprite: Animation) =
+  sprite.remove()
+  sprite.reset()
