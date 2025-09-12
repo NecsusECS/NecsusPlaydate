@@ -5,12 +5,20 @@ type
     ## Precalculates a set of bitmap masks needed to fade out an image
     images: seq[LCDBitmap]
 
-  FadeState* = distinct int
+  FadeState* = object
+    case initialized: bool
+    of false:
+      discard
+    of true:
+      index: int32
 
   GrayRectangle = object
     shade, width, height: int
 
-const InitialFadeState* = FadeState(-1)
+const InitialFadeState* = default(FadeState)
+
+static:
+  assert(InitialFadeState.initialized == false)
 
 proc getPixel(rect: GrayRectangle, x, y: int): int =
   rect.shade
@@ -49,8 +57,8 @@ proc full*(fade: PrecalculatedFade, sprite: Sprite) =
 proc draw*(
     fade: PrecalculatedFade, sprite: Sprite, existingValue: ptr FadeState, t: float32
 ) =
-  let newIndex = round((fade.images.len - 1).float32 * t.clamp(0.0, 1.0)).toInt
-  if existingValue.read.int != newIndex:
-    existingValue[] = FadeState(newIndex)
+  let newIndex = round((fade.images.len - 1).float32 * t.clamp(0.0, 1.0)).toInt.int32
+  if not existingValue.initialized or existingValue.index != newIndex:
+    existingValue[] = FadeState(initialized: true, index: newIndex)
     discard sprite.getImage.setBitmapMask(fade.images[newIndex])
     sprite.markDirty
