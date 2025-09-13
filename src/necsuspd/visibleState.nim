@@ -1,7 +1,7 @@
 import necsus, sprite, playdate/api, util, std/[bitops, strutils]
 
 type
-  StateType = uint32
+  StateType = uint64
 
   VisibleState* = object
     states: StateType
@@ -13,7 +13,11 @@ proc visibility*[T: enum](states: set[T]): VisibleState =
   ## Creates a VisibleState instance
   result.typeId = getTypeId(T)
   for value in states:
-    assert(ord(value) <= high(StateType).int)
+    const maxSize = sizeof(StateType) * 8
+    assert(
+      ord(value) <= maxSize,
+      "State value exceeds maximum allowed" & $ord(value) & " vs " & $maxSize
+    )
     result.states.flipBit(value.ord.StateType)
 
 proc visibility*[T: enum](states: varargs[T]): VisibleState =
