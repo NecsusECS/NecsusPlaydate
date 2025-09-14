@@ -198,7 +198,7 @@ when not defined(unittests):
   proc nextRandom(values: Slice[uint32]): uint32 =
     random().rand(values)
 
-  proc setPixel*(view: var BitmapView, x, y: int, color: LCDSolidColor) {.inline.} =
+  proc setPixel*(view: var BitmapDataObj, x, y: int, color: LCDSolidColor) {.inline.} =
     set(view, x, y, color)
 
   defineParticles(
