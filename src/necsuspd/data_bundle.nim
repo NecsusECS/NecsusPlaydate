@@ -6,8 +6,8 @@ proc bundledData*(T: typedesc, path: static[string]): T =
   const bundledPath = path.strip(chars = {'.', '/'}).replace("/", "_")
 
   static:
-    let fullPath = getProjectPath() & "/../" & path
-    let content = slurp(fullPath).parseJson.jsonTo(T).toBinary()
+    const fullPath = getProjectPath() & "/../" & path
+    const content = slurp(fullPath).parseJson.jsonTo(T).toBinary()
     writeFile(getProjectPath() & "/../source/" & bundledPath, content)
 
   log "Reading bundled data ", bundledPath
