@@ -124,3 +124,14 @@ suite "Achievements":
       check(state[B] == AchievementInProgress.init(12345).AchievementState)
       check(state[C] == AchievementInProgress.init(14779483).AchievementState)
       check(state[D] == AchievementGranted.init(123456).AchievementState)
+
+  test "Don't overwrite with lesser achievements":
+    withMockFiles({sample_path: sample_data}):
+      app.save(A, AchievementGranted.init(80000000))
+      app.save(C, AchievementInProgress.init(10000))
+
+      let state = app.load()
+      check(state[A] == AchievementGranted.init(70219406).AchievementState)
+      check(state[B] == AchievementLocked.init().AchievementState)
+      check(state[C] == AchievementInProgress.init(14779483).AchievementState)
+      check(state[D] == AchievementLocked.init().AchievementState)
