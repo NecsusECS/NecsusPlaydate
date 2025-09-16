@@ -135,3 +135,10 @@ suite "Achievements":
       check(state[B] == AchievementLocked.init().AchievementState)
       check(state[C] == AchievementInProgress.init(14779483).AchievementState)
       check(state[D] == AchievementLocked.init().AchievementState)
+
+  test "Check if an achievement is granted":
+    withMockFiles({sample_path: sample_data}):
+      check(app.isGranted(A))
+      check(not app.isGranted(B))
+      check(not app.isGranted(C))
+      check(not app.isGranted(D))

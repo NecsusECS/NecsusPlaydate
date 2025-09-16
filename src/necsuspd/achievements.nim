@@ -231,15 +231,19 @@ proc shouldUpdate(oldState, newState: AchievementState): bool =
     return true
 
 proc save*[T: enum](
-    def: AppAchievementDef[T], states: openarray[(T, AnyAchievementState)]
+    def: AppAchievementDef[T], states: openarray[(T, AchievementState)]
 ) =
   ## Updates the given achievements with new states
   var fullStates = load(def)
   for (id, state) in states:
-    if fullStates[id].shouldUpdate(state.AchievementState):
-      fullStates[id] = state.AchievementState
+    if fullStates[id].shouldUpdate(state):
+      fullStates[id] = state
   write(def, fullStates)
 
 proc save*[T: enum](def: AppAchievementDef[T], id: T, state: AnyAchievementState) =
   ## Updates a single achievement with a new state
-  save(def, [(id, state)])
+  save(def, [(id, state.AchievementState)])
+
+proc isGranted*[T: enum](def: AppAchievementDef[T], id: T): bool =
+  ## Returns whether an achievement is granted
+  load(def)[id].kind == AchievementGrantedKind
