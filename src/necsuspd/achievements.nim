@@ -1,4 +1,4 @@
-import json_schema_import, std/[options, json, strutils], fungus, util
+import json_schema_import, std/[options, json, strutils, macros], fungus, util
 
 when defined(simulator) or defined(device):
   import playdate/api
@@ -55,8 +55,28 @@ proc `==`*(a, b: AnyAchievementState): bool =
       b.kind == AchievementGrantedKind and
       b.AchievementGranted.toInternal == value.toInternal
 
+template definePdxConst(name: untyped, default: string) =
+  when not defined(name) and not defined(unittests):
+    static:
+      const errorMessage = "-d:" & astToStr(name) & "=... is not defined as a build option"
+      if defined(device):
+        error(errorMessage)
+      else:
+        warning(errorMessage)
+  const name {.strdefine.}: string = default
+
+definePdxConst(pdxBundleId, "com.example.game")
+definePdxConst(pdxName, "Example Game")
+definePdxConst(pdxAuthor, "John Doe")
+definePdxConst(pdxDescription, "An example game")
+definePdxConst(pdxVersion, "1.0")
+
 proc defineAchievements*[T: enum](
-    gameID, name, author, description, version: string,
+    gameID: string = pdxBundleId,
+    name: string = pdxName,
+    author: string = pdxAuthor,
+    description: string = pdxDescription,
+    version: string = pdxVersion,
     iconPath: Option[string] = none(string),
     cardPath: Option[string] = none(string),
     achievements: openarray[AchievementDef[T]],
