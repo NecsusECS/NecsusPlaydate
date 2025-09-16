@@ -1,4 +1,4 @@
-import json_schema_import, std/[options, json, strutils, macros], fungus, util
+import json_schema_import, std/[options, json, strutils, macros, setutils], fungus, util
 
 when defined(simulator) or defined(device):
   import playdate/api
@@ -58,7 +58,8 @@ proc `==`*(a, b: AnyAchievementState): bool =
 template definePdxConst(name: untyped, default: string) =
   when not defined(name) and not defined(unittests):
     static:
-      const errorMessage = "-d:" & astToStr(name) & "=... is not defined as a build option"
+      const errorMessage =
+        "-d:" & astToStr(name) & "=... is not defined as a build option"
       if defined(device):
         error(errorMessage)
       else:
@@ -92,8 +93,13 @@ proc defineAchievements*[T: enum](
     cardPath: cardPath,
   )
 
+  var seen: set[T]
   for achievement in achievements:
+    seen.incl(achievement.id)
     result.achievements[achievement.id] = achievement
+
+  if complement(seen).card != 0:
+    raiseAssert("Not all achievements are defined. Missing: " & $complement(seen))
 
 proc achievement*[T: enum](
     id: T,
