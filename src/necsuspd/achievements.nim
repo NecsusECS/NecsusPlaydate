@@ -232,7 +232,7 @@ proc write*[T: enum](def: AppAchievementDef[T], states: array[T, AnyAchievementS
   dir.mkdirs()
   playdate.file.open(full, kFileWrite).write(json)
 
-proc shouldUpdate(oldState, newState: AchievementState): bool =
+proc isAdvancement*(newState, oldState: AchievementState): bool =
   ## Returns whether a new achievement should replace an existing achievement
   match oldState:
   of AchievementGranted:
@@ -248,14 +248,18 @@ proc shouldUpdate(oldState, newState: AchievementState): bool =
   of AchievementLocked:
     return true
 
+proc advance*[T](data: var Achievements[T], id: T, state: AchievementState) =
+  ## Updates an achievement if the new state is an advancement over the old state
+  if state.isAdvancement(data[id]):
+    data[id] = state
+
 proc save*[T: enum](
     def: AppAchievementDef[T], states: openarray[(T, AchievementState)]
 ) =
   ## Updates the given achievements with new states
   var fullStates = load(def)
   for (id, state) in states:
-    if fullStates[id].shouldUpdate(state):
-      fullStates[id] = state
+    fullStates.advance(id, state)
   write(def, fullStates)
 
 proc save*[T: enum](def: AppAchievementDef[T], id: T, state: AnyAchievementState) =
