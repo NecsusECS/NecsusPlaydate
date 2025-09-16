@@ -142,3 +142,8 @@ suite "Achievements":
       check(not app.isGranted(B))
       check(not app.isGranted(C))
       check(not app.isGranted(D))
+
+  test "Achievements to string":
+    withMockFiles({sample_path: sample_data}):
+      let state = app.load()
+      check($state == "{A: AchievementGranted(70219406), B: AchievementLocked(), C: AchievementInProgress(14779483), D: AchievementLocked(), }")

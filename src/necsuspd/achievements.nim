@@ -17,6 +17,15 @@ adtEnum(AchievementState):
   AchievementGranted:
     int
 
+proc `$`*(state: AchievementState): string =
+  match state:
+  of AchievementLocked as value:
+    return $value
+  of AchievementInProgress as value:
+    return $value
+  of AchievementGranted as value:
+    return $value
+
 proc init*(_: typedesc[AchievementGranted]): AchievementGranted =
   AchievementGranted.init(playdate.system.getSecondsSinceEpoch().seconds.int)
 
@@ -41,6 +50,15 @@ type
 
   Achievements*[T: enum] = array[T, AchievementState]
     ## Data about the achievements for the application
+
+proc `$`*[T](achieved: Achievements[T]): string =
+  result = "{"
+  for entry in T:
+    result &= $entry
+    result &= ": "
+    result &= $achieved[entry]
+    result &= ", "
+  result &= "}"
 
 proc `==`*(a, b: AnyAchievementState): bool =
   match a:
