@@ -126,13 +126,14 @@ proc achievement*[T: enum](
     scoreValue: scoreValue,
   )
 
-proc path*(def: AppAchievementDef): string =
+proc path*(def: AppAchievementDef): tuple[full, dir: string] =
   ## The on-disk path to the achievement data for the application
-  "/Shared/Achievements/" & def.gameId & "/Achievements.json"
+  result.dir = "/Shared/Achievements/" & def.gameId
+  result.full = result.dir & "/Achievements.json"
 
 proc load*[T: enum](def: AppAchievementDef[T]): Achievements[T] =
   ## Fetches the achievement data from disk for the application
-  let filePath = path(def)
+  let filePath = path(def).full
   if playdate.file.exists(filePath):
     let data = playdate.file.open(filePath, kFileRead).readString().parseJson().jsonTo(
         PDAchievementData
@@ -188,6 +189,18 @@ proc asPDAchievements[T](
   of AchievementLocked:
     discard
 
+proc mkdirs(path: string) =
+  ## Creates all directories in a path
+  var accumDir = newStringOfCap(path.len)
+  for part in path.split("/"):
+    if part == "" and accumDir == "":
+      accumDir = "/"
+    elif part != "":
+      accumDir &= part
+      accumDir &= "/"
+      if not playdate.file.exists(accumDir):
+        playdate.file.mkdir(accumDir)
+
 proc write*[T: enum](def: AppAchievementDef[T], states: array[T, AnyAchievementState]) =
   ## Updates the given achievements with new states
   var achievements = newSeqOfCap[PDAchievements](states.len)
@@ -197,7 +210,9 @@ proc write*[T: enum](def: AppAchievementDef[T], states: array[T, AnyAchievementS
 
   let json = toJson(def.asPDAchievementData(achievements)).pretty
 
-  playdate.file.open(def.path(), kFileWrite).write(json)
+  let (full, dir) = def.path()
+  dir.mkdirs()
+  playdate.file.open(full, kFileWrite).write(json)
 
 proc shouldUpdate(oldState, newState: AchievementState): bool =
   ## Returns whether a new achievement should replace an existing achievement

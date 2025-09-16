@@ -31,6 +31,9 @@ template withMockFiles*(files: openarray[(string, string)], body: untyped) =
   finally:
     mockFiles.clear()
 
+proc mkdir*(_: PlaydateFiles, path: string) =
+  discard
+
 proc exists*(_: PlaydateFiles, path: string): bool =
   mockFiles.hasKey(path)
 
