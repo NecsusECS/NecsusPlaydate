@@ -43,3 +43,22 @@ proc easeInCubic*(t: float32): float32 {.asCalc.} =
 
 proc easeInQuint*(t: float32): float32 {.asCalc.} =
   t * t * t * t * t
+
+proc easeInBack*(t: float32): float32 {.asCalc.} =
+  const c1 = 1.70158
+  const c3 = c1 + 1
+  return c3 * t * t * t - c1 * t * t
+
+proc easeOutBack*(t: float32): float32 {.asCalc.} =
+  const c1 = 1.70158
+  const c3 = c1 + 1
+  return 1 + c3 * pow(t - 1, 3) + c1 * pow(t - 1, 2)
+
+proc easeInOutBack*(t: float32): float32 {.asCalc.} =
+  const c1 = 1.70158
+  const c2 = c1 * 1.525
+  return
+    if t < 0.5:
+      (pow(2 * t, 2) * ((c2 + 1) * 2 * t - c2)) / 2
+    else:
+      (pow(2 * t - 2, 2) * ((c2 + 1) * (t * 2 - 2) + c2) + 2) / 2
