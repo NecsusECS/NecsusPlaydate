@@ -16,7 +16,7 @@ proc visibility*[T: enum](states: set[T]): VisibleState =
     const maxSize = sizeof(StateType) * 8
     assert(
       ord(value) <= maxSize,
-      "State value exceeds maximum allowed" & $ord(value) & " vs " & $maxSize
+      "State value exceeds maximum allowed" & $ord(value) & " vs " & $maxSize,
     )
     result.states.flipBit(value.ord.StateType)
 
@@ -38,7 +38,8 @@ template updateVisility(T, visibleState, entities: typed) =
       let entityVisibility = visibility.states
       let expect = bitand(currentState, entityVisibility) > 0
       if expect != entity.visible:
-        log "Changing entity visibility for ", eid, " to ", expect, " for state ", visibleState
+        log "Changing entity visibility for ",
+          eid, " to ", expect, " for state ", visibleState
         entity.visible = expect
 
 template defineVisibleStateSystems*(name: untyped, T, S: typed): untyped =

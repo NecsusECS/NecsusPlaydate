@@ -448,7 +448,6 @@ proc remove*(sprite: Sprite | Animation) =
 proc add*(sprite: Sprite | Animation) =
   sprite.sprite.add()
 
-
 proc `$`*(sprite: Sprite): string =
   {.cast(gcsafe).}:
     let isVisible = if sprite.sprite.visible: "visible" else: "hidden"

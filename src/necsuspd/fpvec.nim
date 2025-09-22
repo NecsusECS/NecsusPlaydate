@@ -97,13 +97,13 @@ proc rayPointsAtCircle*(origin, direction, center: GVec2, radius: auto): bool =
 
   if dirLen2 == 0:
     # Degenerate ray: it's just a point
-    return dot(f, f) <= radius*radius
+    return dot(f, f) <= radius * radius
 
   let proj = dot(f, direction) / dirLen2
 
   if proj < 0:
     # Closest point is behind the origin
-    return dot(f, f) <= radius*radius
+    return dot(f, f) <= radius * radius
   else:
     let dist2 = dot(f, f) - (dot(f, direction) * dot(f, direction)) / dirLen2
-    return dist2 <= radius*radius
+    return dist2 <= radius * radius
