@@ -1,4 +1,9 @@
-import json_schema_import, std/[options, json, strutils, macros, setutils], fungus, util
+import
+  json_schema_import,
+  std/[options, json, strutils, macros, setutils, os],
+  fungus,
+  util,
+  files
 
 when defined(simulator) or defined(device):
   import playdate/api
@@ -144,14 +149,30 @@ proc achievement*[T: enum](
     scoreValue: scoreValue,
   )
 
-proc path*(def: AppAchievementDef): tuple[full, dir: string] =
+proc extractTargetFilename(value: Option[string]): Option[string] =
+  ## Given a possible filename, returns the value that will be stored in the actual achievement
+  ## json file. This is just the name of the file itself with all directories removed
+  value.mapIt(it.extractFilename)
+
+proc rootDir*(def: AppAchievementDef): string =
   ## The on-disk path to the achievement data for the application
-  result.dir = "/Shared/Achievements/" & def.gameId
-  result.full = result.dir & "/Achievements.json"
+  return "/Shared/Achievements/" & def.gameId
+
+proc path*(def: AppAchievementDef): string =
+  ## The on-disk path to the achievement data for the application
+  return def.rootDir & "/Achievements.json"
+
+proc iconTargetPath*(def: AppAchievementDef): Option[string] =
+  ## The location to store the icon
+  return def.iconPath.extractTargetFilename.mapIt(def.rootDir & "/" & it)
+
+proc cardTargetPath*(def: AppAchievementDef): Option[string] =
+  ## The location to store the icon
+  return def.cardPath.extractTargetFilename.mapIt(def.rootDir & "/" & it)
 
 proc load*[T: enum](def: AppAchievementDef[T]): Achievements[T] =
   ## Fetches the achievement data from disk for the application
-  let filePath = path(def).full
+  let filePath = path(def)
   if playdate.file.exists(filePath):
     let data = playdate.file.open(filePath, kFileRead).readString().parseJson().jsonTo(
         PDAchievementData
@@ -179,8 +200,8 @@ proc asPDAchievementData[T](
     author: def.author,
     description: def.description,
     version: def.version,
-    iconPath: def.iconPath,
-    cardPath: def.cardPath,
+    iconPath: def.iconPath.extractTargetFilename(),
+    cardPath: def.cardPath.extractTargetFilename(),
     achievements: achievements,
   )
 
@@ -207,18 +228,6 @@ proc asPDAchievements[T](
   of AchievementLocked:
     discard
 
-proc mkdirs(path: string) =
-  ## Creates all directories in a path
-  var accumDir = newStringOfCap(path.len)
-  for part in path.split("/"):
-    if part == "" and accumDir == "":
-      accumDir = "/"
-    elif part != "":
-      accumDir &= part
-      accumDir &= "/"
-      if not playdate.file.exists(accumDir):
-        playdate.file.mkdir(accumDir)
-
 proc write*[T: enum](def: AppAchievementDef[T], states: array[T, AnyAchievementState]) =
   ## Updates the given achievements with new states
   var achievements = newSeqOfCap[PDAchievements](states.len)
@@ -228,9 +237,8 @@ proc write*[T: enum](def: AppAchievementDef[T], states: array[T, AnyAchievementS
 
   let json = toJson(def.asPDAchievementData(achievements)).pretty
 
-  let (full, dir) = def.path()
-  dir.mkdirs()
-  playdate.file.open(full, kFileWrite).write(json)
+  def.rootDir().mkdirs()
+  playdate.file.open(def.path(), kFileWrite).write(json)
 
 proc isAdvancement*(newState, oldState: AchievementState): bool =
   ## Returns whether a new achievement should replace an existing achievement

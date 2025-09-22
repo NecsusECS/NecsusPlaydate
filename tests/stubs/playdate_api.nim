@@ -1,4 +1,4 @@
-import std/tables
+import std/[tables, sequtils]
 
 type
   PlaydateApi* = object
@@ -44,8 +44,19 @@ proc open*(api: PlaydateFiles, path: string, options: FileOptions): PDFile =
 proc readString*(file: PDFile): string =
   file.content
 
-proc write*(file: PDFile, content: string): int {.raises: [IOError], discardable} =
+proc read*(file: PDFile): seq[byte] =
+  file.content.mapIt(it.ord.byte).toSeq
+
+proc write*(file: PDFile, content: string): int {.raises: [IOError], discardable.} =
   mockFiles[file.path] = content
+
+proc write*(
+    file: PDFile, content: seq[byte], len: uint
+): int {.raises: [IOError], discardable.} =
+  var toWrite: string
+  for i in 0 ..< len:
+    toWrite &= content[i].chr
+  write(file, toWrite)
 
 proc getSecondsSinceEpoch*(
     _: PlaydateSystem
