@@ -23,3 +23,12 @@ proc copyFile*(srcPath, dstPath: string) =
   let dstFile = playdate.file.open(dstPath, kFileWrite)
   let content = srcFile.read()
   dstFile.write(content, content.len.uint)
+
+proc extractFilename*(path: string): string =
+  ## Extracts the filename from a path
+  let lastSlash = path.rfind("/")
+  return
+    if lastSlash == -1:
+      path
+    else:
+      path[(lastSlash + 1) ..^ 1]

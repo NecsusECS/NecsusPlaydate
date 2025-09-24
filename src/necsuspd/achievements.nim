@@ -1,6 +1,6 @@
 import
   json_schema_import,
-  std/[options, json, strutils, macros, setutils, os],
+  std/[options, json, strutils, macros, setutils],
   fungus,
   util,
   files
