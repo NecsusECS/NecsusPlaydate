@@ -47,7 +47,7 @@ type
     isSecret*, progressIsPercentage*: bool
     progressMax*, scoreValue*: Option[int]
 
-  AppAchievementDef*[T: enum] = object
+  AppAchievementDef*[T: enum] {.byref.} = object
     ## Defines the fields required for an application to support achievements
     gameID*, name*, author*, description*, version*: string
     iconPath*, cardPath*: Option[string]
@@ -55,6 +55,10 @@ type
 
   Achievements*[T: enum] = array[T, AchievementState]
     ## Data about the achievements for the application
+
+proc `=copy`*[T](dest: var AppAchievementDef[T], src: AppAchievementDef[T]) {.error.}
+
+proc `=copy`*[T](dest: var AchievementDef[T], src: AchievementDef[T]) {.error.}
 
 proc `$`*[T](achieved: Achievements[T]): string =
   result = "{"
