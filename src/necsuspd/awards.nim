@@ -21,10 +21,6 @@ proc complete*[T: enum](api: Award[T], kind: T) =
   ## Awards an achievement
   api.send((kind, AchievementGranted.init().AchievementState))
 
-proc progress*[T: enum](api: Award[T], kind: T, progress: int) =
-  ## Progresses an achievement
-  api.send((kind, AchievementInProgress.init(progress).AchievementState))
-
 proc progress*[T: enum](
     grant: Award[T], kind: T, progress: int, max: int, step: int = 10
 ) =
@@ -32,7 +28,7 @@ proc progress*[T: enum](
   if progress in max .. (max + 3):
     grant.complete(kind)
   elif progress < max and progress mod step == 0:
-    grant.progress(kind, progress)
+    grant.send((kind, AchievementInProgress.init(progress).AchievementState))
 
 proc copyFiles(srcFile, targetFile: Option[string]) =
   if srcFile.isSome and targetFile.isSome:
