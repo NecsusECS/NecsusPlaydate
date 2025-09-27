@@ -1,21 +1,18 @@
-import playdate/api, positioned, necsus, vmath, time, viewport, util, vec_tools
-import std/[options, strformat, macros, sequtils]
+import
+  playdate/api,
+  positioned,
+  necsus,
+  vmath,
+  time,
+  viewport,
+  util,
+  vec_tools,
+  anchor,
+  std/[options, strformat, macros, sequtils]
+export anchor
 
 type
   ZIndexValue = SomeInteger or enum ## A value that can be used as a zindex
-
-  AnchorLock* = enum
-    AnchorTopLeft
-    AnchorTopMiddle
-    AnchorTopRight
-    AnchorMiddle
-    AnchorBottomLeft
-    AnchorBottomMiddle
-    AnchorBottomRight
-
-  Anchor* = tuple[lock: AnchorLock, offset: IVec2]
-
-  AnchorPosition* = Anchor | AnchorLock
 
   AssetTable*[A] =
     concept table
@@ -101,29 +98,7 @@ proc keyframe*(keyframe: Keyframe, typ: typedesc[enum]): Option[typ] =
 
 proc offsetFix(sprite: LCDSprite, anchor: Anchor): IVec2 =
   ## Returns the offset necessary to align a position to the 0, 0 position of a sprite
-  result = anchor.offset
-
-  case anchor.lock
-  of AnchorTopLeft, AnchorBottomLeft:
-    result.x += sprite.getImage.getSize.width.int32 div 2
-  of AnchorTopMiddle, AnchorMiddle, AnchorBottomMiddle:
-    discard
-  of AnchorTopRight, AnchorBottomRight:
-    result.x -= sprite.getImage.getSize.width.int32 div 2
-
-  case anchor.lock
-  of AnchorTopLeft, AnchorTopMiddle, AnchorTopRight:
-    result.y += sprite.getImage.getSize.height.int32 div 2
-  of AnchorMiddle:
-    discard
-  of AnchorBottomLeft, AnchorBottomMiddle, AnchorBottomRight:
-    result.y -= sprite.getImage.getSize.height.int32 div 2
-
-proc toAnchor(anchor: AnchorPosition): Anchor {.inline.} =
-  when anchor is AnchorLock:
-    return (anchor, ivec2(0, 0))
-  else:
-    return anchor
+  return anchor.offset + anchor.lock.resolve(sprite.getImage.getSize.width.int32, sprite.getImage.getSize.height.int32)
 
 proc `=copy`(x: var SpriteObj, y: SpriteObj) {.error.}
 

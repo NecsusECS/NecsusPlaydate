@@ -5,8 +5,12 @@
 import
   std/[macros, json, jsonutils, options, strformat, tables, sets, algorithm],
   playdate/api,
-  playdate/util/initreqs
-import sprite, strutils, vmath, triggerBox, util
+  playdate/util/initreqs,
+  sprite,
+  strutils,
+  vmath,
+  triggerBox,
+  util
 
 type
   AseFrame* = object
@@ -161,9 +165,11 @@ proc firstKey*(slice: AseSlice, sheet: SpriteSheet): AseSliceKey =
     return
   return slice.keys[0]
 
+const HIT_BOX_SLICE_NAME = "HitBox"
+
 proc hitBox*(sheet: SpriteSheet): AseRectangle =
   ## Returns the dimensions of the hitbox
-  sheet.slice("HitBox").firstKey(sheet).bounds
+  sheet.slice(HIT_BOX_SLICE_NAME).firstKey(sheet).bounds
 
 proc center*(rect: AseRectangle): IVec2 =
   ## Returns the dimensions of the hitbox
