@@ -4,13 +4,17 @@
 
 import
   std/[macros, json, jsonutils, options, strformat, tables, sets, algorithm],
-  playdate/api,
-  playdate/util/initreqs,
-  sprite,
   strutils,
   vmath,
   triggerBox,
-  util
+  util,
+  anchor
+
+when defined(simulator) or defined(device):
+  import playdate/api, playdate/util/initreqs, sprite
+else:
+  proc pdlog(error: string) =
+    discard
 
 type
   AseFrame* = object
@@ -105,9 +109,9 @@ type
   KeyframeTable[K: enum] = Table[int32, K]
 
 proc findTag*(sheet: SpriteSheet, name: string): Option[AseFrameTag] =
-  let lowercase = name.toLowerAscii
+  let searchName = name.toLowerAscii
   for tag in sheet.meta.frameTags:
-    if tag.name == name or tag.name == lowercase or tag.name == name:
+    if tag.name.toLowerAscii == searchName:
       return some(tag)
 
 proc error(sheet: SpriteSheet, message: string) =
@@ -213,39 +217,12 @@ proc isLooped(sheet: SpriteSheet, tag: AseFrameTag): bool =
     return
   return tag.repeat == ""
 
-proc createFrameDef(
-    sheet: SpriteSheet, keyframes: KeyframeTable[enum], frameId: int32
-): Frame =
-  let duration = sheet.frames[frameId].duration.float32 / 1000'f32
-  if frameId in keyframes:
-    return frame(frameId, duration, keyframes[frameId])
-  else:
-    return frame(frameId, duration)
-
 proc anchorLock(data: string): AnchorLock =
   ## Given the 'userdata' field, extract the anchor lock information
   for item in data.splitWhitespace():
     if item.startsWith("Anchor"):
       return parseEnum[AnchorLock](item)
   return AnchorBottomMiddle
-
-proc asAnimationDef[S: enum](
-    sheet: SpriteSheet, tag: AseFrameTag, sheetId: S, keyframes: KeyframeTable[enum]
-): AnimationDef[S] =
-  ## Create an animation based on a aseprite tag
-
-  # Read the frames to ensure they exist
-  discard sheet.readFrame(tag.`from`)
-  discard sheet.readFrame(tag.to)
-
-  var frames = newSeqOfCap[Frame](tag.to - tag.`from` + 1)
-  for frameId in (tag.`from` .. tag.to):
-    frames.add(createFrameDef(sheet, keyframes, frameId))
-
-  let anchor = sheet.anchorPoint
-  let anchorNode = (tag.data.anchorLock(), ivec2(anchor.x.int32, anchor.y.int32))
-
-  return animation(sheetId, frames, anchorNode, sheet.isLooped(tag))
 
 proc findKeyframes[K: enum](sheet: SpriteSheet, ignore: set[K]): KeyframeTable[K] =
   ## Searches the layers in a sprite sheet and creates a table of frame # to keyframe trigger
@@ -287,35 +264,6 @@ proc loadAsepriteJson*(path: string): SpriteSheet {.compileTime.} =
   let json = parseJson(slurp(getProjectPath() & "/../" & path))
   result.fromJson(json, Joptions(allowMissingKeys: true, allowExtraKeys: true))
 
-proc animationTable*[A, K: enum](
-    sheet: SpriteSheet, sheetId: enum, ignore: set[A] = {}, ignoreKeyframes: set[K] = {}
-): array[A, AnimationDef[typeof(sheetId)]] =
-  ## Creates a table of animation data based on a sprite sheet
-  let keyframeTable = findKeyframes[K](sheet, ignoreKeyframes)
-  for animation in A:
-    let tag = sheet.findTag(removeSuffix($animation, "Anim")).fallback(
-        sheet.findTag($animation)
-      )
-
-    let entry =
-      if tag.isSome:
-        sheet.asAnimationDef(tag.get, sheetId, keyframeTable)
-      else:
-        if animation notin ignore:
-          sheet.error(fmt"FrameTag {animation} is missing")
-        nil
-
-    result[animation] = entry
-
-type NoKeyframes = enum
-  DummyKeyframe
-
-proc basicAnimationTable*[A: enum](
-    sheet: SpriteSheet, sheetId: enum, ignore: set[A] = {}
-): array[A, AnimationDef[typeof(sheetId)]] =
-  ## Creates a table of animation data based on a sprite sheet
-  result = animationTable[A, NoKeyframes](sheet, sheetId, ignore, {DummyKeyframe})
-
 proc getTriggerBox*(sprite: SpriteSheet, sliceName: string, zIndex: enum): TriggerBox =
   ## Creates the attack trigger box from a sprite sheet
   let anchor = sprite.anchorOffset
@@ -338,3 +286,63 @@ proc animationTime*(sheet: SpriteSheet, animation: enum): Option[int32] =
   for _, frame in frames(sheet, tag):
     duration += frame.duration
   return some(duration)
+
+when defined(simulator) or defined(device):
+  proc createFrameDef(
+      sheet: SpriteSheet, keyframes: KeyframeTable[enum], frameId: int32
+  ): Frame =
+    let duration = sheet.frames[frameId].duration.float32 / 1000'f32
+    if frameId in keyframes:
+      return frame(frameId, duration, keyframes[frameId])
+    else:
+      return frame(frameId, duration)
+
+  proc asAnimationDef[S: enum](
+      sheet: SpriteSheet, tag: AseFrameTag, sheetId: S, keyframes: KeyframeTable[enum]
+  ): AnimationDef[S] =
+    ## Create an animation based on a aseprite tag
+
+    # Read the frames to ensure they exist
+    discard sheet.readFrame(tag.`from`)
+    discard sheet.readFrame(tag.to)
+
+    var frames = newSeqOfCap[Frame](tag.to - tag.`from` + 1)
+    for frameId in (tag.`from` .. tag.to):
+      frames.add(createFrameDef(sheet, keyframes, frameId))
+
+    let anchor = sheet.anchorPoint
+    let anchorNode = (tag.data.anchorLock(), ivec2(anchor.x.int32, anchor.y.int32))
+
+    return animation(sheetId, frames, anchorNode, sheet.isLooped(tag))
+
+  proc animationTable*[A, K: enum](
+      sheet: SpriteSheet,
+      sheetId: enum,
+      ignore: set[A] = {},
+      ignoreKeyframes: set[K] = {},
+  ): array[A, AnimationDef[typeof(sheetId)]] =
+    ## Creates a table of animation data based on a sprite sheet
+    let keyframeTable = findKeyframes[K](sheet, ignoreKeyframes)
+    for animation in A:
+      let tag = sheet.findTag(removeSuffix($animation, "Anim")).fallback(
+          sheet.findTag($animation)
+        )
+
+      let entry =
+        if tag.isSome:
+          sheet.asAnimationDef(tag.get, sheetId, keyframeTable)
+        else:
+          if animation notin ignore:
+            sheet.error(fmt"FrameTag {animation} is missing")
+          nil
+
+      result[animation] = entry
+
+  type NoKeyframes = enum
+    DummyKeyframe
+
+  proc basicAnimationTable*[A: enum](
+      sheet: SpriteSheet, sheetId: enum, ignore: set[A] = {}
+  ): array[A, AnimationDef[typeof(sheetId)]] =
+    ## Creates a table of animation data based on a sprite sheet
+    result = animationTable[A, NoKeyframes](sheet, sheetId, ignore, {DummyKeyframe})
