@@ -14,27 +14,34 @@ type
 
   AnchorPosition* = Anchor | AnchorLock
 
-template resolve*(lock: AnchorLock, width, height: int32): IVec2 =
-  ## Calculates the resolved position of an anchor lock
+template resolver(lock: AnchorLock, left, center, right, top, middle, bottom: int32): IVec2 =
   block:
     var output: IVec2
     case lock
     of AnchorTopLeft, AnchorBottomLeft:
-      output.x = width div 2
+      output.x = left
     of AnchorTopMiddle, AnchorMiddle, AnchorBottomMiddle:
-      discard
+      output.x = center
     of AnchorTopRight, AnchorBottomRight:
-      output.x = -(width div 2)
+      output.x = right
 
     case lock
     of AnchorTopLeft, AnchorTopMiddle, AnchorTopRight:
-      output.y = height div 2
+      output.y = top
     of AnchorMiddle:
-      discard
+      output.y = middle
     of AnchorBottomLeft, AnchorBottomMiddle, AnchorBottomRight:
-      output.y = -(height div 2)
+      output.y = bottom
 
     output
+
+template resolve*(lock: AnchorLock, width, height: int32): IVec2 =
+  ## Calculates the resolved position of an anchor lock
+  resolver(lock, 0, width div 2, width, 0, height div 2, height)
+
+template resolveFromCenter*(lock: AnchorLock, width, height: int32): IVec2 =
+  ## Calculates the resolved position of an anchor lock
+  resolver(lock, width div 2, 0, -(width div 2), height div 2, 0, -(height div 2))
 
 proc toAnchor*(anchor: AnchorPosition): Anchor {.inline.} =
   when anchor is AnchorLock:

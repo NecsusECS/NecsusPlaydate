@@ -98,7 +98,7 @@ proc keyframe*(keyframe: Keyframe, typ: typedesc[enum]): Option[typ] =
 
 proc offsetFix(sprite: LCDSprite, anchor: Anchor): IVec2 =
   ## Returns the offset necessary to align a position to the 0, 0 position of a sprite
-  return anchor.offset + anchor.lock.resolve(sprite.getImage.getSize.width.int32, sprite.getImage.getSize.height.int32)
+  return anchor.offset + anchor.lock.resolveFromCenter(sprite.getImage.getSize.width.int32, sprite.getImage.getSize.height.int32)
 
 proc `=copy`(x: var SpriteObj, y: SpriteObj) {.error.}
 
