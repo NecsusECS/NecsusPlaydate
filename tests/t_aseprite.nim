@@ -73,6 +73,45 @@ suite "Aseprite SpriteSheet Utilities":
   test "anchorOffset falls back to hitBox if Anchor slice missing":
     check sheet.anchorOffset == ivec2(15, 25)
 
+  test "anchorPoint falls back to hitBox if Anchor slice missing":
+    check sheet.anchorPoint == ivec2(1, 7)
+
+  test "anchorPoint uses Anchor slice if present":
+    let anchorSheet = SpriteSheet(
+      frames:
+        @[
+          AseFrame(
+            duration: 100,
+            filename: "frame0.png",
+            frame: (h: 32, w: 32, x: 0, y: 0),
+            rotated: false,
+            trimmed: false,
+            sourceSize: (h: 32, w: 32),
+            spriteSourceSize: (h: 32, w: 32, x: 0, y: 0),
+          )
+        ],
+      meta: AseMeta(
+        app: "aseprite",
+        format: RGBA8888,
+        frameTags: @[AseFrameTag(name: "Idle", direction: forward, color: "#FFFFFF")],
+        image: "sprite.png",
+        layers: @[],
+        scale: "1",
+        size: (h: 32, w: 32),
+        slices:
+          @[
+            AseSlice(
+              color: "#00FF00",
+              data: "",
+              keys: @[AseSliceKey(bounds: (h: 4, w: 6, x: 2, y: 3), frame: 0)],
+              name: "Anchor",
+            )
+          ],
+        version: "1.0",
+      ),
+    )
+    check anchorSheet.anchorPoint == ivec2(11, 25)
+
   test "sliceKeyAsOffset returns offset relative to anchor":
     check sheet.sliceKeyAsOffset("HitBox") == ivec2(0, -5)
 
