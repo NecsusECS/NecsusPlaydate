@@ -65,18 +65,16 @@ suite "Aseprite SpriteSheet Utilities":
       (h: 10'i32, w: 20'i32, x: 5'i32, y: 15'i32)
 
   test "center returns correct IVec2":
-    check center((h: 10'i32, w: 20'i32, x: 5'i32, y: 15'i32)) ==
-      ivec2(5 + (20 div 2), 15 + (10 div 2))
+    check center((h: 10'i32, w: 20'i32, x: 5'i32, y: 15'i32)) == ivec2(15, 20)
 
   test "hitBox returns correct bounds":
     check sheet.hitBox == (h: 10'i32, w: 20'i32, x: 5'i32, y: 15'i32)
 
   test "anchorOffset falls back to hitBox if Anchor slice missing":
-    check sheet.anchorOffset == ivec2(5 + (20 div 2), 15 + 10)
+    check sheet.anchorOffset == ivec2(15, 25)
 
   test "sliceKeyAsOffset returns offset relative to anchor":
-    check sheet.sliceKeyAsOffset("HitBox") ==
-      center((h: 10'i32, w: 20'i32, x: 5'i32, y: 15'i32)) - sheet.anchorOffset
+    check sheet.sliceKeyAsOffset("HitBox") == ivec2(0, -5)
 
   test "animationTime returns correct duration for tag":
     type Anim = enum
@@ -92,7 +90,7 @@ suite "Aseprite SpriteSheet Utilities":
     let tb = sheet.getTriggerBox("HitBox", Z0)
     check tb.width == 20
     check tb.height == 10
-    check tb.offset == ivec2(5 - sheet.anchorOffset.x, 15 - sheet.anchorOffset.y)
+    check tb.offset == ivec2(-10, -10)
 
   test "strideToSpeed computes correct speed":
     # Add a slice with two keys at different x positions and frames
