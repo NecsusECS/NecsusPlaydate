@@ -189,6 +189,21 @@ proc readFrame(sheet: SpriteSheet, frame: SomeInteger): AseFrame {.discardable.}
     return
   return sheet.frames[frame.int32]
 
+proc anchorLock(data: string): AnchorLock =
+  ## Given the 'userdata' field, extract the anchor lock information
+  for item in data.splitWhitespace():
+    if item.startsWith("Anchor"):
+      return parseEnum[AnchorLock](item)
+  return AnchorBottomMiddle
+
+proc slicePointFromTopLeft*(sheet: SpriteSheet, sliceName: string): Option[IVec2] =
+  ## Returns the point for a slice anchored to the top left of the sprite
+  let slice = sheet.findSlice(sliceName).orElse:
+    return
+
+  let bounds = slice.firstKey(sheet).bounds
+  return some(ivec2(bounds.x, bounds.y) + slice.data.anchorLock.resolve(bounds.w, bounds.h))
+
 proc anchorOffset*(sheet: SpriteSheet): IVec2 =
   ## The offset of the anchor point relative to the top left of a sprite
   let anchor = sheet.findSlice("Anchor")
@@ -216,13 +231,6 @@ proc isLooped(sheet: SpriteSheet, tag: AseFrameTag): bool =
     sheet.error(fmt"FrameTag repeat can only be '1' or blank. Found: {tag.repeat}")
     return
   return tag.repeat == ""
-
-proc anchorLock(data: string): AnchorLock =
-  ## Given the 'userdata' field, extract the anchor lock information
-  for item in data.splitWhitespace():
-    if item.startsWith("Anchor"):
-      return parseEnum[AnchorLock](item)
-  return AnchorBottomMiddle
 
 proc findKeyframes[K: enum](sheet: SpriteSheet, ignore: set[K]): KeyframeTable[K] =
   ## Searches the layers in a sprite sheet and creates a table of frame # to keyframe trigger

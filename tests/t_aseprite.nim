@@ -185,3 +185,34 @@ suite "Aseprite SpriteSheet Utilities":
     )
     # Speed = (last.x - first.x) / totalMs * 1000 = (30 - 10) / (100 + 200) * 1000 = 20 / 300 * 1000 = 66.666...
     check abs(strideSheet.strideToSpeed("StrideBox") - 66.6667) < 0.01
+
+  test "slicePointFromTopLeft returns correct point with default anchor (BottomMiddle)":
+    check sheet.slicePointFromTopLeft("HitBox") == some(ivec2(15, 25))
+
+  test "slicePointFromTopLeft returns correct point with AnchorTopLeft":
+    let anchorSliceSheet = SpriteSheet(
+      frames: sheet.frames,
+      meta: AseMeta(
+        app: "aseprite",
+        format: RGBA8888,
+        frameTags: sheet.meta.frameTags,
+        image: "sprite.png",
+        layers: sheet.meta.layers,
+        scale: "1",
+        size: (h: 32, w: 32),
+        slices:
+          @[
+            AseSlice(
+              color: "#00FF00",
+              data: "AnchorTopLeft",
+              keys: @[AseSliceKey(bounds: (h: 10, w: 20, x: 5, y: 15), frame: 0)],
+              name: "HitBox",
+            )
+          ],
+        version: "1.0",
+      ),
+    )
+    check anchorSliceSheet.slicePointFromTopLeft("HitBox") == some(ivec2(5, 15))
+
+  test "slicePointFromTopLeft returns none for missing slice":
+    check sheet.slicePointFromTopLeft("MissingSlice").isNone
