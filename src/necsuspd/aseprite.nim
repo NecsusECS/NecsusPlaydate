@@ -205,6 +205,20 @@ proc slicePointFromTopLeft*(sheet: SpriteSheet, sliceName: string): Option[IVec2
   return
     some(ivec2(bounds.x, bounds.y) + slice.data.anchorLock.resolve(bounds.w, bounds.h))
 
+proc dimensions*(sheet: SpriteSheet): IVec2 =
+  ## Returns the dimensions (width, height) of the sprite as IVec2 from the first frame's sourceSize
+  if sheet.frames.len > 0:
+    let sz = sheet.frames[0].sourceSize
+    return ivec2(sz.w, sz.h)
+  else:
+    sheet.error("SpriteSheet has no frames to determine dimensions")
+
+proc slicePointFromCenter*(sheet: SpriteSheet, sliceName: string): Option[IVec2] =
+  ## Returns the point for a slice relative to the center of the sprite
+  return sheet.slicePointFromTopLeft(sliceName).mapIt:
+    let dims = sheet.dimensions()
+    it - ivec2(dims.x div 2, dims.y div 2)
+
 proc anchorOffset*(sheet: SpriteSheet): IVec2 =
   ## The offset of the anchor point relative to the top left of a sprite
   let anchor = sheet.findSlice("Anchor")
@@ -217,8 +231,8 @@ proc anchorOffset*(sheet: SpriteSheet): IVec2 =
 
 proc anchorPoint*(sheet: SpriteSheet): IVec2 =
   ## The anchor point from which to calculate other positions for a sprite
-  let frame = sheet.readFrame(0)
-  let frameCoord = ivec2(frame.sourceSize.w div 2, frame.sourceSize.h)
+  let dims = sheet.dimensions()
+  let frameCoord = ivec2(dims.x div 2, dims.y)
   return frameCoord - sheet.anchorOffset
 
 proc sliceKeyAsOffset*(sheet: SpriteSheet, key: string): IVec2 =

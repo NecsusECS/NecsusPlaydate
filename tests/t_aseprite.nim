@@ -139,6 +139,9 @@ suite "Aseprite SpriteSheet Utilities":
   test "center returns correct IVec2":
     check center((h: 10'i32, w: 20'i32, x: 5'i32, y: 15'i32)) == ivec2(15, 20)
 
+  test "dimensions returns correct sprite dimensions":
+    check sheet.dimensions() == ivec2(32, 32)
+
   test "hitBox returns correct bounds":
     check sheet.hitBox == (h: 10'i32, w: 20'i32, x: 5'i32, y: 15'i32)
 
@@ -194,10 +197,11 @@ suite "Aseprite SpriteSheet Utilities":
     # Speed = (last.x - first.x) / totalMs * 1000 = (30 - 10) / (100 + 200) * 1000 = 20 / 300 * 1000 = 66.666...
     check abs(strideSheet.strideToSpeed("StrideBox") - 66.6667) < 0.01
 
-  test "slicePointFromTopLeft returns correct point with default anchor (BottomMiddle)":
+  test "slicePoint functions return correct points with default anchor (BottomMiddle)":
     check sheet.slicePointFromTopLeft("HitBox") == some(ivec2(15, 25))
+    check sheet.slicePointFromCenter("HitBox") == some(ivec2(-1, 9))
 
-  test "slicePointFromTopLeft returns correct point with AnchorTopLeft":
+  test "slicePoint functions return correct points with AnchorTopLeft":
     let anchorSliceSheet = makeSpriteSheet(
       frames = sheet.frames,
       frameTags = sheet.meta.frameTags,
@@ -213,6 +217,8 @@ suite "Aseprite SpriteSheet Utilities":
         ],
     )
     check anchorSliceSheet.slicePointFromTopLeft("HitBox") == some(ivec2(5, 15))
+    check anchorSliceSheet.slicePointFromCenter("HitBox") == some(ivec2(-11, -1))
 
-  test "slicePointFromTopLeft returns none for missing slice":
+  test "slicePoint functions return none for missing slice":
     check sheet.slicePointFromTopLeft("MissingSlice").isNone
+    check sheet.slicePointFromCenter("MissingSlice").isNone
