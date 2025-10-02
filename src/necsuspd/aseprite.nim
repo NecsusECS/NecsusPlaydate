@@ -61,8 +61,8 @@ type
     to*: int32
     direction*: AseDirection
     color*: string
-    data: string
-    repeat: string
+    data*: string
+    repeat*: string
 
   AseCel* = tuple[frame: int32, data: string]
 
@@ -202,7 +202,8 @@ proc slicePointFromTopLeft*(sheet: SpriteSheet, sliceName: string): Option[IVec2
     return
 
   let bounds = slice.firstKey(sheet).bounds
-  return some(ivec2(bounds.x, bounds.y) + slice.data.anchorLock.resolve(bounds.w, bounds.h))
+  return
+    some(ivec2(bounds.x, bounds.y) + slice.data.anchorLock.resolve(bounds.w, bounds.h))
 
 proc anchorOffset*(sheet: SpriteSheet): IVec2 =
   ## The offset of the anchor point relative to the top left of a sprite

@@ -1,50 +1,122 @@
 import std/[unittest, options], necsuspd/[aseprite, triggerBox], vmath
 
-suite "Aseprite SpriteSheet Utilities":
-  let sheet = SpriteSheet(
-    frames:
-      @[
-        AseFrame(
-          duration: 100,
-          filename: "frame0.png",
-          frame: (h: 32, w: 32, x: 0, y: 0),
-          rotated: false,
-          trimmed: false,
-          sourceSize: (h: 32, w: 32),
-          spriteSourceSize: (h: 32, w: 32, x: 0, y: 0),
-        )
-      ],
+# Helper for creating an AseFrame
+proc makeAseFrame(
+    duration: int32 = 100,
+    filename: string = "frame0.png",
+    frame: AseRectangle = (h: 32'i32, w: 32'i32, x: 0'i32, y: 0'i32),
+    rotated: bool = false,
+    trimmed: bool = false,
+    sourceSize: AseSize = (h: 32'i32, w: 32'i32),
+    spriteSourceSize: AseRectangle = (h: 32'i32, w: 32'i32, x: 0'i32, y: 0'i32),
+): AseFrame =
+  AseFrame(
+    duration: duration,
+    filename: filename,
+    frame: frame,
+    rotated: rotated,
+    trimmed: trimmed,
+    sourceSize: sourceSize,
+    spriteSourceSize: spriteSourceSize,
+  )
+
+# Helper for creating an AseLayer
+proc makeAseLayer(
+    blendMode: AseBlendMode = normal,
+    color: string = "#000000",
+    data: string = "",
+    group: string = "",
+    name: string = "Events",
+    opacity: int32 = 255,
+    cels: seq[AseCel] = @[(frame: 0, data: "jump")],
+): AseLayer =
+  AseLayer(
+    blendMode: blendMode,
+    color: color,
+    data: data,
+    group: group,
+    name: name,
+    opacity: opacity,
+    cels: cels,
+  )
+
+# Helper for creating an AseSliceKey
+proc makeAseSliceKey(h: int = 10, w: int = 20, x: int = 5, y: int = 15): AseSliceKey =
+  AseSliceKey(bounds: (h: h.int32, w: w.int32, x: x.int32, y: y.int32), frame: 0)
+    # frame will be set by makeAseSlice
+
+# Helper for creating an AseSlice (now uses varargs for keys)
+proc makeAseSlice(
+    name: string = "HitBox",
+    color: string = "#FF0000",
+    data: string = "",
+    keys: varargs[AseSliceKey],
+): AseSlice =
+  result = AseSlice(name: name, color: color, data: data, keys: @[])
+  for i, k in keys:
+    result.keys.add(AseSliceKey(bounds: k.bounds, frame: i.int32))
+
+# Convenience helper for a single-key slice (legacy)
+proc makeAseSliceWithKey(
+    name: string = "HitBox",
+    bounds: tuple[h, w, x, y: int] = (h: 10, w: 20, x: 5, y: 15),
+    frame: int32 = 0,
+    color: string = "#FF0000",
+    data: string = "",
+): AseSlice =
+  makeAseSlice(
+    name,
+    color,
+    data,
+    makeAseSliceKey(h = bounds.h, w = bounds.w, x = bounds.x, y = bounds.y)
+  )
+
+# Helper for AseFrameTag
+proc makeAseFrameTag(
+    name: string = "Idle",
+    direction: AseDirection = forward,
+    color: string = "#FFFFFF",
+    fromIdx: int32 = 0,
+    toIdx: int32 = 0,
+    data: string = "",
+    repeat: string = "",
+): AseFrameTag =
+  AseFrameTag(
+    name: name,
+    direction: direction,
+    color: color,
+    `from`: fromIdx,
+    to: toIdx,
+    data: data,
+    repeat: repeat,
+  )
+
+# Helper for SpriteSheet, allowing easy inline slices/tags
+proc makeSpriteSheet(
+    frames: seq[AseFrame] = @[makeAseFrame()],
+    frameTags: seq[AseFrameTag] = @[makeAseFrameTag()],
+    layers: seq[AseLayer] = @[makeAseLayer()],
+    slices: seq[AseSlice] = @[makeAseSliceWithKey()],
+    image: string = "sprite.png",
+    size: AseSize = (h: 32'i32, w: 32'i32),
+): SpriteSheet =
+  SpriteSheet(
+    frames: frames,
     meta: AseMeta(
       app: "aseprite",
       format: RGBA8888,
-      frameTags: @[AseFrameTag(name: "Idle", direction: forward, color: "#FFFFFF")],
-      image: "sprite.png",
-      layers:
-        @[
-          AseLayer(
-            blendMode: normal,
-            color: "#000000",
-            data: "",
-            group: "",
-            name: "Events",
-            opacity: 255,
-            cels: @[(frame: 0, data: "jump")],
-          )
-        ],
+      frameTags: frameTags,
+      image: image,
+      layers: layers,
       scale: "1",
-      size: (h: 32, w: 32),
-      slices:
-        @[
-          AseSlice(
-            color: "#FF0000",
-            data: "",
-            keys: @[AseSliceKey(bounds: (h: 10, w: 20, x: 5, y: 15), frame: 0)],
-            name: "HitBox",
-          )
-        ],
+      size: size,
+      slices: slices,
       version: "1.0",
     ),
   )
+
+suite "Aseprite SpriteSheet Utilities":
+  let sheet = makeSpriteSheet()
 
   test "findTag finds tag by name":
     check sheet.findTag("Idle").isSome
@@ -77,38 +149,9 @@ suite "Aseprite SpriteSheet Utilities":
     check sheet.anchorPoint == ivec2(1, 7)
 
   test "anchorPoint uses Anchor slice if present":
-    let anchorSheet = SpriteSheet(
-      frames:
-        @[
-          AseFrame(
-            duration: 100,
-            filename: "frame0.png",
-            frame: (h: 32, w: 32, x: 0, y: 0),
-            rotated: false,
-            trimmed: false,
-            sourceSize: (h: 32, w: 32),
-            spriteSourceSize: (h: 32, w: 32, x: 0, y: 0),
-          )
-        ],
-      meta: AseMeta(
-        app: "aseprite",
-        format: RGBA8888,
-        frameTags: @[AseFrameTag(name: "Idle", direction: forward, color: "#FFFFFF")],
-        image: "sprite.png",
-        layers: @[],
-        scale: "1",
-        size: (h: 32, w: 32),
-        slices:
-          @[
-            AseSlice(
-              color: "#00FF00",
-              data: "",
-              keys: @[AseSliceKey(bounds: (h: 4, w: 6, x: 2, y: 3), frame: 0)],
-              name: "Anchor",
-            )
-          ],
-        version: "1.0",
-      ),
+    let anchorSheet = makeSpriteSheet(
+      slices =
+        @[makeAseSliceWithKey(name = "Anchor", bounds = (h: 4, w: 6, x: 2, y: 3))]
     )
     check anchorSheet.anchorPoint == ivec2(11, 25)
 
@@ -133,55 +176,20 @@ suite "Aseprite SpriteSheet Utilities":
 
   test "strideToSpeed computes correct speed":
     # Add a slice with two keys at different x positions and frames
-    let strideSheet = SpriteSheet(
-      frames:
+    let strideSheet = makeSpriteSheet(
+      frames = @[makeAseFrame(), makeAseFrame(duration = 200, filename = "frame1.png")],
+      frameTags = @[makeAseFrameTag(name = "Stride", fromIdx = 0, toIdx = 1)],
+      image = "stride.png",
+      slices =
         @[
-          AseFrame(
-            duration: 100,
-            filename: "frame0.png",
-            frame: (h: 32, w: 32, x: 0, y: 0),
-            rotated: false,
-            trimmed: false,
-            sourceSize: (h: 32, w: 32),
-            spriteSourceSize: (h: 32, w: 32, x: 0, y: 0),
-          ),
-          AseFrame(
-            duration: 200,
-            filename: "frame1.png",
-            frame: (h: 32, w: 32, x: 0, y: 0),
-            rotated: false,
-            trimmed: false,
-            sourceSize: (h: 32, w: 32),
-            spriteSourceSize: (h: 32, w: 32, x: 0, y: 0),
-          ),
+          makeAseSlice(
+            "StrideBox",
+            "#00FF00",
+            "",
+            makeAseSliceKey(h = 10, w = 20, x = 10, y = 15),
+            makeAseSliceKey(h = 10, w = 20, x = 30, y = 15),
+          )
         ],
-      meta: AseMeta(
-        app: "aseprite",
-        format: RGBA8888,
-        frameTags:
-          @[
-            AseFrameTag(
-              name: "Stride", `from`: 0, to: 1, direction: forward, color: "#FFFFFF"
-            )
-          ],
-        image: "stride.png",
-        scale: "1",
-        size: (h: 32, w: 32),
-        slices:
-          @[
-            AseSlice(
-              color: "#00FF00",
-              data: "",
-              keys:
-                @[
-                  AseSliceKey(bounds: (h: 10, w: 20, x: 10, y: 15), frame: 0),
-                  AseSliceKey(bounds: (h: 10, w: 20, x: 30, y: 15), frame: 1),
-                ],
-              name: "StrideBox",
-            )
-          ],
-        version: "1.0",
-      ),
     )
     # Speed = (last.x - first.x) / totalMs * 1000 = (30 - 10) / (100 + 200) * 1000 = 20 / 300 * 1000 = 66.666...
     check abs(strideSheet.strideToSpeed("StrideBox") - 66.6667) < 0.01
@@ -190,27 +198,19 @@ suite "Aseprite SpriteSheet Utilities":
     check sheet.slicePointFromTopLeft("HitBox") == some(ivec2(15, 25))
 
   test "slicePointFromTopLeft returns correct point with AnchorTopLeft":
-    let anchorSliceSheet = SpriteSheet(
-      frames: sheet.frames,
-      meta: AseMeta(
-        app: "aseprite",
-        format: RGBA8888,
-        frameTags: sheet.meta.frameTags,
-        image: "sprite.png",
-        layers: sheet.meta.layers,
-        scale: "1",
-        size: (h: 32, w: 32),
-        slices:
-          @[
-            AseSlice(
-              color: "#00FF00",
-              data: "AnchorTopLeft",
-              keys: @[AseSliceKey(bounds: (h: 10, w: 20, x: 5, y: 15), frame: 0)],
-              name: "HitBox",
-            )
-          ],
-        version: "1.0",
-      ),
+    let anchorSliceSheet = makeSpriteSheet(
+      frames = sheet.frames,
+      frameTags = sheet.meta.frameTags,
+      layers = sheet.meta.layers,
+      slices =
+        @[
+          makeAseSliceWithKey(
+            name = "HitBox",
+            bounds = (h: 10, w: 20, x: 5, y: 15),
+            data = "AnchorTopLeft",
+            color = "#00FF00",
+          )
+        ],
     )
     check anchorSliceSheet.slicePointFromTopLeft("HitBox") == some(ivec2(5, 15))
 
