@@ -39,6 +39,10 @@ template resolve*(lock: AnchorLock, width, height: int32): IVec2 =
   ## Calculates the resolved position of an anchor lock
   resolver(lock, 0, width div 2, width, 0, height div 2, height)
 
+proc resolve*(lock: AnchorLock, dimens: IVec2): IVec2 =
+  ## Calculates the resolved position of an anchor lock
+  resolve(lock, dimens.x, dimens.y)
+
 template resolveFromCenter*(lock: AnchorLock, width, height: int32): IVec2 =
   ## Calculates the resolved position of an anchor lock
   resolver(lock, width div 2, 0, -(width div 2), height div 2, 0, -(height div 2))

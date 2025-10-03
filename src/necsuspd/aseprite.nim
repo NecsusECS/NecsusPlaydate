@@ -235,14 +235,12 @@ proc anchorOffset*(sheet: SpriteSheet): IVec2 =
   ## The offset of the anchor point relative to the top left of a sprite
   return sheet
     .slicePointFromTopLeft("Anchor", AnchorBottomMiddle)
-    .fallback(sheet.slicePointFromTopLeft("HitBox", AnchorBottomMiddle)).orElse:
-      sheet.dimensions().div(2)
+    .fallback(sheet.slicePointFromTopLeft("HitBox", AnchorBottomMiddle))
+    .orElse(sheet.dimensions().div(2))
 
-proc anchorPoint*(sheet: SpriteSheet): IVec2 =
-  ## The anchor point from which to calculate other positions for a sprite
-  let dims = sheet.dimensions()
-  let frameCoord = ivec2(dims.x div 2, dims.y)
-  return frameCoord - sheet.anchorOffset
+proc spriteAnchor*(sheet: SpriteSheet): Anchor =
+  ## The anchor definition to use when creating a sprite from this sheet
+  return (AnchorMiddle, sheet.dimensions().div(2) - sheet.anchorOffset)
 
 proc sliceKeyAsOffset*(sheet: SpriteSheet, key: string): IVec2 =
   ## Returns the offset of the center of a slice key relative to the anchor point of a sprite
@@ -342,10 +340,7 @@ when defined(simulator) or defined(device):
     for frameId in (tag.`from` .. tag.to):
       frames.add(createFrameDef(sheet, keyframes, frameId))
 
-    let anchor = sheet.anchorPoint
-    let anchorNode = (tag.data.anchorLock(), ivec2(anchor.x.int32, anchor.y.int32))
-
-    return animation(sheetId, frames, anchorNode, sheet.isLooped(tag))
+    return animation(sheetId, frames, sheet.spriteAnchor, sheet.isLooped(tag))
 
   proc animationTable*[A, K: enum](
       sheet: SpriteSheet,

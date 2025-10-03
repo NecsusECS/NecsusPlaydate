@@ -148,15 +148,15 @@ suite "Aseprite SpriteSheet Utilities":
   test "anchorOffset falls back to hitBox if Anchor slice missing":
     check sheet.anchorOffset == ivec2(15, 25)
 
-  test "anchorPoint falls back to hitBox if Anchor slice missing":
-    check sheet.anchorPoint == ivec2(1, 7)
+  test "spriteAnchor falls back to hitBox if Anchor slice missing":
+    check sheet.spriteAnchor == (AnchorMiddle, ivec2(1, -9))
 
-  test "anchorPoint uses Anchor slice if present":
+  test "spriteAnchor uses Anchor slice if present":
     let anchorSheet = makeSpriteSheet(
       slices =
         @[makeAseSliceWithKey(name = "Anchor", bounds = (h: 4, w: 6, x: 2, y: 3))]
     )
-    check anchorSheet.anchorPoint == ivec2(11, 25)
+    check anchorSheet.spriteAnchor == (AnchorMiddle, ivec2(11, 9))
 
   test "sliceKeyAsOffset returns offset relative to anchor":
     check sheet.sliceKeyAsOffset("HitBox") == ivec2(0, -5)
