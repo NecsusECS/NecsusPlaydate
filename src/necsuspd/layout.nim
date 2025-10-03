@@ -1,4 +1,4 @@
-import necsus, sequtils, positioned, options, vmath, alignment
+import necsus, sequtils, positioned, options, vmath, alignment, util
 export alignment
 
 when defined(unittests):
@@ -161,6 +161,7 @@ proc update[T](
 
       return (entity.get.sprite.width.int32, entity.get.sprite.height.int32)
     else:
+      log "Unable to layout sprite entity ", elem.entityId
       return (0, 0)
   of CardLayout:
     var currentArea = area
