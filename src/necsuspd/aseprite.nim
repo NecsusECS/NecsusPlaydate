@@ -199,17 +199,19 @@ proc anchorLock(data: string, defaultAnchor: AnchorLock): AnchorLock =
   return defaultAnchor
 
 proc slicePointFromTopLeft*(
-  sheet: SpriteSheet,
-  sliceName: string,
-  defaultAnchor: AnchorLock = AnchorBottomMiddle
+    sheet: SpriteSheet,
+    sliceName: string,
+    defaultAnchor: AnchorLock = AnchorBottomMiddle,
 ): Option[IVec2] =
   ## Returns the point for a slice anchored to the top left of the sprite
   let slice = sheet.findSlice(sliceName).orElse:
     return
 
   let bounds = slice.firstKey(sheet).bounds
-  return
-    some(ivec2(bounds.x, bounds.y) + slice.data.anchorLock(defaultAnchor).resolve(bounds.w, bounds.h))
+  return some(
+    ivec2(bounds.x, bounds.y) +
+      slice.data.anchorLock(defaultAnchor).resolve(bounds.w, bounds.h)
+  )
 
 proc dimensions*(sheet: SpriteSheet): IVec2 =
   ## Returns the dimensions (width, height) of the sprite as IVec2 from the first frame's sourceSize
@@ -219,7 +221,11 @@ proc dimensions*(sheet: SpriteSheet): IVec2 =
   else:
     sheet.error("SpriteSheet has no frames to determine dimensions")
 
-proc slicePointFromCenter*(sheet: SpriteSheet, sliceName: string, defaultAnchor: AnchorLock = AnchorBottomMiddle): Option[IVec2] =
+proc slicePointFromCenter*(
+    sheet: SpriteSheet,
+    sliceName: string,
+    defaultAnchor: AnchorLock = AnchorBottomMiddle,
+): Option[IVec2] =
   ## Returns the point for a slice relative to the center of the sprite
   return sheet.slicePointFromTopLeft(sliceName, defaultAnchor).mapIt:
     let dims = sheet.dimensions()
@@ -227,13 +233,10 @@ proc slicePointFromCenter*(sheet: SpriteSheet, sliceName: string, defaultAnchor:
 
 proc anchorOffset*(sheet: SpriteSheet): IVec2 =
   ## The offset of the anchor point relative to the top left of a sprite
-  let anchor = sheet.findSlice("Anchor")
-  let bounds =
-    if anchor.isSome:
-      anchor.get.firstKey(sheet).bounds
-    else:
-      sheet.hitBox
-  return ivec2(bounds.x + (bounds.w div 2), bounds.y + bounds.h)
+  return sheet
+    .slicePointFromTopLeft("Anchor", AnchorBottomMiddle)
+    .fallback(sheet.slicePointFromTopLeft("HitBox", AnchorBottomMiddle)).orElse:
+      sheet.dimensions().div(2)
 
 proc anchorPoint*(sheet: SpriteSheet): IVec2 =
   ## The anchor point from which to calculate other positions for a sprite
