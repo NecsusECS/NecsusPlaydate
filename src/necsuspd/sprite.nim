@@ -8,6 +8,7 @@ import
   util,
   vec_tools,
   anchor,
+  types,
   std/[options, strformat, macros, sequtils]
 export anchor
 
@@ -24,8 +25,7 @@ type
 
   Keyframe*[S: enum] {.byref.} = object
     ## An event that is triggered when an animation reaches a specific frame
-    keyframeValue: int32
-    keyframeTypeId: int32
+    keyframeValue: EnumValue
     sheet*: S
     entityId*: EntityId
 
@@ -34,8 +34,7 @@ type
     cellId: int32
     case isKeyframe: bool
     of true:
-      keyframeValue: int32
-      keyframeTypeId: int32
+      keyframeValue: EnumValue
     of false:
       discard
 
@@ -93,12 +92,15 @@ proc modify*[S](
 
 proc keyframe*(keyframe: Keyframe, typ: typedesc[enum]): Option[typ] =
   ## Extracts the keyframe as an enum
-  if keyframe.keyframeTypeId == typ.getTypeId:
-    return some(typ(keyframe.keyframeValue))
+  return keyframe.keyframeValue.getAs(typ)
 
 proc offsetFix(sprite: LCDSprite, anchor: Anchor): IVec2 =
   ## Returns the offset necessary to align a position to the 0, 0 position of a sprite
-  return anchor.offset + anchor.lock.resolveFromCenter(sprite.getImage.getSize.width.int32, sprite.getImage.getSize.height.int32)
+  return
+    anchor.offset +
+    anchor.lock.resolveFromCenter(
+      sprite.getImage.getSize.width.int32, sprite.getImage.getSize.height.int32
+    )
 
 proc `=copy`(x: var SpriteObj, y: SpriteObj) {.error.}
 
@@ -131,11 +133,7 @@ proc frame*(cellId: int32, time: float32): Frame =
 proc frame*(cellId: int32, time: float32, keyframe: enum): Frame =
   ## Build a frame with a keyframe
   Frame(
-    cellId: cellId,
-    time: time,
-    isKeyframe: true,
-    keyframeValue: ord(keyframe).int32,
-    keyframeTypeId: keyframe.type.getTypeId,
+    cellId: cellId, time: time, isKeyframe: true, keyframeValue: getEnumValue(keyframe)
   )
 
 proc animation*[S: enum](
@@ -351,10 +349,7 @@ proc buildSpriteAdvancer*[S](): auto =
           if frame.isKeyframe:
             events(
               Keyframe[S](
-                sheet: anim.def.sheet,
-                keyframeValue: frame.keyframeValue,
-                keyframeTypeId: frame.keyframeTypeId,
-                entityId: eid,
+                sheet: anim.def.sheet, keyframeValue: frame.keyframeValue, entityId: eid
               )
             )
 

@@ -1,10 +1,11 @@
-import percent, necsus, util, std/[sets]
+import percent, necsus, util, types, std/[sets]
 
 type
   LastLoadTick = BiggestUInt
 
   TaskKey = object
-    typeId, taskId: int32
+    typeId: TypeId
+    taskId: int32
 
   AllTasksKey = TaskKey
 
@@ -72,7 +73,7 @@ proc shouldRunTask(control: Bundle[LoadTasks], taskId: TaskKey): bool =
   return true
 
 proc buildKey(kind: typedesc, key: int32): auto =
-  TaskKey(typeId: kind.getTypeId.int32, taskId: key)
+  TaskKey(typeId: kind.getTypeId, taskId: key)
 
 template execTask*(
     control: Bundle[LoadTasks],

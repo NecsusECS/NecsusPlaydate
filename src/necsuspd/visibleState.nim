@@ -1,11 +1,11 @@
-import necsus, sprite, playdate/api, util, std/[bitops, strutils]
+import necsus, sprite, playdate/api, util, std/[bitops, strutils], types
 
 type
   StateType = uint64
 
   VisibleState* = object
     states: StateType
-    typeId: int32
+    typeId: TypeId
 
   EvaluateVisibleState* = object
 

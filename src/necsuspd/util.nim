@@ -1,4 +1,5 @@
-import std/[macros, options, strutils, macrocache, importutils]
+import std/[macros, options, strutils, macrocache, importutils], types
+export types
 
 when not defined(unittests):
   import playdate/api
@@ -235,16 +236,6 @@ macro emptyEnum*(): untyped =
 proc emptyArray*[T, V](): array[T, V] =
   ## Creates an array of a specific type without any values
   discard
-
-const typeIds = CacheCounter("typeIds")
-
-func getTypeId*(T: typedesc): int32 =
-  ## Returns the unique type ID for the geven type
-  const id = typeIds.value
-  static:
-    typeIds.inc
-
-  return id.int32
 
 template unroll*(i0, name0: untyped, iter: typed, body0: untyped): untyped =
   ## Unrolls a loop
