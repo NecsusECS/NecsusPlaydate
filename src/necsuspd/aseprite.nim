@@ -10,6 +10,8 @@ import
   util,
   anchor
 
+export anchor
+
 when defined(simulator) or defined(device):
   import playdate/api, playdate/util/initreqs, sprite
 else:
@@ -189,21 +191,25 @@ proc readFrame(sheet: SpriteSheet, frame: SomeInteger): AseFrame {.discardable.}
     return
   return sheet.frames[frame.int32]
 
-proc anchorLock(data: string): AnchorLock =
+proc anchorLock(data: string, defaultAnchor: AnchorLock): AnchorLock =
   ## Given the 'userdata' field, extract the anchor lock information
   for item in data.splitWhitespace():
     if item.startsWith("Anchor"):
       return parseEnum[AnchorLock](item)
-  return AnchorBottomMiddle
+  return defaultAnchor
 
-proc slicePointFromTopLeft*(sheet: SpriteSheet, sliceName: string): Option[IVec2] =
+proc slicePointFromTopLeft*(
+  sheet: SpriteSheet,
+  sliceName: string,
+  defaultAnchor: AnchorLock = AnchorBottomMiddle
+): Option[IVec2] =
   ## Returns the point for a slice anchored to the top left of the sprite
   let slice = sheet.findSlice(sliceName).orElse:
     return
 
   let bounds = slice.firstKey(sheet).bounds
   return
-    some(ivec2(bounds.x, bounds.y) + slice.data.anchorLock.resolve(bounds.w, bounds.h))
+    some(ivec2(bounds.x, bounds.y) + slice.data.anchorLock(defaultAnchor).resolve(bounds.w, bounds.h))
 
 proc dimensions*(sheet: SpriteSheet): IVec2 =
   ## Returns the dimensions (width, height) of the sprite as IVec2 from the first frame's sourceSize
@@ -213,9 +219,9 @@ proc dimensions*(sheet: SpriteSheet): IVec2 =
   else:
     sheet.error("SpriteSheet has no frames to determine dimensions")
 
-proc slicePointFromCenter*(sheet: SpriteSheet, sliceName: string): Option[IVec2] =
+proc slicePointFromCenter*(sheet: SpriteSheet, sliceName: string, defaultAnchor: AnchorLock = AnchorBottomMiddle): Option[IVec2] =
   ## Returns the point for a slice relative to the center of the sprite
-  return sheet.slicePointFromTopLeft(sliceName).mapIt:
+  return sheet.slicePointFromTopLeft(sliceName, defaultAnchor).mapIt:
     let dims = sheet.dimensions()
     it - ivec2(dims.x div 2, dims.y div 2)
 

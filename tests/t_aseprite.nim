@@ -68,7 +68,7 @@ proc makeAseSliceWithKey(
     name,
     color,
     data,
-    makeAseSliceKey(h = bounds.h, w = bounds.w, x = bounds.x, y = bounds.y)
+    makeAseSliceKey(h = bounds.h, w = bounds.w, x = bounds.x, y = bounds.y),
   )
 
 # Helper for AseFrameTag
@@ -219,6 +219,55 @@ suite "Aseprite SpriteSheet Utilities":
     check anchorSliceSheet.slicePointFromTopLeft("HitBox") == some(ivec2(5, 15))
     check anchorSliceSheet.slicePointFromCenter("HitBox") == some(ivec2(-11, -1))
 
-  test "slicePoint functions return none for missing slice":
+  test "slicePointFromTopLeft returns none for missing slice":
     check sheet.slicePointFromTopLeft("MissingSlice").isNone
+
+  test "slicePointFromTopLeft and slicePointFromCenter use defaultAnchor parameter":
+    # Create a slice with no anchor data (empty string), so it should use the defaultAnchor
+    let noAnchorSheet = makeSpriteSheet(
+      slices =
+        @[
+          makeAseSliceWithKey(
+            name = "TestBox",
+            bounds = (h: 10, w: 20, x: 5, y: 15),
+            data = "", # No anchor specified
+            color = "#00FF00",
+          )
+        ]
+    )
+
+    # Test with default anchor (AnchorBottomMiddle) - should be same as no parameter
+    check noAnchorSheet.slicePointFromTopLeft("TestBox") ==
+      noAnchorSheet.slicePointFromTopLeft("TestBox", AnchorBottomMiddle)
+
+    # Test with different defaultAnchor (AnchorTopLeft)
+    # With AnchorTopLeft, no offset should be added, so result should be (5, 15)
+    check noAnchorSheet.slicePointFromTopLeft("TestBox", AnchorTopLeft) ==
+      some(ivec2(5, 15))
+
+    # Test slicePointFromCenter with defaultAnchor
+    # AnchorTopLeft result (5, 15) minus sprite center (16, 16) = (-11, -1)
+    check noAnchorSheet.slicePointFromCenter("TestBox", AnchorTopLeft) ==
+      some(ivec2(-11, -1))
+
+    # Test that explicit anchor data overrides defaultAnchor
+    let explicitAnchorSheet = makeSpriteSheet(
+      slices =
+        @[
+          makeAseSliceWithKey(
+            name = "TestBox",
+            bounds = (h: 10, w: 20, x: 5, y: 15),
+            data = "AnchorTopLeft", # Explicit anchor
+            color = "#00FF00",
+          )
+        ]
+    )
+
+    # Should return same result regardless of defaultAnchor since explicit anchor is specified
+    check explicitAnchorSheet.slicePointFromTopLeft("TestBox", AnchorBottomMiddle) ==
+      some(ivec2(5, 15))
+    check explicitAnchorSheet.slicePointFromTopLeft("TestBox", AnchorTopLeft) ==
+      some(ivec2(5, 15))
+
+  test "slicePointFromCenter returns none for missing slice":
     check sheet.slicePointFromCenter("MissingSlice").isNone
