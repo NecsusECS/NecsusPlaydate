@@ -6,3 +6,4 @@ tests/t_*
 !tests/t_*.nim
 nimble.develop
 nimble.paths
+nimbledeps
