@@ -34,9 +34,9 @@ suite "TypeId tests":
     check getTypeId(Size) == getTypeId(Size)
 
   test "TypeId as string":
-    check $getTypeId(Color) == "Color"
-    check $getTypeId(Size) == "Size"
-    check $getTypeId(Direction) == "Direction"
+    check $getTypeId(Color) == "TypeId#0:Color"
+    check $getTypeId(Size) == "TypeId#1:Size"
+    check $getTypeId(Direction) == "TypeId#2:Direction"
 
 suite "EnumValue tests":
   test "getEnumValue creates correct EnumValue":

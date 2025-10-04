@@ -1,53 +1,70 @@
-import std/[options, macrocache, strformat, macros, tables]
+import std/[options, macrocache, strformat, macros, tables, typetraits]
+
+const enableNames = not defined(release)
 
 type
-  TypeId* = distinct int32
+  UnderlyingType = uint16
+
+  TypeId* = object
     ## A value that allows types to be compared at runtime, even if
     ## the specific name of the type isn't known
+    id: UnderlyingType
+    when enableNames:
+      name: string
 
   EnumValue* = object
     ## A value for an enum that can be compared at runtime without
     ## needing to track the specific type of the enum itself
     typeId: TypeId
-    ordinal: int32
+    ordinal: UnderlyingType
+    when enableNames:
+      name: string
 
-const typeIds = CacheCounter("typeIds")
+const nextTypeId = CacheCounter("nextTypeId")
 
-when not defined(release):
-  var runtimeTypeIdNames: Table[int32, string]
+const typeIds = CacheTable("typeIdsByHash")
 
-proc `==`*(a, b: TypeId): bool {.borrow.}
+macro findTypeId(name: static[string], node: typedesc): untyped =
+  let key = node.getTypeImpl[1].signatureHash
+  if key notin typeIds:
+    typeIds[key] = nextTypeId.value.UnderlyingType.newLit
+    inc nextTypeId
+  return typeIds[key]
 
 proc getTypeId*(T: typedesc): TypeId =
   ## Returns the unique type ID for the geven type
-  const id = typeIds.value.int32
-  static:
-    typeIds.inc
+  const id = findTypeId($T, T)
+  result = TypeId(id: id)
+  when enableNames:
+    result.name = $T
 
-  when declared(runtimeTypeIdNames):
-    runtimeTypeIdNames[id] = $T
-
-  return id.TypeId
+proc `==`*(a, b: TypeId): bool =
+  a.id == b.id
 
 proc `$`*(value: TypeId): string =
   ## Returns the string representation of the type ID
-  let id = value.int32
-  when declared(runtimeTypeIdNames):
-    if runtimeTypeIdNames.hasKey(id):
-      return runtimeTypeIdNames[id]
-  return fmt"TypeId#{id}"
+  result = fmt"TypeId#{value.id}"
+  when enableNames:
+    result &= ":" & value.name
 
 proc `$`*(value: EnumValue): string =
   ## Returns the string representation of the type ID
-  fmt"{value.typeId}@{value.ordinal}"
+  when enableNames:
+    let basename = value.name
+  else:
+    let basename = $value.ordinal
+  return fmt"{value.typeId}:{basename}"
 
 proc getEnumValue*(value: enum): EnumValue =
   ## Returns the enum value for the given type and value
-  EnumValue(typeId: getTypeId(typeof(value)), ordinal: ord(value).int32)
+  result =
+    EnumValue(typeId: getTypeId(typeof(value)), ordinal: ord(value).UnderlyingType)
+  when enableNames:
+    result.name = $value
 
 proc ord*(value: EnumValue): int32 =
   ## Returns the ordinal value of the enum
-  value.ordinal
+  value.ordinal.int32
 
 proc typeId*(value: EnumValue): TypeId =
   ## Returns the type ID of the enum value
@@ -63,6 +80,7 @@ proc getAs*(value: EnumValue, typ: typedesc[enum]): Option[typ] =
 
 proc assertAs*(value: EnumValue, typ: typedesc[enum]): typ =
   ## Assert that the enum value is of the given type
-  let value = getAs(value, typ)
-  assert(value.isSome, fmt"{value} is not of type {$typ}")
-  return value.unsafeGet
+  let output = getAs(value, typ)
+  let expected = getTypeId(typ)
+  assert(output.isSome, fmt"{value} is not of type {$typ} ({expected})")
+  return output.unsafeGet
