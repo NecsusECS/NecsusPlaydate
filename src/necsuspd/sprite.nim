@@ -44,11 +44,11 @@ type
     anchor: Anchor
     loop: bool
 
-  AnimationDef*[S: enum] = ref AnimationDefObj
+  AnimationDef* = ref AnimationDefObj
     ## A specific animation within a sprite sheet
 
   AnimationObj[S] = object
-    def: AnimationDef[S]
+    def: AnimationDef
     sprite*: LCDSprite
     table: LCDBitmapTable
     frameCache: seq[LCDBitmap]
@@ -81,11 +81,11 @@ proc scale*(anchor: Anchor, factor: float32): Anchor =
   result = anchor
   result.offset = (anchor.offset.vec2 * factor).toIVec2
 
-proc modify*[S](
-    def: AnimationDef[S], cellOffset: int32 = 0, anchor: Anchor = def.anchor
-): AnimationDef[S] =
+proc modify*(
+    def: AnimationDef, cellOffset: int32 = 0, anchor: Anchor = def.anchor
+): AnimationDef =
   ## Creates a copy of an AnimationDef with all the cellIds offset by a given amount
-  result = new(AnimationDef[S])
+  result = new(AnimationDef)
   result[] = def[]
   result.frames = def.frames.mapIt(it.offsetCellId(cellOffset))
   result.anchor = anchor
@@ -123,7 +123,7 @@ proc width*(sprite: Sprite | Animation): auto =
 proc height*(sprite: Sprite | Animation): auto =
   sprite.sprite.getImage.getSize.height
 
-proc def*[S](animation: Animation[S]): AnimationDef[S] =
+proc def*[S](animation: Animation[S]): AnimationDef =
   animation.def
 
 proc frame*(cellId: int32, time: float32): Frame =
@@ -138,9 +138,9 @@ proc frame*(cellId: int32, time: float32, keyframe: enum): Frame =
 
 proc animation*[S: enum](
     sheet: S, frames: openarray[Frame], anchor: AnchorPosition, loop: bool = true
-): AnimationDef[S] =
+): AnimationDef =
   assert(frames.len > 0)
-  AnimationDef[S](
+  AnimationDef(
     sheet: sheet.getEnumValue, frames: frames.toSeq, anchor: anchor.toAnchor, loop: loop
   )
 
@@ -150,13 +150,13 @@ proc animation*[S: enum](
     frames: Slice[int32],
     anchor: AnchorPosition,
     loop: bool = true,
-): AnimationDef[S] =
+): AnimationDef =
   var frameSeq: seq[Frame]
   for i in frames:
     frameSeq.add(frame(i.int32, timePerFrame))
   return animation[S](sheet, frameSeq, anchor, loop)
 
-proc `$`*[S: enum](def: AnimationDef[S] | AnimationDefObj): string =
+proc `$`*[S: enum](def: AnimationDef | AnimationDefObj): string =
   fmt"AnimationDef({def.sheet}, frames={def.frames}, tpf={def.timePerFrame}, {def.anchor}, loop={def.loop})"
 
 proc `$`*[S: enum](anim: ptr Animation[S]): string =
@@ -238,14 +238,14 @@ proc offset*(sprite: Sprite | Animation): IVec2 {.inline.} =
 proc `offset=`*(sprite: Sprite | Animation, offset: IVec2) {.inline.} =
   sprite.manualOffset = offset
 
-proc softChange*[S](animation: ptr Animation[S] | Animation[S], def: AnimationDef[S]) =
+proc softChange*[S](animation: ptr Animation[S] | Animation[S], def: AnimationDef) =
   ## Changes the animation currently runnig while trying not to modify the frame number
   assert(animation.def.sheet == def.sheet)
   animation.def = def
   animation.frame = animation.frame.clamp(0'i32, def.frames.len.int32 - 1)
   animation.anchorOffset = animation.sprite.offsetFix(def.anchor.toAnchor)
 
-proc change*[S](animation: ptr Animation[S] | Animation[S], def: AnimationDef[S]) =
+proc change*[S](animation: ptr Animation[S] | Animation[S], def: AnimationDef) =
   ## Changes the animation currently runnig for a sprite
   assert(animation.def.sheet == def.sheet)
   animation.def = def
@@ -265,7 +265,7 @@ proc `[]`[S](anim: Animation[S], frame: int32): LCDBitmap =
 
 proc newSheet*[S: enum](
     frames: seq[LCDBitmap],
-    def: AnimationDef[S],
+    def: AnimationDef,
     zIndex: ZIndexValue,
     absolutePos: bool = false,
 ): Animation[S] =
@@ -287,7 +287,7 @@ proc newSheet*[S: enum](
 
 proc newSheet*[S: enum](
     assets: SharedOrT[SheetTable[S]],
-    def: AnimationDef[S],
+    def: AnimationDef,
     zIndex: ZIndexValue,
     absolutePos: bool = false,
 ): Animation[S] =

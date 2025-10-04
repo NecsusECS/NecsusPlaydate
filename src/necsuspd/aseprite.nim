@@ -329,7 +329,7 @@ when defined(simulator) or defined(device):
 
   proc asAnimationDef[S: enum](
       sheet: SpriteSheet, tag: AseFrameTag, sheetId: S, keyframes: KeyframeTable[enum]
-  ): AnimationDef[S] =
+  ): AnimationDef =
     ## Create an animation based on a aseprite tag
 
     # Read the frames to ensure they exist
@@ -347,7 +347,7 @@ when defined(simulator) or defined(device):
       sheetId: enum,
       ignore: set[A] = {},
       ignoreKeyframes: set[K] = {},
-  ): array[A, AnimationDef[typeof(sheetId)]] =
+  ): array[A, AnimationDef] =
     ## Creates a table of animation data based on a sprite sheet
     let keyframeTable = findKeyframes[K](sheet, ignoreKeyframes)
     for animation in A:
@@ -370,6 +370,6 @@ when defined(simulator) or defined(device):
 
   proc basicAnimationTable*[A: enum](
       sheet: SpriteSheet, sheetId: enum, ignore: set[A] = {}
-  ): array[A, AnimationDef[typeof(sheetId)]] =
+  ): array[A, AnimationDef] =
     ## Creates a table of animation data based on a sprite sheet
     result = animationTable[A, NoKeyframes](sheet, sheetId, ignore, {DummyKeyframe})
