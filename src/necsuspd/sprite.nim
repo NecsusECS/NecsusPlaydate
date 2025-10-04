@@ -44,10 +44,9 @@ type
     anchor: Anchor
     loop: bool
 
-  AnimationDef* = ref AnimationDefObj
-    ## A specific animation within a sprite sheet
+  AnimationDef* = ref AnimationDefObj ## A specific animation within a sprite sheet
 
-  AnimationObj[S] = object
+  AnimationObj = object
     def: AnimationDef
     sprite*: LCDSprite
     table: LCDBitmapTable
@@ -58,7 +57,7 @@ type
     absolutePos: bool
     paused: bool
 
-  Animation*[S] = ref AnimationObj[S]
+  Animation*[S] = ref AnimationObj
 
   Unpausable* {.accessory.} = object
 
@@ -111,9 +110,9 @@ proc `=destroy`(sprite: SpriteObj) {.warning[Effect]: off.} =
     playdate.sprite.removeSprites(@[sprite.sprite])
     `=destroy`(sprite.sprite)
 
-proc `=copy`[S](x: var AnimationObj[S], y: AnimationObj[S]) {.error.}
+proc `=copy`(x: var AnimationObj, y: AnimationObj) {.error.}
 
-proc `=destroy`[S](sprite: AnimationObj[S]) =
+proc `=destroy`(sprite: AnimationObj) =
   if sprite.sprite != nil:
     playdate.sprite.removeSprites(@[sprite.sprite])
 
@@ -349,9 +348,7 @@ proc buildSpriteAdvancer*[S](): auto =
           if frame.isKeyframe:
             events(
               Keyframe(
-                sheet: anim.def.sheet,
-                keyframeValue: frame.keyframeValue,
-                entityId: eid,
+                sheet: anim.def.sheet, keyframeValue: frame.keyframeValue, entityId: eid
               )
             )
 
