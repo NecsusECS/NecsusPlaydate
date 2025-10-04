@@ -4,13 +4,20 @@ import ../src/necsuspd/types
 # Test enums for testing purposes
 type
   Color = enum
-    Red, Green, Blue
+    Red
+    Green
+    Blue
 
   Size = enum
-    Small, Medium, Large
+    Small
+    Medium
+    Large
 
   Direction = enum
-    North, South, East, West
+    North
+    South
+    East
+    West
 
 suite "TypeId tests":
   test "TypeId equality works":
@@ -25,6 +32,11 @@ suite "TypeId tests":
   test "TypeId is consistent across calls":
     check getTypeId(Color) == getTypeId(Color)
     check getTypeId(Size) == getTypeId(Size)
+
+  test "TypeId as string":
+    check $getTypeId(Color) == "Color"
+    check $getTypeId(Size) == "Size"
+    check $getTypeId(Direction) == "Direction"
 
 suite "EnumValue tests":
   test "getEnumValue creates correct EnumValue":
@@ -55,7 +67,16 @@ suite "EnumValue tests":
     check getEnumValue(Green) != getEnumValue(Medium)
     check getEnumValue(Blue) != getEnumValue(Large)
 
-suite "getAs conversion tests":
+  test "assertAs returns correct value when types match":
+    check getEnumValue(Red).assertAs(Color) == Red
+    check getEnumValue(Small).assertAs(Size) == Small
+
+  test "assertAs raises assertion when types don't match":
+    expect(AssertionError):
+      discard getEnumValue(Red).assertAs(Size)
+    expect(AssertionError):
+      discard getEnumValue(Small).assertAs(Color)
+
   test "getAs returns Some when types match":
     check getEnumValue(Red).getAs(Color) == some(Red)
     check getEnumValue(Green).getAs(Color) == some(Green)

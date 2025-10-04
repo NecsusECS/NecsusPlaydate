@@ -1,4 +1,4 @@
-import std/[options, macrocache]
+import std/[options, macrocache, strformat, macros, tables]
 
 type
   TypeId* = distinct int32
@@ -13,17 +13,35 @@ type
 
 const typeIds = CacheCounter("typeIds")
 
+when not defined(release):
+  var runtimeTypeIdNames: Table[int32, string]
+
 proc `==`*(a, b: TypeId): bool {.borrow.}
 
-func getTypeId*(T: typedesc): TypeId =
+proc getTypeId*(T: typedesc): TypeId =
   ## Returns the unique type ID for the geven type
-  const id = typeIds.value
+  const id = typeIds.value.int32
   static:
     typeIds.inc
 
-  return id.int32.TypeId
+  when declared(runtimeTypeIdNames):
+    runtimeTypeIdNames[id] = $T
 
-func getEnumValue*(value: enum): EnumValue =
+  return id.TypeId
+
+proc `$`*(value: TypeId): string =
+  ## Returns the string representation of the type ID
+  let id = value.int32
+  when declared(runtimeTypeIdNames):
+    if runtimeTypeIdNames.hasKey(id):
+      return runtimeTypeIdNames[id]
+  return fmt"TypeId#{id}"
+
+proc `$`*(value: EnumValue): string =
+  ## Returns the string representation of the type ID
+  fmt"{value.typeId}@{value.ordinal}"
+
+proc getEnumValue*(value: enum): EnumValue =
   ## Returns the enum value for the given type and value
   EnumValue(typeId: getTypeId(typeof(value)), ordinal: ord(value).int32)
 
@@ -39,6 +57,12 @@ func `==`*(a, b: EnumValue): bool =
   ## Compare two enum values for equality
   a.typeId == b.typeId and a.ordinal == b.ordinal
 
-func getAs*(value: EnumValue, typ: typedesc[enum]): Option[typ] =
+proc getAs*(value: EnumValue, typ: typedesc[enum]): Option[typ] =
   if value.typeId == getTypeId(typ):
     return some(typ(value.ordinal))
+
+proc assertAs*(value: EnumValue, typ: typedesc[enum]): typ =
+  ## Assert that the enum value is of the given type
+  let value = getAs(value, typ)
+  assert(value.isSome, fmt"{value} is not of type {$typ}")
+  return value.unsafeGet
