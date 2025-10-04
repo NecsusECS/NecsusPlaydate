@@ -38,13 +38,13 @@ type
     of false:
       discard
 
-  AnimationDefObj[S: enum] = object ## A specific animation within a sprite sheet
-    sheet: S
+  AnimationDefObj = object ## A specific animation within a sprite sheet
+    sheet: EnumValue
     frames: seq[Frame]
     anchor: Anchor
     loop: bool
 
-  AnimationDef*[S: enum] = ref AnimationDefObj[S]
+  AnimationDef*[S: enum] = ref AnimationDefObj
     ## A specific animation within a sprite sheet
 
   AnimationObj[S] = object
@@ -141,7 +141,7 @@ proc animation*[S: enum](
 ): AnimationDef[S] =
   assert(frames.len > 0)
   AnimationDef[S](
-    sheet: sheet, frames: frames.toSeq, anchor: anchor.toAnchor, loop: loop
+    sheet: sheet.getEnumValue, frames: frames.toSeq, anchor: anchor.toAnchor, loop: loop
   )
 
 proc animation*[S: enum](
@@ -156,7 +156,7 @@ proc animation*[S: enum](
     frameSeq.add(frame(i.int32, timePerFrame))
   return animation[S](sheet, frameSeq, anchor, loop)
 
-proc `$`*[S: enum](def: AnimationDef[S] | AnimationDefObj[S]): string =
+proc `$`*[S: enum](def: AnimationDef[S] | AnimationDefObj): string =
   fmt"AnimationDef({def.sheet}, frames={def.frames}, tpf={def.timePerFrame}, {def.anchor}, loop={def.loop})"
 
 proc `$`*[S: enum](anim: ptr Animation[S]): string =
@@ -291,7 +291,7 @@ proc newSheet*[S: enum](
     zIndex: ZIndexValue,
     absolutePos: bool = false,
 ): Animation[S] =
-  let table = assets.unwrap.sheet(def.sheet)
+  let table = assets.unwrap.sheet(def.sheet.assertAs(S))
   let frameCount = table.getBitmapTableInfo.count
   var frames = newSeq[LCDBitmap](frameCount)
   for i in 0 ..< frameCount:
@@ -349,7 +349,7 @@ proc buildSpriteAdvancer*[S](): auto =
           if frame.isKeyframe:
             events(
               Keyframe(
-                sheet: getEnumValue(anim.def.sheet),
+                sheet: anim.def.sheet,
                 keyframeValue: frame.keyframeValue,
                 entityId: eid,
               )
