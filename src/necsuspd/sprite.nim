@@ -23,10 +23,10 @@ type
     concept table
         table.sheet(S) is LCDBitmapTable
 
-  Keyframe*[S: enum] {.byref.} = object
+  Keyframe* {.byref.} = object
     ## An event that is triggered when an animation reaches a specific frame
     keyframeValue: EnumValue
-    sheet*: S
+    sheet*: EnumValue
     entityId*: EntityId
 
   Frame* = object
@@ -328,7 +328,7 @@ proc buildSpriteAdvancer*[S](): auto =
   return proc(
       time: GameTime,
       elements: FullQuery[(Animation[S], Option[Unpausable])],
-      events: Outbox[Keyframe[S]],
+      events: Outbox[Keyframe],
   ) =
     let now = time.get.float32
     for eid, (parent, unpausable) in elements:
@@ -348,8 +348,10 @@ proc buildSpriteAdvancer*[S](): auto =
           anim.sprite.setImage(anim[frame.cellId], kBitmapUnflipped)
           if frame.isKeyframe:
             events(
-              Keyframe[S](
-                sheet: anim.def.sheet, keyframeValue: frame.keyframeValue, entityId: eid
+              Keyframe(
+                sheet: getEnumValue(anim.def.sheet),
+                keyframeValue: frame.keyframeValue,
+                entityId: eid,
               )
             )
 
