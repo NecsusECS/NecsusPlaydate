@@ -3,7 +3,7 @@ import necsus, loading, visibleState, sprite
 template createsSingletonSpawner*(
     name: untyped,
     entityTag: typed,
-    assetBagType, animationSheetId: typedesc,
+    assetBagType: typedesc,
     loadingState, zIndex: enum,
     initialAnimation: AnimationDef,
     visibility: VisibleState,
@@ -13,7 +13,7 @@ template createsSingletonSpawner*(
       task: Bundle[LoadTasks],
       assets: Shared[assetBagType],
       create: Spawn[
-        (typeof(entityTag), Animation[animationSheetId], Positioned, VisibleState)
+        (typeof(entityTag), Animation, Positioned, VisibleState)
       ],
   ) {.active(loadingState).} =
     task.execTask($typeof(entityTag), typeof(entityTag), 0):

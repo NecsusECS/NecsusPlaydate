@@ -16,7 +16,7 @@ proc buildCrankAlerter*[Assets; SheetId: enum, Active: enum](
   return proc(
       assets: Shared[Assets],
       required: Shared[CrankMode],
-      spawn: Spawn[(CrankSprite, Positioned, Animation[SheetId])],
+      spawn: Spawn[(CrankSprite, Positioned, Animation)],
       activeState: Shared[Active],
   ): SystemInstance {.instanced.} =
     required := initialState

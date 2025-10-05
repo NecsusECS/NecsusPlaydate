@@ -42,13 +42,13 @@ template updateVisility(T, visibleState, entities: typed) =
           eid, " to ", expect, " for state ", visibleState
         entity.visible = expect
 
-template defineVisibleStateSystems*(name: untyped, T, S: typed): untyped =
+template defineVisibleStateSystems*(name: untyped, T: typed): untyped =
   ## Shows sprites only when a specific game state is set
   proc evalVisibleState(
       _: EvaluateVisibleState,
       state: Shared[T],
       sprites: FullQuery[(VisibleState, Sprite)],
-      anims: FullQuery[(VisibleState, Animation[S])],
+      anims: FullQuery[(VisibleState, Animation)],
   ) {.eventSys.} =
     updateVisility(T, state.get, sprites)
     updateVisility(T, state.get, anims)

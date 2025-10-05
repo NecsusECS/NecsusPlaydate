@@ -1,4 +1,4 @@
-import necsus, playdate/api, std/[options, strformat], util, loading
+import necsus, playdate/api, std/[options, strformat, typetraits], util, loading
 
 type
   AssetBagDef[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId] = ref object
@@ -48,10 +48,9 @@ proc asset*[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId](
   return read(assets.unwrap, images, key, playdate.graphics.newBitmap)
 
 proc sheet*[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId](
-    assets: SharedOrT[AssetBag[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId]],
-    key: SheetId,
+    assets: AssetBag[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId], key: SheetId
 ): LCDBitmapTable =
-  return read(assets.unwrap, sheets, key, playdate.graphics.newBitmapTable)
+  return read(assets, sheets, key, playdate.graphics.newBitmapTable)
 
 proc font*[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId](
     assets: SharedOrT[AssetBag[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId]],
