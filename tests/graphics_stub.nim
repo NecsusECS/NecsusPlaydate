@@ -9,6 +9,9 @@ type
   Sprite* = ref object
     img: Image
 
+  Animation* = ref object
+    img: Image
+
   Image* = ref object
     name: string
     data: ImageData
@@ -57,6 +60,9 @@ proc setBitmapMask*(image: Image): int =
 
 proc newSprite*(name: string, width, height: int): Sprite =
   Sprite(img: newImage(name, width, height))
+
+proc newAnimation*(name: string, width, height: int): Animation =
+  Animation(img: newImage(name, width, height))
 
 proc newFont*(name: string, height: int = 14, charWidth = 8): Font =
   Font(name: name, height: height, charWidth: charWidth)
@@ -179,3 +185,15 @@ proc `$`*(img: ImageData): string =
 
 proc `$`*(img: Image): string =
   $img.data
+
+proc width*(this: Sprite): auto =
+  this.img.width
+
+proc height*(this: Sprite): auto =
+  this.img.height
+
+proc width*(this: Animation): auto =
+  this.img.width
+
+proc height*(this: Animation): auto =
+  this.img.height

@@ -2,17 +2,15 @@ import necsus, sequtils, positioned, options, vmath, alignment, util
 export alignment
 
 when defined(unittests):
-  type Layouter*[T] = object
-    get*: proc(eid: EntityId): Option[tuple[pos: ptr Positioned, sprite: T]] {.
-      gcsafe, raises: []
-    .}
-
+  import ../../tests/graphics_stub
 else:
   import sprite
-  type Layouter* = object
-    get*: Lookup[tuple[pos: ptr Positioned, sprite: Sprite]]
 
 type
+  Layouter* = object
+    getSprite*: Lookup[tuple[pos: ptr Positioned, sprite: Sprite]]
+    getAnim*: Lookup[tuple[pos: ptr Positioned, anim: Animation]]
+
   LayoutKind = enum
     SpriteLayout
     CardLayout
@@ -42,6 +40,21 @@ type
   LayoutArea = tuple[left, right, top: int32]
 
   LayoutDimens = tuple[width, height: int32]
+
+proc getEntity(
+    control: auto, eid: EntityId
+): Option[tuple[pos: ptr Positioned, dimens: LayoutDimens]] =
+  let sprite = control.getSprite(eid)
+  if sprite.isSome:
+    let (pos, entity) = sprite.unsafeGet
+    return some((pos, (entity.width.int32, entity.height.int32)))
+
+  let anim = control.getAnim(eid)
+  if anim.isSome:
+    let (pos, entity) = anim.unsafeGet
+    return some((pos, (entity.width.int32, entity.height.int32)))
+
+  log "ERROR! Unable to find entity for layout ", eid
 
 proc horizLayout*(nested: LayoutElem, align: Alignment): LayoutElem =
   ## Horizontally aligns an element
@@ -103,12 +116,7 @@ proc minWidth*[T](control: T, elem: LayoutElem): int32 =
   of HorizLayout:
     result = minWidth(control, elem.horizNested)
   of SpriteLayout:
-    let entity = control.get(elem.entityId)
-    result =
-      if entity.isSome:
-        get(entity).sprite.width.int32
-      else:
-        0'i32
+    result = control.getEntity(elem.entityId).mapIt(it.dimens.width).get(0'i32)
   of CardLayout:
     result = 0
     var currentRow = 0'i32
@@ -152,17 +160,15 @@ proc update[T](
       of AlignCenter, AlignRight:
         area.right - area.left
   of SpriteLayout:
-    let entity = control.get(elem.entityId)
+    let entity = control.getEntity(elem.entityId)
     if entity.isSome:
+      let (pos, dimens) = entity.unsafeGet()
       if enact:
         let newPos = ivec2(area.left.int32, area.top.int32)
-        `pos=`(entity.get.pos, newPos)
-        # echo "Layout: ", elem.entityId, " pos=", newPos, " area=", area
-
-      return (entity.get.sprite.width.int32, entity.get.sprite.height.int32)
+        `pos=`(pos, newPos)
+      return dimens
     else:
-      log "Unable to layout sprite entity ", elem.entityId
-      return (0, 0)
+      return (0'i32, 0'i32)
   of CardLayout:
     var currentArea = area
     var nextRowTop = area.top
