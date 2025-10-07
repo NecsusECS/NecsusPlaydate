@@ -10,7 +10,7 @@ srcDir        = "src"
 # Dependencies
 
 requires "nim >= 2.2.0"
-requires "necsus >= 0.12.0"
+requires "necsus >= 0.14.1"
 requires "vmath >= 2.0.0"
 requires "random >= 0.5.7"
 requires "fungus >= 0.1.16"
