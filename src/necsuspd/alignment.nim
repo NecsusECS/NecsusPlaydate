@@ -3,6 +3,9 @@ type Alignment* = enum
   AlignCenter
   AlignRight
 
+const AlignTop* = AlignLeft
+const AlignBottom* = AlignRight
+
 proc bounds*(
     alignment: Alignment, elementWidth, left, right: int32
 ): tuple[left, right: int32] =

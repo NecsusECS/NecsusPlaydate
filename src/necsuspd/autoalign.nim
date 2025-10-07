@@ -1,4 +1,9 @@
-import necsus, positioned, sprite, util, vmath, alignment
+import necsus, positioned, util, vmath, alignment
+
+when defined(unittests):
+  import ../../tests/graphics_stub
+else:
+  import sprite
 
 export alignment
 
