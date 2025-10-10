@@ -1,4 +1,4 @@
-import options, positioned, vmath, math, inputs
+import options, positioned, fpvec, math, inputs, vmath
 
 type
   FindDir* = enum
@@ -10,17 +10,17 @@ type
   Found*[T] = tuple[pos: Positioned, value: T]
 
 const directionVectors = [
-  FindLeft: vec2(-1.0f, 0.0f),
-  FindRight: vec2(1.0f, 0.0f),
-  FindUp: vec2(0.0f, -1.0f),
-  FindDown: vec2(0.0f, 1.0f),
+  FindLeft: fpvec2(-1, 0),
+  FindRight: fpvec2(1, 0),
+  FindUp: fpvec2(0, -1),
+  FindDown: fpvec2(0, 1),
 ]
 
-const dotThreshold = 0.5f  # cos(60°) for 120° cone
+const dotThreshold = fp(0.5)  # cos(60°) for 120° cone
 
 proc isDirected(direction: FindDir, a, b: Positioned): bool =
   let directionVec = directionVectors[direction]
-  let positionVec = (a.toVec2 - b.toVec2).normalize()
+  let positionVec = (a.toFPVec2 - b.toFPVec2).normalize()
   let dotProduct = dot(directionVec, positionVec)
   return dotProduct >= dotThreshold
 
@@ -39,14 +39,14 @@ template findDir*[T](
 ): Option[Found[T]] =
   ## Returns the value
   var output: Option[Found[T]]
-  var resultDistance: float32
+  var resultDistance: FPInt
   for element in asIterator(elements):
     static:
       assert(element is Found[T])
     let (pos, _) = element
     if direction.isDirected(pos, origin) and pos != origin:
-      let distance = distSq(origin.toVec2, pos.toVec2).abs
-      if distance > 0 and (output.isNone or distance < resultDistance):
+      let distance = (origin.toFPVec2 - pos.toFPVec2).lengthSq
+      if distance > fp(0) and (output.isNone or distance < resultDistance):
         output = some(element)
         resultDistance = distance
   output
