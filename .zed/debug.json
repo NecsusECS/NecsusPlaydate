@@ -1,0 +1,17 @@
+// Project-local debug tasks
+//
+// For more documentation on how to configure debug tasks,
+// see: https://zed.dev/docs/debugger
+[
+  {
+    "label": "Nim Debug",
+    "consoleName": "Nim Debug Console",
+    "adapter": "CodeLLDB",
+    "request": "launch",
+    "program": "$ZED_DIRNAME/$ZED_STEM",
+    "build": {
+      "command": "nimble",
+      "args": ["c", "--debugger:native", "$ZED_RELATIVE_FILE"]
+    }
+  }
+]
