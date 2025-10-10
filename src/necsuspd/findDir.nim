@@ -9,21 +9,20 @@ type
 
   Found*[T] = tuple[pos: Positioned, value: T]
 
-const angleRanges = [
-  FindLeft: degToRad(120f) .. degToRad(240f),
-  FindRight: degToRad(-60f) .. degToRad(60f),
-  FindUp: degToRad(210f) .. degToRad(330f),
-  FindDown: degToRad(30f) .. degToRad(150f),
+const directionVectors = [
+  FindLeft: vec2(-1.0f, 0.0f),
+  FindRight: vec2(1.0f, 0.0f),
+  FindUp: vec2(0.0f, -1.0f),
+  FindDown: vec2(0.0f, 1.0f),
 ]
 
+const dotThreshold = 0.5f  # cos(60°) for 120° cone
+
 proc isDirected(direction: FindDir, a, b: Positioned): bool =
-  let angle = a.toVec2.angle(b.toVec2)
-  # echo direction, " for ", b.toIVec2, " to ", a.toIVec2, " is ", angle.radToDeg
-  if angle in angleRanges[direction]:
-    return true
-  elif angle < 0:
-    return (angle + 2 * PI) in angleRanges[direction]
-  return false
+  let directionVec = directionVectors[direction]
+  let positionVec = (a.toVec2 - b.toVec2).normalize()
+  let dotProduct = dot(directionVec, positionVec)
+  return dotProduct >= dotThreshold
 
 template asIterator(elements: untyped): untyped =
   when compiles(
