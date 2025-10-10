@@ -1,4 +1,4 @@
-import options, positioned, fpvec, math, inputs, vmath
+import options, positioned, fpvec, math, inputs, vmath, util
 
 type
   FindDir* = enum
@@ -16,13 +16,27 @@ const directionVectors = [
   FindDown: fpvec2(0, 1),
 ]
 
-const dotThreshold = fp(0.5)  # cos(60°) for 120° cone
+const dotThreshold = fp(0.5) # cos(60°) for 120° cone
 
-proc isDirected(direction: FindDir, a, b: Positioned): bool =
+proc determineScore(direction: FindDir, a, b: Positioned): Option[FPInt] =
   let directionVec = directionVectors[direction]
   let positionVec = (a.toFPVec2 - b.toFPVec2).normalize()
   let dotProduct = dot(directionVec, positionVec)
-  return dotProduct >= dotThreshold
+
+  # Filter out elements outside the cone
+  if dotProduct < dotThreshold:
+    return none(FPInt)
+
+  let distance = (a.toFPVec2 - b.toFPVec2).lengthSq
+
+  # Use exponential penalty for angular deviation
+  # Perfect alignment (dotProduct = 1.0) gets no penalty
+  # Worse alignment gets exponentially higher penalty
+  let angularDeviation = fp(1) - dotProduct
+  let alignmentPenalty = fp(1) + angularDeviation * angularDeviation * fp(100)
+  let score = distance * alignmentPenalty
+
+  return some(score)
 
 template asIterator(elements: untyped): untyped =
   when compiles(
@@ -39,16 +53,16 @@ template findDir*[T](
 ): Option[Found[T]] =
   ## Returns the value
   var output: Option[Found[T]]
-  var resultDistance: FPInt
+  var resultScore: FPInt = fp(999999) # Start with very high score
   for element in asIterator(elements):
     static:
       assert(element is Found[T])
     let (pos, _) = element
-    if direction.isDirected(pos, origin) and pos != origin:
-      let distance = (origin.toFPVec2 - pos.toFPVec2).lengthSq
-      if distance > fp(0) and (output.isNone or distance < resultDistance):
-        output = some(element)
-        resultDistance = distance
+    if pos != origin:
+      direction.determineScore(pos, origin).withValue(score):
+        if output.isNone or score < resultScore:
+          output = some(element)
+          resultScore = score
   output
 
 proc asFindDir*(button: PDButton): Option[FindDir] =

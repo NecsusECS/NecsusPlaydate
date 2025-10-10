@@ -34,3 +34,7 @@ suite "Find Dir":
     check(findDir[int](entities, FindDown, positioned(12, 8)).get.value == 3)
     check(findDir[int](entities, FindDown, positioned(3, 18)).isNone)
     check(findDir[int](entities, FindDown, positioned(3, -5)).get.value == 1)
+
+  test "Finding values based on the angle even when far away":
+    let elems = [(positioned(200, 60), 1), (positioned(108, 145), 2)]
+    check(findDir[int](elems, FindRight, positioned(50, 60)).get.value == 1)
