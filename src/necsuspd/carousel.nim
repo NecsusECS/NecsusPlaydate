@@ -9,7 +9,8 @@ import
   time,
   vec_tools,
   playdate/api,
-  options
+  options,
+  fpvec
 
 type
   CarouselData[T] = ref object
@@ -63,11 +64,11 @@ proc reset*[T](
         duration: duration,
       )
 
-iterator eligibleCards[T](bundle: Bundle[Carousel[T]]): (Positioned, EntityId) =
+iterator eligibleCards[T](bundle: Bundle[Carousel[T]]): (FPVec2, EntityId) =
   ## An iterator that returns the cards available when choosing a new carousel value
   for eid, (_, pos) in bundle.elements:
     if bundle.data.get.selected != eid:
-      yield (pos[], eid)
+      yield (pos.toFPVec2, eid)
 
 proc determineSelection[T](bundle: Bundle[Carousel[T]]): Option[EntityId] =
   ## Determine which element is selected
@@ -86,7 +87,7 @@ proc checkNewSelection[T](bundle: Bundle[Carousel[T]]) =
 
       for button in bundle.buttons:
         for (newPosition, newSelection) in findDir[EntityId](
-          eligibleCards(bundle), button, origin
+          eligibleCards(bundle), button, origin.toFPVec2
         ):
           bundle.data :=
             CarouselData[T](

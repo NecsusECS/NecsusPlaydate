@@ -53,7 +53,7 @@ runTest "Update from a non-directional button":
   check cursor.selection().to(EntitySelected).entityId == eids[0]
 
 runTest "Forced selection":
-  let pos = positioned(50, 60)
-  let eid = create.with(pos, Selectable())
+  let pos = fpvec2(50, 60)
+  let eid = create.with(positioned(pos), Selectable())
   cursor.select(EntitySelected.init(eid, pos).Selected)
   check cursor.selection().to(EntitySelected).entityId == eid

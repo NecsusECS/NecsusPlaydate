@@ -3,7 +3,7 @@ import necsus, positioned, inputs, util, fpvec, std/options, vmath, fungus, find
 adtEnum(Selected):
   NoSelection
   EntitySelected:
-    tuple[entityId: EntityId, position: Positioned]
+    tuple[entityId: EntityId, position: FPVec2]
 
 export Selected, NoSelection, EntitySelected, FindDir, PDButton
 
@@ -43,15 +43,15 @@ proc init*(control: CursorControl, startPos: FPVec2 = fpvec2(0, 0)) =
   for eid, (_, pos) in control.find:
     let thisDist = distSq(startPos, pos.toFPVec2)
     if thisDist < dist:
-      nearest = EntitySelected.init(eid, pos)
+      nearest = EntitySelected.init(eid, pos.toFPVec2)
       dist = thisDist
   control.select(nearest)
 
-iterator eligible(bundle: CursorControl): (Positioned, EntityId) =
+iterator eligible(bundle: CursorControl): (FPVec2, EntityId) =
   ## An iterator that returns the entities available when choosing a new cursor target
   for eid, (_, pos) in bundle.find:
     if bundle.selected.isEmpty or bundle.selected.get().entityId != eid:
-      yield (pos, eid)
+      yield (pos.toFPVec2, eid)
 
 proc update*(control: CursorControl, dir: FindDir) =
   ## Updates the cursor's position in the direction of the given vector
@@ -61,7 +61,7 @@ proc update*(control: CursorControl, dir: FindDir) =
     control.init()
     return
 
-  let current = control.selected.get().position
+  let current = control.selected.get().position.toFPVec2
   log "Updating cursor for: ", dir, " with current position: ", current
 
   for (newPosition, newEntityId) in findDir[EntityId](eligible(control), dir, current):

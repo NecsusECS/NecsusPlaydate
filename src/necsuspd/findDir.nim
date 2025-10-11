@@ -1,4 +1,4 @@
-import options, positioned, fpvec, math, inputs, vmath, util
+import options, fpvec, math, inputs, vmath, util, fpvec
 
 type
   FindDir* = enum
@@ -7,7 +7,7 @@ type
     FindUp
     FindDown
 
-  Found*[T] = tuple[pos: Positioned, value: T]
+  Found*[T] = tuple[pos: FPVec2, value: T]
 
 const directionVectors = [
   FindLeft: fpvec2(-1, 0),
@@ -18,10 +18,11 @@ const directionVectors = [
 
 const dotThreshold = fp(0.5) # cos(60°) for 120° cone
 
-proc determineScore(direction: FindDir, a, b: Positioned): Option[FPInt] =
-  let directionVec = directionVectors[direction]
-  let positionVec = (a.toFPVec2 - b.toFPVec2).normalize()
-  let dotProduct = dot(directionVec, positionVec)
+proc determineScore(direction: FindDir, a, b: FPVec2): Option[FPInt] =
+  if a == b:
+    return none(FPInt)
+
+  let dotProduct = directionVectors[direction].dot(normalize(a - b))
 
   # Filter out elements outside the cone
   if dotProduct < dotThreshold:
@@ -49,20 +50,19 @@ template asIterator(elements: untyped): untyped =
     elements()
 
 template findDir*[T](
-    elements: untyped, direction: FindDir, origin: Positioned
+    elements: untyped, direction: FindDir, origin: FPVec2
 ): Option[Found[T]] =
   ## Returns the value
   var output: Option[Found[T]]
-  var resultScore: FPInt = fp(999999) # Start with very high score
+  var resultScore: FPInt = high(FPInt)
   for element in asIterator(elements):
     static:
       assert(element is Found[T])
     let (pos, _) = element
-    if pos != origin:
-      direction.determineScore(pos, origin).withValue(score):
-        if output.isNone or score < resultScore:
-          output = some(element)
-          resultScore = score
+    direction.determineScore(pos, origin).withValue(score):
+      if output.isNone or score < resultScore:
+        output = some(element)
+        resultScore = score
   output
 
 proc asFindDir*(button: PDButton): Option[FindDir] =
@@ -80,7 +80,7 @@ proc asFindDir*(button: PDButton): Option[FindDir] =
       return none(FindDir)
 
 template findDir*[T](
-    elements: untyped, direction: PDButton, origin: Positioned
+    elements: untyped, direction: PDButton, origin: FPVec2
 ): Option[Found[T]] =
   var output: Option[Found[T]]
   for dir in direction.asFindDir:
