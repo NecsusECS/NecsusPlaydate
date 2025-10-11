@@ -5,7 +5,7 @@ adtEnum(Selected):
   EntitySelected:
     tuple[entityId: EntityId, position: Positioned]
 
-export Selected, NoSelection, EntitySelected
+export Selected, NoSelection, EntitySelected, FindDir, PDButton
 
 type
   Selectable* {.accessory.} = object
