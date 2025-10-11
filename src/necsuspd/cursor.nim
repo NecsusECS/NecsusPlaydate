@@ -1,5 +1,10 @@
 import necsus, positioned, inputs, util, fpvec, std/options, vmath, fungus, findDir
 
+when defined(unittests):
+  import ../../tests/graphics_stub
+else:
+  import sprite
+
 adtEnum(Selected):
   NoSelection
   EntitySelected:
@@ -12,7 +17,7 @@ type
     ## A component that marks entities that are selectable
 
   CursorControlDirs = object ## A component that controls the cursor
-    find: FullQuery[(Selectable, Positioned)]
+    find: FullQuery[(Selectable, Positioned, Option[Sprite], Option[Animation])]
     notify: Outbox[Selected]
     selected: Local[EntitySelected]
 
@@ -36,22 +41,33 @@ proc select*(control: CursorControl, selected: Selected) =
   of EntitySelected as selected:
     control.selected := selected
 
+proc size(sprite: Option[Sprite], anim: Option[Animation]): FPVec2 =
+  sprite.withValue(it):
+    return fpvec2(it.width, it.height)
+  anim.withValue(it):
+    return fpvec2(it.width, it.height)
+  return fpvec2(0, 0)
+
+proc centroid[T](entity: (T, Positioned, Option[Sprite], Option[Animation])): FPVec2 =
+  let (_, pos, sprite, anim) = entity
+  return pos.toFPVec2 + (size(sprite, anim) / fpvec2(2, 2))
+
+iterator eligible(bundle: CursorControl): (FPVec2, EntityId) =
+  ## An iterator that returns the entities available when choosing a new cursor target
+  for eid, entity in bundle.find:
+    if bundle.selected.isEmpty or bundle.selected.get().entityId != eid:
+      yield (entity.centroid, eid)
+
 proc init*(control: CursorControl, startPos: FPVec2 = fpvec2(0, 0)) =
   ## Initializes the cursor position to the selectable element nearest the given position
   var nearest: Selected = NoSelection.init().Selected
   var dist: FPInt = high(FPInt)
-  for eid, (_, pos) in control.find:
-    let thisDist = distSq(startPos, pos.toFPVec2)
+  for (coord, eid) in control.eligible():
+    let thisDist = distSq(startPos, coord)
     if thisDist < dist:
-      nearest = EntitySelected.init(eid, pos.toFPVec2)
+      nearest = EntitySelected.init(eid, coord)
       dist = thisDist
   control.select(nearest)
-
-iterator eligible(bundle: CursorControl): (FPVec2, EntityId) =
-  ## An iterator that returns the entities available when choosing a new cursor target
-  for eid, (_, pos) in bundle.find:
-    if bundle.selected.isEmpty or bundle.selected.get().entityId != eid:
-      yield (pos.toFPVec2, eid)
 
 proc update*(control: CursorControl, dir: FindDir) =
   ## Updates the cursor's position in the direction of the given vector
