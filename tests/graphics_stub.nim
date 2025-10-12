@@ -1,6 +1,8 @@
 import macros, strutils, sequtils
 
 type
+  AnimationDef* = distinct int
+
   Font* = ref object
     name: string
     height: int
@@ -11,6 +13,7 @@ type
 
   Animation* = ref object
     img: Image
+    def*: AnimationDef
 
   Image* = ref object
     name: string
@@ -44,6 +47,8 @@ type
     kBitmapFlippedY
     kBitmapFlippedXY
 
+proc `==`*(a, b: AnimationDef): bool {.borrow.}
+
 proc newBitmapData(width, height: int): ImageData =
   result = ImageData(width: width, height: height, pixels: newSeq[seq[bool]](height))
   for y in 0 ..< height:
@@ -61,8 +66,11 @@ proc setBitmapMask*(image: Image): int =
 proc newSprite*(name: string, width, height: int): Sprite =
   Sprite(img: newImage(name, width, height))
 
-proc newAnimation*(name: string, width, height: int): Animation =
-  Animation(img: newImage(name, width, height))
+proc newAnimationDef*(id: int = 0): AnimationDef =
+  id.AnimationDef
+
+proc newAnimation*(name: string, width, height: int, def: AnimationDef = newAnimationDef()): Animation =
+  Animation(img: newImage(name, width, height), def: def)
 
 proc newFont*(name: string, height: int = 14, charWidth = 8): Font =
   Font(name: name, height: height, charWidth: charWidth)
@@ -197,3 +205,6 @@ proc width*(this: Animation): auto =
 
 proc height*(this: Animation): auto =
   this.img.height
+
+proc change*(animation: ptr Animation | Animation, def: AnimationDef) =
+  animation.def = def

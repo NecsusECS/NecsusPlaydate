@@ -5,7 +5,7 @@ import
     djikstra, draw, easing, fade, files, findDir, flowfield, fpvec, init, inputs,
     layout, loading, moveTo, multistep, obfuscate, particles, percent, pool, positioned,
     rand, shake, singleton, sprite, textwrap, time, timer, treeSeq, triggerBox, types,
-    util, vec_tools, viewport, visibleState,
+    util, vec_tools, viewport, visibleState, choices
   ]
 
 export achievements
@@ -18,6 +18,7 @@ export awards
 export boxelem
 export c
 export carousel
+export choices
 export circle
 export crankAlert
 export crankData
