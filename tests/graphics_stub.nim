@@ -69,7 +69,9 @@ proc newSprite*(name: string, width, height: int): Sprite =
 proc newAnimationDef*(id: int = 0): AnimationDef =
   id.AnimationDef
 
-proc newAnimation*(name: string, width, height: int, def: AnimationDef = newAnimationDef()): Animation =
+proc newAnimation*(
+    name: string, width, height: int, def: AnimationDef = newAnimationDef()
+): Animation =
   Animation(img: newImage(name, width, height), def: def)
 
 proc newFont*(name: string, height: int = 14, charWidth = 8): Font =
@@ -208,3 +210,6 @@ proc height*(this: Animation): auto =
 
 proc change*(animation: ptr Animation | Animation, def: AnimationDef) =
   animation.def = def
+
+proc `$`*(def: AnimationDef): string =
+  "AnimationDef(#" & $int(def) & ")"

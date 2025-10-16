@@ -19,24 +19,31 @@ type
   ChoiceControl[T] = object
     mark: Attach[(Chosen,)]
     unmark: Detach[(Chosen,)]
-    chosen: FullQuery[(Chosen, T, Animation, ChosenAnim)]
+    chosen: FullQuery[(Chosen, T, Option[Animation], Option[ChosenAnim])]
+    find: Lookup[(T, Option[Animation], Option[ChosenAnim])]
 
   Choices*[T] = Bundle[ChoiceControl[T]]
 
 proc chosen*[T](choices: Choices[T]): Option[T] =
   ## Returns the value of the first chosen choice, if any.
+  assert(choices.chosen.len <= 1)
   for (_, value, _, _) in choices.chosen:
     return some(value)
 
+template setAnimation(anim: Option[Animation], def: Option[ChosenAnim], body: untyped) =
+  if anim.isSome and def.isSome:
+    let it {.inject.} = def.unsafeGet
+    anim.unsafeGet.change(body)
+
 proc choose*(choices: Choices, eid: EntityId): EntityId {.discardable.} =
   ## Returns the value of the first chosen choice, if any.
-  for existing, (_, _, anim, defs) in choices.chosen:
-    choices.unmark(existing)
-    anim.change(defs.inactive)
+  for (_, anim, defs) in choices.find(eid).items:
+    for existing, (_, _, existingAnim, existingDefs) in choices.chosen:
+      choices.unmark(existing)
+      setAnimation(existingAnim, existingDefs, it.inactive)
 
-  choices.mark(eid, (Chosen(),))
-  for (_, _, anim, defs) in choices.chosen:
-    anim.change(defs.active)
+    choices.mark(eid, (Chosen(),))
+    setAnimation(anim, defs, it.active)
 
   return eid
 
