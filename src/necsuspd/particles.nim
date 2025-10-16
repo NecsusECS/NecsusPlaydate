@@ -1,10 +1,8 @@
-import vmath, sequtils, std/importutils, util, vec_tools, rand
+import vmath, sequtils, std/importutils, util, vec_tools, rand, fpvec
 
 type
   Particle* = object ## An individual particle being rendered
-    location: IVec2
-    velocity: IVec2
-    acceleration: IVec2
+    location, velocity, acceleration: FPVec2
     lifespan: int32
 
   ParticleProc*[S, F] =
@@ -25,30 +23,21 @@ proc maxParticleCount(spawners: openarray[ParticleSpawner]): int32 =
   for spawner in spawners:
     result += (spawner.lifespan + 1) div spawner.rate.a.int32
 
-const SHIFT_RES = 7
-
-proc applyResolution(vec: IVec2 | Vec2): IVec2 =
-  when vec is IVec2:
-    return ivec2(vec.x shl SHIFT_RES, vec.y shl SHIFT_RES)
-  else:
-    const RESOLUTION = 2 ^ SHIFT_RES
-    return toIVec2(vec * vec2(RESOLUTION.float32, RESOLUTION.float32))
-
 proc newParticle*(
     lifespan: int32,
-    location, velocity: Vec2 | IVec2,
-    acceleration: Vec2 | IVec2 = vec2(0, 0),
+    location, velocity: Vec2 | IVec2 | FPVec2,
+    acceleration: Vec2 | IVec2 | FPVec2 = fpvec2(0, 0),
 ): Particle =
   ## Creates a single particle
   Particle(
     lifespan: lifespan,
-    location: location.applyResolution,
-    velocity: velocity.applyResolution,
-    acceleration: acceleration.applyResolution,
+    location: location.toFPVec2,
+    velocity: velocity.toFPVec2,
+    acceleration: acceleration.toFPVec2,
   )
 
-proc asVec2(speed: Slice[SomeNumber], degrees: Slice[SomeNumber]): Vec2 =
-  speedAngleVec(random().rand(speed), random().rand(degrees))
+proc asFPVec2(speed: Slice[SomeNumber], degrees: Slice[SomeNumber]): FPVec2 =
+  speedAngleVec(random().rand(speed), random().rand(degrees)).toFPVec2
 
 proc newParticle*(
     lifespan: Slice[SomeInteger],
@@ -62,8 +51,8 @@ proc newParticle*(
   newParticle(
     random().rand(lifespan).int32,
     location.toVec2,
-    asVec2(velSpeed, velDegrees),
-    asVec2(accelSpeed, accelDegrees),
+    asFPVec2(velSpeed, velDegrees),
+    asFPVec2(accelSpeed, accelDegrees),
   )
 
 proc reset(spawner: var ParticleSpawner) =
@@ -128,10 +117,8 @@ template defineParticles*(
       spawner.lifespan = spawner.initialLifespan
 
   proc setPixel(field: var BitmapDataObj, particle: var Particle) =
-    let x = particle.location.x shr SHIFT_RES
-    let y = particle.location.y shr SHIFT_RES
     const color: LCDSolidColor = LCDSolidColor.kColorWhite
-    field.setPixel(x.int, y.int, color)
+    field.setPixel(particle.location.x.toInt(), particle.location.y.toInt(), color)
 
   proc runParticles(particles: var seq[Particle], field: var BitmapDataObj) =
     forEachDeleting(particles, i):

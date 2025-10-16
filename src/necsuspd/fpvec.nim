@@ -36,6 +36,9 @@ proc toFPVec2*(ivec2: IVec2): FPVec2 =
 template toFPVec2*(vec2: FPVec2): FPVec2 =
   vec2
 
+proc toFPVec2*(vec2: Vec2): FPVec2 =
+  fpvec2(vec2.x.fp32(FPVecPrecision), vec2.y.fp(FPVecPrecision))
+
 proc toIVec2*(vec: FPVec2): IVec2 =
   ivec2(vec.x.toInt, vec.y.toInt)
 
