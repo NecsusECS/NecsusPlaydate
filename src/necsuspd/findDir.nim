@@ -16,7 +16,7 @@ const directionVectors = [
   FindDown: fpvec2(0, 1),
 ]
 
-const dotThreshold = fp(0.5) # cos(60°) for 120° cone
+const dotThreshold = fp(0.15)
 
 proc determineScore(direction: FindDir, a, b: FPVec2): Option[FPInt] =
   if a == b:
