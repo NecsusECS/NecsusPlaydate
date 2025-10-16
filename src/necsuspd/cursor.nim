@@ -23,6 +23,11 @@ type
 
   CursorControl* = Bundle[CursorControlDirs]
 
+proc entityId*(selected: Selected): Option[EntityId] =
+  ## Returns the entity ID of the selected entity, or None if no entity is selected.
+  if (selected: EntitySelected) from selected:
+    return some(selected.entityId)
+
 proc selection*(control: CursorControl): Selected =
   ## Returns the currently selected entity, or NoSelection if none is selected.
   return
