@@ -57,11 +57,16 @@ proc centroid[T](entity: (T, Positioned, Option[Sprite], Option[Animation])): FP
   let (_, pos, sprite, anim) = entity
   return pos.toFPVec2 + (size(sprite, anim) / fpvec2(2, 2))
 
+proc isVisible[A, B](entity: (A, B, Option[Sprite], Option[Animation])): bool =
+  let (_, _, sprite, anim) = entity
+  return sprite.mapIt(it.visible).fallback(anim.mapIt(it.visible)).get(true)
+
 iterator eligible(bundle: CursorControl): (FPVec2, EntityId) =
   ## An iterator that returns the entities available when choosing a new cursor target
   for eid, entity in bundle.find:
     if bundle.selected.isEmpty or bundle.selected.get().entityId != eid:
-      yield (entity.centroid, eid)
+      if entity.isVisible:
+        yield (entity.centroid, eid)
 
 proc init*(control: CursorControl, startPos: FPVec2 = fpvec2(0, 0)) =
   ## Initializes the cursor position to the selectable element nearest the given position

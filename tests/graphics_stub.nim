@@ -10,10 +10,12 @@ type
 
   Sprite* = ref object
     img: Image
+    hidden: bool
 
   Animation* = ref object
     img: Image
     def*: AnimationDef
+    hidden: bool
 
   Image* = ref object
     name: string
@@ -213,3 +215,9 @@ proc change*(animation: ptr Animation | Animation, def: AnimationDef) =
 
 proc `$`*(def: AnimationDef): string =
   "AnimationDef(#" & $int(def) & ")"
+
+proc visible*(value: Sprite | Animation): bool =
+  not value.hidden
+
+proc `visible=`*(value: Sprite | Animation, flag: bool) =
+  value.hidden = not flag

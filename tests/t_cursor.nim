@@ -86,3 +86,31 @@ runTest "Sprite dimensions impact selection":
   check cursor.selection().to(EntitySelected).entityId == eids[0]
   cursor.update(kButtonDown)
   check cursor.selection().to(EntitySelected).entityId == eids[2]
+
+runTest "Ignore hidden animation entities":
+  let hiddenAnim = newAnimation("img", 10, 10)
+  hiddenAnim.visible = false
+
+  let eids = [
+    createWithAnim.with(positioned(0, 0), Selectable(), newAnimation("img", 10, 10)),
+    createWithAnim.with(positioned(0, 100), Selectable(), hiddenAnim),
+    createWithAnim.with(positioned(0, 200), Selectable(), newAnimation("img", 10, 10)),
+  ]
+
+  cursor.init()
+  cursor.update(kButtonDown)
+  check cursor.selection().to(EntitySelected).entityId == eids[2]
+
+runTest "Ignore hidden sprite entities":
+  let hiddenSprite = newSprite("img", 10, 10)
+  hiddenSprite.visible = false
+
+  let eids = [
+    createWithSprite.with(positioned(0, 0), Selectable(), newSprite("img", 10, 10)),
+    createWithSprite.with(positioned(0, 100), Selectable(), hiddenSprite),
+    createWithSprite.with(positioned(0, 200), Selectable(), newSprite("img", 10, 10)),
+  ]
+
+  cursor.init()
+  cursor.update(kButtonDown)
+  check cursor.selection().to(EntitySelected).entityId == eids[2]
