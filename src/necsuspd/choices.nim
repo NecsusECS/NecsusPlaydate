@@ -35,7 +35,7 @@ template setAnimation(anim: Option[Animation], def: Option[ChosenAnim], body: un
     let it {.inject.} = def.unsafeGet
     anim.unsafeGet.change(body)
 
-proc choose*(choices: Choices, eid: EntityId): EntityId {.discardable.} =
+proc choose*[T](choices: Choices[T], eid: EntityId): EntityId {.discardable.} =
   ## Returns the value of the first chosen choice, if any.
   for (_, anim, defs) in choices.find(eid).items:
     for existing, (_, _, existingAnim, existingDefs) in choices.chosen:
@@ -44,6 +44,7 @@ proc choose*(choices: Choices, eid: EntityId): EntityId {.discardable.} =
 
     choices.mark(eid, (Chosen(),))
     setAnimation(anim, defs, it.active)
+    log "Choosing ", $T, " as ", eid
 
   return eid
 
