@@ -16,11 +16,15 @@ type
   ChosenAnim* = tuple[active, inactive: AnimationDef]
     ## The animations to use when the choice is selected or deselected
 
+  ChoseEvent*[T] = tuple[eid: EntityId, value: T]
+    ## An event that is triggered when a choice is selected
+
   ChoiceControl[T] = object
     mark: Attach[(Chosen,)]
     unmark: Detach[(Chosen,)]
     chosen: FullQuery[(Chosen, T, Option[Animation], Option[ChosenAnim])]
     find: Lookup[(T, Option[Animation], Option[ChosenAnim])]
+    notify: Outbox[ChoseEvent[T]]
 
   Choices*[T] = Bundle[ChoiceControl[T]]
 
@@ -37,14 +41,17 @@ template setAnimation(anim: Option[Animation], def: Option[ChosenAnim], body: un
 
 proc choose*[T](choices: Choices[T], eid: EntityId): EntityId {.discardable.} =
   ## Returns the value of the first chosen choice, if any.
-  for (_, anim, defs) in choices.find(eid).items:
+  for (value, anim, defs) in choices.find(eid).items:
     for existing, (_, _, existingAnim, existingDefs) in choices.chosen:
+      if existing == eid:
+        return
       choices.unmark(existing)
       setAnimation(existingAnim, existingDefs, it.inactive)
 
     choices.mark(eid, (Chosen(),))
     setAnimation(anim, defs, it.active)
     log "Choosing ", $T, " as ", eid
+    choices.notify((eid, value))
 
   return eid
 

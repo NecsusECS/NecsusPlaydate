@@ -8,7 +8,8 @@ template runTest(name: string, body: untyped) =
     create {.inject.}: FullSpawn[(Selection, Animation, ChosenAnim)],
     createBare {.inject.}: FullSpawn[(Selection,)],
     createOther {.inject.}: FullSpawn[(int, Animation, ChosenAnim)],
-    getAnim {.inject.}: Lookup[(Animation,)]
+    getAnim {.inject.}: Lookup[(Animation,)],
+    events {.inject.}: Inbox[ChoseEvent[Selection]]
   ) -> void:
     let animA {.inject.}: ChosenAnim = (newAnimationDef(1), newAnimationDef(2))
     let animB {.inject.}: ChosenAnim = (newAnimationDef(3), newAnimationDef(4))
@@ -30,26 +31,31 @@ proc `$`(state: Option[(Animation,)]): string =
 
 runTest "Start with nothing selected":
   check choices.chosen == none(Selection)
+  check events.len == 0
 
 runTest "Choose a new value":
   createStdEntities()
   check a.getAnim == animA.inactive
   check b.getAnim == animB.inactive
+  check events.len == 0
 
   choices.choose(a)
   check choices.chosen == some("a")
   check a.getAnim == animA.active
   check b.getAnim == animB.inactive
+  check events.len == 1
 
   choices.choose(b)
   check choices.chosen == some("b")
   check a.getAnim == animA.inactive
   check b.getAnim == animB.active
+  check events.len == 2
 
   choices.choose(a)
   check choices.chosen == some("a")
   check a.getAnim == animA.active
   check b.getAnim == animB.inactive
+  check events.len == 3
 
 runTest "Marking an unrelated class shouldn't affect the choice":
   createStdEntities()
@@ -70,3 +76,16 @@ runTest "Choices without an animation should still work":
   check choices.chosen == some("foo")
   choices.choose(bar)
   check choices.chosen == some("bar")
+
+runTest "Choosing the same value should not change the choice":
+  createStdEntities()
+  check a.getAnim == animA.inactive
+  check b.getAnim == animB.inactive
+  check events.len == 0
+
+  for _ in 0 .. 4:
+    choices.choose(a)
+    check choices.chosen == some("a")
+    check a.getAnim == animA.active
+    check b.getAnim == animB.inactive
+    check events.len == 1
