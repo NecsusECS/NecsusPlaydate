@@ -27,7 +27,7 @@ proc fp*(
 
 genVecConstructor(fpvec, FPVec, FPInt32[FPVecPrecision])
 
-proc fpvec2*(x, y: SomeInteger): FPVec2 =
+proc fpvec2*(x, y: SomeNumber): FPVec2 =
   fpvec2(x.fp32(FPVecPrecision), y.fp(FPVecPrecision))
 
 proc toFPVec2*(ivec2: IVec2): FPVec2 =

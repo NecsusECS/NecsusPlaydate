@@ -5,7 +5,7 @@ import
     djikstra, draw, easing, fade, files, findDir, flowfield, fpvec, init, inputs,
     layout, loading, moveTo, multistep, obfuscate, particles, percent, pool, positioned,
     rand, shake, singleton, sprite, textwrap, time, timer, treeSeq, triggerBox, types,
-    util, vec_tools, viewport, visibleState, choices
+    util, vec_tools, viewport, visibleState, choices, intersects
   ]
 
 export achievements
@@ -36,6 +36,7 @@ export flowfield
 export fpvec
 export init
 export inputs
+export intersects
 export layout
 export loading
 export moveTo
