@@ -12,7 +12,7 @@ jobs:
       - run: git config --global --add safe.directory "$(pwd)"
       - run: nimble install --depsOnly --accept
       - run: nimble setup
-      - run: nim check src/necsuspd.nim
+      - run: nim check -d:simulator src/necsuspd.nim
       - name: Check exported that everything is exported
         run: find src/necsuspd -name "*.nim" | cut -d/ -f3 | cut -d. -f1 | xargs -n1 echo export | xargs -I{} grep -x "{}" src/necsuspd.nim;
       - run: nimble test
