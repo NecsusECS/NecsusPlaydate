@@ -24,7 +24,7 @@ type
   RotAnimDefs*[K, SheetId, Anims, Keyframes] =
     array[K, RotAnimDef[SheetId, Anims, Keyframes]] ## An indexed group of game objects
 
-  RotAnims*[Anims] = object
+  RotAnims*[Anims] = ref object
     ## `anims` is a table of generated animations for each game object
     ## `tables` is the base sprite sheets for each game object
     anims: array[ROTATIONS, array[Anims, AnimationDef]]
@@ -33,8 +33,6 @@ type
 proc `=copy`[SheetId, Anims, Keyframes](
   a: var RotAnimDef[SheetId, Anims, Keyframes], b: RotAnimDef[SheetId, Anims, Keyframes]
 ) {.error.}
-
-proc `=copy`[Anims](a: var RotAnims[Anims], b: RotAnims[Anims]) {.error.}
 
 proc defineRotAnim*[SheetId, Anims, Keyframes](
     sheetId: SheetId,
@@ -102,7 +100,7 @@ proc defineRotAnims[SheetId, Anims, Keyframes](
     source: LCDBitmapTable,
 ): RotAnims[Anims] =
   let frames = source.getBitmapTableInfo.count.int32
-  result.table = newSeq[LCDBitmap](frames * ROTATIONS)
+  result = RotAnims[Anims](table: newSeq[LCDBitmap](frames * ROTATIONS))
   for rotation in 0'i32 ..< ROTATIONS:
     let mutation: RotationMutation = (rotation, frames, rotation * frames)
     result.fillTable(sheet, obj, source, mutation)
@@ -146,6 +144,6 @@ proc animation*[Anims](
     absolutePos: bool = false,
 ): Animation =
   ## Returns the animation for a game object the given angle
-  assert(obj.table.len > 0, fmt"Object sheet not loaded: {obj}")
+  assert(obj != nil, fmt"Object sheet not loaded")
   let anim = obj.animationDef(anim, angle)
   return newSheet(obj.table, anim, zIndex, absolutePos)
