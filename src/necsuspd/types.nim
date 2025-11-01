@@ -38,6 +38,10 @@ proc getTypeId*(T: typedesc): TypeId =
   when enableNames:
     result.name = $T
 
+proc assertIs*[T](value: T, expected: TypeId) =
+  ## Assert that the enum value is of the given type
+  assert(T.getTypeId == expected, fmt"{$T} is not of type {$expected}")
+
 proc `==`*(a, b: TypeId): bool =
   a.id == b.id
 

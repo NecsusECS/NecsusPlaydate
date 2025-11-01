@@ -38,6 +38,18 @@ suite "TypeId tests":
     check $getTypeId(Size) == "TypeId#1:Size"
     check $getTypeId(Direction) == "TypeId#2:Direction"
 
+  test "assertIs works when types match":
+    let colorId = getTypeId(Color)
+    assertIs(Red, colorId) # Red is a Color, so it should pass
+    assertIs(Green, colorId) # Green is a Color, so it should pass
+
+  test "assertIs raises assertion when types don't match":
+    let colorId = getTypeId(Color)
+    expect(AssertionError):
+      assertIs(Small, colorId) # Small is not a Color, so it should raise an error
+    expect(AssertionError):
+      assertIs(North, colorId) # North is not a Color, so it should raise an error
+
 suite "EnumValue tests":
   test "getEnumValue creates correct EnumValue":
     let redValue = getEnumValue(Red)
