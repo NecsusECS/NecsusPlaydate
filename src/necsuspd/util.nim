@@ -1,4 +1,4 @@
-import std/[macros, options, strutils, macrocache, importutils], types
+import std/[macros, options, strutils, macrocache, importutils, setutils], types
 export types
 
 when not defined(unittests):
@@ -283,3 +283,8 @@ proc isqrt*(n: SomeInteger): SomeInteger =
     else:
       result = result shr 1
     d = d shr 2
+
+proc len*(kind: typedesc[enum]): int32 =
+  ## Returns the number of entries in an enum
+  const size = fullSet(kind).card.int32
+  return size

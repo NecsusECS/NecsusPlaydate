@@ -1,5 +1,8 @@
 import std/unittest, necsuspd/util
 
+type TestEnum = enum
+  A, B, C
+
 suite "Utilities":
   test "Loop unrolling":
     var output: seq[(int32, string)]
@@ -15,3 +18,6 @@ suite "Utilities":
     check(isqrt(8) == 2)
     check(isqrt(9) == 3)
     check(isqrt(10) == 3)
+
+  test "Enum length":
+    check(len(TestEnum) == 3)
