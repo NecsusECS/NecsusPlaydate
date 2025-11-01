@@ -14,16 +14,15 @@ import
 const ROTATIONS = 64'i32 ## The number of rotations for game objects to generate
 
 type
-  GameObjDef*[SheetId, IgnoreAnims, IgnoreKeyframes] = object
+  GameObjDef*[SheetId, Anims, Keyframes] = object
     ## The configuration for a single game object
     sheetId: SheetId
     data: string
-    ignoreAnims: set[IgnoreAnims]
-    ignoreKeyframes: set[IgnoreKeyframes]
+    ignoreAnims: set[Anims]
+    ignoreKeyframes: set[Keyframes]
 
-  GameObjDefs*[K, SheetId, IgnoreAnims, IgnoreKeyframes] =
-    array[K, GameObjDef[SheetId, IgnoreAnims, IgnoreKeyframes]]
-    ## An indexed group of game objects
+  GameObjDefs*[K, SheetId, Anims, Keyframes] =
+    array[K, GameObjDef[SheetId, Anims, Keyframes]] ## An indexed group of game objects
 
   ObjAnims*[Anims] = object
     ## `anims` is a table of generated animations for each game object
@@ -31,19 +30,18 @@ type
     anims: array[ROTATIONS, array[Anims, AnimationDef]]
     table: seq[LCDBitmap]
 
-proc `=copy`[SheetId, IgnoreAnims, IgnoreKeyframes](
-  a: var GameObjDef[SheetId, IgnoreAnims, IgnoreKeyframes],
-  b: GameObjDef[SheetId, IgnoreAnims, IgnoreKeyframes],
+proc `=copy`[SheetId, Anims, Keyframes](
+  a: var GameObjDef[SheetId, Anims, Keyframes], b: GameObjDef[SheetId, Anims, Keyframes]
 ) {.error.}
 
-proc defineGameObj*[SheetId, IgnoreAnims, IgnoreKeyframes](
+proc defineGameObj*[SheetId, Anims, Keyframes](
     sheetId: SheetId,
     data: string,
-    ignoreAnims: set[IgnoreAnims] = {},
-    ignoreKeyframes: set[IgnoreKeyframes] = {},
+    ignoreAnims: set[Anims] = {},
+    ignoreKeyframes: set[Keyframes] = {},
 ): auto =
   ## Define a game object
-  return GameObjDef[SheetId, IgnoreAnims, IgnoreKeyframes](
+  return GameObjDef[SheetId, Anims, Keyframes](
     sheetId: sheetId,
     data: data,
     ignoreAnims: ignoreAnims,
@@ -60,17 +58,17 @@ proc angle(mutate: RotationMutation): FPInt =
 const RESIZE_RATIO = 1.0
   ## Game objects are resized as they are rotated to improve the precision of the rotation
 
-proc buildBaseSheets*[K, SheetId, IgnoreAnims, IgnoreKeyframes](
-    gameObjDefs: GameObjDefs[K, SheetId, IgnoreAnims, IgnoreKeyframes]
+proc buildBaseSheets*[K, SheetId, Anims, Keyframes](
+    gameObjDefs: GameObjDefs[K, SheetId, Anims, Keyframes]
 ): array[K, SpriteSheet] {.compileTime.} =
   ## Precalculates sprite sheets for each game object
   for obj in K:
     result[obj] = loadAsepriteJson(gameObjDefs[obj].data)
 
-proc fillTable[SheetId, Animations, Keyframes: enum](
-    target: var ObjAnims[Animations],
+proc fillTable[SheetId, Anims, Keyframes: enum](
+    target: var ObjAnims[Anims],
     spriteSheet: SpriteSheet,
-    obj: GameObjDef[SheetId, Animations, Keyframes],
+    obj: GameObjDef[SheetId, Anims, Keyframes],
     source: LCDBitmapTable,
     mutate: RotationMutation,
 ) =
@@ -84,32 +82,32 @@ proc fillTable[SheetId, Animations, Keyframes: enum](
     target.table[mutate.baseCellIdx + frame] = rotated
     size = rotated.getSize
 
-  let baseAnims = animationTable[Animations, Keyframes](
+  let baseAnims = animationTable[Anims, Keyframes](
     spriteSheet,
     obj.sheetId,
     ignore = obj.ignoreAnims,
     ignoreKeyframes = obj.ignoreKeyframes,
   )
 
-  for anim in Animations:
+  for anim in Anims:
     if anim notin obj.ignoreAnims:
       target.anims[mutate.rotation][anim] =
         modify(baseAnims[anim], mutate.baseCellIdx, (AnchorMiddle, ivec2(0, 0)))
 
-proc defineObjAnims[SheetId, Animations, Keyframes](
-    obj: GameObjDef[SheetId, Animations, Keyframes],
+proc defineObjAnims[SheetId, Anims, Keyframes](
+    obj: GameObjDef[SheetId, Anims, Keyframes],
     sheet: SpriteSheet,
     source: LCDBitmapTable,
-): ObjAnims[Animations] =
+): ObjAnims[Anims] =
   let frames = source.getBitmapTableInfo.count.int32
   result.table = newSeq[LCDBitmap](frames * ROTATIONS)
   for rotation in 0'i32 ..< ROTATIONS:
     let mutation: RotationMutation = (rotation, frames, rotation * frames)
     result.fillTable(sheet, obj, source, mutation)
 
-proc loadObjAnims*[K, SheetId, Animations, Keyframes](
-    target: var array[K, ObjAnims[Animations]],
-    defs: GameObjDefs[K, SheetId, Animations, Keyframes],
+proc loadObjAnims*[K, SheetId, Anims, Keyframes](
+    target: var array[K, ObjAnims[Anims]],
+    defs: GameObjDefs[K, SheetId, Anims, Keyframes],
     sheets: array[K, SpriteSheet],
     task: Bundle[LoadTasks],
     assets: AssetBag,
