@@ -74,3 +74,8 @@ suite "intersects(segment, circle)":
     let line = segment(fpvec2(56.0, 104.0), fpvec2(156.0, 121.1875))
     let shouldNotIntersect = circle(fpvec2(68.515625, 57.6875), 6.0.fp)
     check(line.intersection(shouldNotIntersect) == none(FPVec2))
+
+  test "Horizontal line intersection":
+    let line = segment(fpvec2(56.0, 104.0), fpvec2(156.0, 104.0))
+    let shouldIntersect = circle(fpvec2(90.328125, 101.1875), 6.0.fp)
+    check(line.intersection(shouldIntersect).isSome())

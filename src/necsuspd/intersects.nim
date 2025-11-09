@@ -1,9 +1,12 @@
 import fpvec, fixedpoint, vmath, std/[options, strformat], fungus
 
 adtEnum(Intersection):
-  Point: FPVec2
-  Segment: tuple[a, b: FPVec2] ## A line that runs from `a` to `b`
-  Circle: tuple[center: FPVec2, radius: FPInt] ## A circle with a center at `center` and a radius of `radius`
+  Point:
+    FPVec2
+  Segment:
+    tuple[a, b: FPVec2]
+  Circle:
+    tuple[center: FPVec2, radius: FPInt]
 
 proc `$`*(point: Point): string =
   fmt"point({point.toInternal})"
@@ -45,24 +48,27 @@ proc intersection*(segment: Segment, circle: Circle): Option[FPVec2] =
 
   # Quadratic coefficients: At^2 + Bt + C = 0
   let aCoeff = dot(delta, delta)
-  let bCoeff = fp(2) * dot(offset, delta)
+  let bCoeff = dot(offset, delta) * 2
   let cCoeff = dot(offset, offset) - circle.radius * circle.radius
 
-  let discriminant = bCoeff * bCoeff - fp(4) * aCoeff * cCoeff
+  let discrim_p1 = bCoeff.toFP64 * bCoeff.toFP64
+  let discrim_p2 = aCoeff.toFP64 * cCoeff.toFP64 * 4
+  let discriminant = discrim_p1 - discrim_p2
 
   # No intersection
-  if discriminant < fp(0):
+  if discriminant < 0:
     return none(FPVec2)
 
   # Tangent case
-  if discriminant == fp(0):
+  if discriminant == 0:
     let t = -bCoeff / (fp(2) * aCoeff)
-    if t >= fp(0) and t <= fp(1):
-      return Point.init(segment.a + delta * t).intersection(circle)
-    else:
-      return none(FPVec2)
+    return
+      if t >= fp(0) and t <= fp(1):
+        Point.init(segment.a + delta * t).intersection(circle)
+      else:
+        none(FPVec2)
 
-  let sqrtDisc = sqrt(discriminant)
+  let sqrtDisc = sqrt(discriminant).toInt().fp()
   let twoA = fp(2) * aCoeff
 
   # t1 and t2 are the parametric positions along the segment where it intersects the circle.
@@ -78,5 +84,4 @@ proc intersection*(segment: Segment, circle: Circle): Option[FPVec2] =
       else:
         return none(FPVec2)
 
-  let intersectionPoint = segment.a + delta * t
-  return some(intersectionPoint)
+  return some(segment.a + delta * t)
