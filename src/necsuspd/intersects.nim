@@ -6,13 +6,13 @@ adtEnum(Intersection):
   Circle: tuple[center: FPVec2, radius: FPInt] ## A circle with a center at `center` and a radius of `radius`
 
 proc `$`*(point: Point): string =
-  fmt"Point({point.toInternal})"
+  fmt"point({point.toInternal})"
 
 proc `$`*(segment: Segment): string =
-  fmt"Segment(a={segment.a}, b={segment.b})"
+  fmt"segment({segment.a}, {segment.b})"
 
 proc `$`*(circ: Circle): string =
-  fmt"Circle(center={circ.center}, radius={circ.radius})"
+  fmt"circle({circ.center}, fp({circ.radius}))"
 
 export Intersection, Point, Segment, Circle
 
