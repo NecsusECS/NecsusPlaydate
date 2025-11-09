@@ -54,6 +54,14 @@ proc intersection*(segment: Segment, circle: Circle): Option[FPVec2] =
   if discriminant < fp(0):
     return none(FPVec2)
 
+  # Tangent case
+  if discriminant == fp(0):
+    let t = -bCoeff / (fp(2) * aCoeff)
+    if t >= fp(0) and t <= fp(1):
+      return Point.init(segment.a + delta * t).intersection(circle)
+    else:
+      return none(FPVec2)
+
   let sqrtDisc = sqrt(discriminant)
   let twoA = fp(2) * aCoeff
 
@@ -70,4 +78,5 @@ proc intersection*(segment: Segment, circle: Circle): Option[FPVec2] =
       else:
         return none(FPVec2)
 
-  return some(segment.a + delta * t)
+  let intersectionPoint = segment.a + delta * t
+  return some(intersectionPoint)

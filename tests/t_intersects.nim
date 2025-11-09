@@ -69,3 +69,8 @@ suite "intersects(segment, circle)":
       intersection(segment(fpvec2(2, 0), fpvec2(2, 0)), circle(fpvec2(1, 0), fp(1))) ==
         some(fpvec2(2, 0))
     )
+
+  test "A line that should not intersect a circle":
+    let line = segment(fpvec2(56.0, 104.0), fpvec2(156.0, 121.1875))
+    let shouldNotIntersect = circle(fpvec2(68.515625, 57.6875), 6.0.fp)
+    check(line.intersection(shouldNotIntersect) == none(FPVec2))
