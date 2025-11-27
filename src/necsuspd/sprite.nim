@@ -168,14 +168,17 @@ proc newBitmapSprite*(
     anchor: AnchorPosition,
     absolutePos: bool = false,
 ): Sprite =
-  result.new()
-  result.sprite = playdate.sprite.newSprite()
-  result.sprite.setImage(img, kBitmapUnflipped)
-  result.sprite.zIndex = ord(zIndex).int16
-  result.sprite.add()
-  result.anchorOffset = result.sprite.offsetFix(anchor.toAnchor)
-  result.absolutePos = absolutePos
-  result.sprite.setOpaque(false)
+  var sprite = playdate.sprite.newSprite()
+  sprite.setImage(img, kBitmapUnflipped)
+  sprite.zIndex = ord(zIndex).int16
+  sprite.setOpaque(false)
+  sprite.add()
+
+  return Sprite(
+    sprite: sprite,
+    anchorOffset: sprite.offsetFix(anchor.toAnchor),
+    absolutePos: absolutePos
+  )
 
 proc newAssetSprite*[A](
     assets: SharedOrT[AssetTable[A]],
