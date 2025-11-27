@@ -12,7 +12,7 @@ import
 
 export anchor
 
-when defined(simulator) or defined(device):
+when defined(simulator) or defined(device) or defined(nimcheck):
   import playdate/api, playdate/util/initreqs, sprite
 else:
   proc pdlog(error: string) =
@@ -317,7 +317,7 @@ proc animationTime*(sheet: SpriteSheet, animation: enum): Option[int32] =
     duration += frame.duration
   return some(duration)
 
-when defined(simulator) or defined(device):
+when defined(simulator) or defined(device) or defined(nimcheck):
   proc createFrameDef(
       sheet: SpriteSheet, keyframes: KeyframeTable[enum], frameId: int32
   ): Frame =
