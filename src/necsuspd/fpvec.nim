@@ -17,18 +17,18 @@ proc fp*(
     value: SomeInteger, precision: static Natural = FPVecPrecision
 ): FPInt32[precision] =
   ## Creates a fixed point number
-  FPInt32[precision](value shl precision)
+  fp32(value, precision)
 
 proc fp*(
     value: SomeFloat, precision: static Natural = FPVecPrecision
 ): FPInt32[precision] =
   ## Creates a fixed point number
-  FPInt32[precision](int32(value * (1 shl precision)))
+  fp32(value, precision)
 
 genVecConstructor(fpvec, FPVec, FPInt32[FPVecPrecision])
 
 proc fpvec2*(x, y: SomeNumber): FPVec2 =
-  fpvec2(x.fp32(FPVecPrecision), y.fp(FPVecPrecision))
+  fpvec2(x.fp(FPVecPrecision), y.fp(FPVecPrecision))
 
 proc toFPVec2*(ivec2: IVec2): FPVec2 =
   fpvec2(ivec2.x, ivec2.y)
@@ -37,7 +37,7 @@ template toFPVec2*(vec2: FPVec2): FPVec2 =
   vec2
 
 proc toFPVec2*(vec2: Vec2): FPVec2 =
-  fpvec2(vec2.x.fp32(FPVecPrecision), vec2.y.fp(FPVecPrecision))
+  fpvec2(vec2.x.fp(FPVecPrecision), vec2.y.fp(FPVecPrecision))
 
 proc toIVec2*(vec: FPVec2): IVec2 =
   ivec2(vec.x.toInt, vec.y.toInt)
