@@ -1,8 +1,8 @@
 import necsus, time, util
 
 type
-  Lifetime* = ref object
-    timestamp: float32
+  Lifetime* = object
+    ttl: float32
 
   Timer* = ref object
     name: string
@@ -10,7 +10,6 @@ type
     action: proc(): void
 
   LifetimeControl* = object
-    time: GameTime
 
   TimerControl*[T] = object
     spawn: Spawn[(Timer, T)]
@@ -24,16 +23,22 @@ proc startTimer*[T](
     Timer(name: name, timestamp: control.time.get + delta, action: action), default(T)
   )
 
+proc newLifetime*(ttl: SomeNumber): Lifetime =
+  ## Creates a lifetime that deletes an entity after a specific time span
+  Lifetime(ttl: ttl.float32)
+
 proc newLifetime*(control: Bundle[LifetimeControl], delta: SomeNumber): Lifetime =
   ## Creates a lifetime that deletes an entity after a specific time span
-  Lifetime(timestamp: control.time.get + delta.float32)
+  return newLifetime(delta)
 
 proc lifetimes*(
-    lifetimes: FullQuery[(Lifetime,)], time: GameTime, delete: Delete
+    lifetimes: FullQuery[(ptr Lifetime,)], time: GameTimeDelta, delete: Delete
 ) {.depends(gameTime).} =
   ## System for deleting objects with a lifetime
+  let delta = time.get
   for eid, (lifetime) in lifetimes:
-    if lifetime.timestamp <= time.get:
+    lifetime.ttl -= delta
+    if lifetime.ttl <= 0:
       delete(eid)
 
 proc runTimers*(
