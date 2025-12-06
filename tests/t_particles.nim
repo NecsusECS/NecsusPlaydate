@@ -1,4 +1,4 @@
-import unittest, necsuspd/particles, graphics_stub, vmath
+import unittest, necsuspd/particles, stubs/graphics, vmath
 
 proc chooseRandom(values: Slice[uint32]): uint32 =
   values.a

@@ -6,7 +6,7 @@
 import necsus, std/options, util
 
 when defined(unittests):
-  import ../../tests/graphics_stub
+  import ../../tests/stubs/graphics
 else:
   import sprite
 

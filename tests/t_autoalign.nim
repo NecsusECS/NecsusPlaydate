@@ -2,7 +2,7 @@ import
   std/[unittest, options],
   necsus,
   necsuspd/[autoalign, positioned, alignment],
-  graphics_stub,
+  stubs/graphics,
   vmath
 
 type MyEntity = object

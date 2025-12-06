@@ -1,4 +1,4 @@
-import std/[unittest, options], necsus, necsuspd/[choices, util], vmath, graphics_stub
+import std/[unittest, options], necsus, necsuspd/[choices, util], vmath, stubs/graphics
 
 type Selection = string
 

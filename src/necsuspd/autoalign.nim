@@ -1,7 +1,7 @@
 import necsus, positioned, util, vmath, alignment, std/options
 
 when defined(unittests):
-  import ../../tests/graphics_stub
+  import ../../tests/stubs/graphics
 else:
   import sprite
 

@@ -3,7 +3,7 @@ import
   necsus,
   necsuspd/[cursor, positioned, fpvec],
   vmath,
-  graphics_stub
+  stubs/graphics
 
 proc createStdCursorElems(create: auto): auto =
   return [

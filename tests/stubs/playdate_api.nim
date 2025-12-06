@@ -1,6 +1,6 @@
-import std/[tables, sequtils], ../graphics_stub
+import std/[tables, sequtils], graphics
 
-export graphics_stub
+export graphics
 
 type
   PlaydateApi* = object

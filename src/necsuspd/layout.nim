@@ -2,7 +2,7 @@ import necsus, sequtils, positioned, options, vmath, alignment, util
 export alignment
 
 when defined(unittests):
-  import ../../tests/graphics_stub
+  import ../../tests/stubs/graphics
 else:
   import sprite
 
