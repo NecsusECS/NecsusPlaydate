@@ -1,4 +1,5 @@
-import necsus, playdate/api, std/[options, strformat, typetraits], util, loading
+import
+  necsus, playdate/api, std/[options, strformat, typetraits, strutils], util, loading
 
 type
   AssetBagDef[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId] = ref object
@@ -123,3 +124,17 @@ proc buildAssetLoader*[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId](
     task.createLoaders(bag, nineSlices, nineSlice, NineSliceId)
     task.createLoaders(bag, midis, midi, MidiId)
     task.createLoaders(bag, sounds, sound, SfxId)
+
+proc findAssetBagKey*(path: string, typ: typedesc[enum], suffix: string = ""): typ =
+  # Takes a string in the form "../source/images/map-background-1.png"
+  # It strips the 'png', removes all the leading directories, then converts
+  # from lower kebab case to upper camel case. So the result iS: MapBackground1
+  # This will also strip the '-table-16-16' style suffixes added to the filename
+  let filename = path[(path.rfind('/') + 1) .. ^1].removeSuffix(".png")
+  var key = ""
+  for part in filename.split('-'):
+    if part == "table":
+      break
+    else:
+      key.add(part.capitalizeAscii())
+  return parseEnum[typ](key & suffix)
