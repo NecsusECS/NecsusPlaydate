@@ -3,10 +3,12 @@ import macros, strutils, sequtils
 type
   AnimationDef* = distinct int
 
-  Font* = ref object
+  LCDFont* = ref object
     name: string
     height: int
     charWidth: int
+
+  Font* = LCDFont
 
   Sprite* = ref object
     img: Image
@@ -17,37 +19,49 @@ type
     def*: AnimationDef
     hidden: bool
 
-  Image* = ref object
+  LCDBitmap* = ref object
     name: string
     data: ImageData
+
+  Image* = LCDBitmap
 
   ImageData* = ref object
     pixels: seq[seq[bool]]
     width*: int
     height*: int
 
-  TextEncoding* = enum
+  PDStringEncoding* = enum
     kASCIIEncoding
     kUTF8Encoding
+    k16BitLEEncoding
 
-  Color* = enum
+  TextEncoding* = PDStringEncoding
+
+  LCDSolidColor* = enum
     kColorBlack
     kColorWhite
 
-  DrawMode* = enum
-    kDrawModeCopy
-    kDrawModeFillBlack
-    kDrawModeFillWhite
+  Color* = LCDSolidColor
 
-  PDGraphics* = ref object
+  PlaydateGraphics* = ref object
     context: seq[Image]
     actions: seq[string]
 
-  BitmapFlip* = enum
+  LCDBitmapFlip* = enum
     kBitmapUnflipped
     kBitmapFlippedX
     kBitmapFlippedY
     kBitmapFlippedXY
+
+  LCDBitmapDrawMode* = enum
+    kDrawModeCopy
+    kDrawModeWhiteTransparent
+    kDrawModeBlackTransparent
+    kDrawModeFillWhite
+    kDrawModeFillBlack
+    kDrawModeXOR
+    kDrawModeNXOR
+    kDrawModeInverted
 
 proc `==`*(a, b: AnimationDef): bool {.borrow.}
 
@@ -59,7 +73,7 @@ proc newBitmapData(width, height: int): ImageData =
 proc newImage*(name: string, width, height: int): Image =
   Image(name: name, data: newBitmapData(width, height))
 
-proc newBitmap*(graphics: PDGraphics, width, height: int, color: Color): Image =
+proc newBitmap*(graphics: PlaydateGraphics, width, height: int, color: Color): Image =
   return newImage("anon", width, height)
 
 proc setBitmapMask*(image: Image): int =
@@ -79,22 +93,22 @@ proc newAnimation*(
 proc newFont*(name: string, height: int = 14, charWidth = 8): Font =
   Font(name: name, height: height, charWidth: charWidth)
 
-let graphics* = new(PDGraphics)
+let pdGraphics* = PlaydateGraphics()
 
 proc graphicActions*(): seq[string] =
-  result = graphics.actions.items.toSeq
-  graphics.actions.setLen(0)
-  assert(graphics.context.len == 0)
+  result = pdGraphics.actions.items.toSeq
+  pdGraphics.actions.setLen(0)
+  assert(pdGraphics.context.len == 0)
 
 proc event(action: string, details: varargs[string]) =
   var data = newSeq[string]()
 
-  if graphics.context.len > 0:
-    data.add(graphics.context[^1].name)
+  if pdGraphics.context.len > 0:
+    data.add(pdGraphics.context[^1].name)
 
   data.add(details)
 
-  graphics.actions.add(action & "(" & join(data, ", ") & ")")
+  pdGraphics.actions.add(action & "(" & join(data, ", ") & ")")
 
 macro record(action: string, elements: varargs[typed]) =
   result = newCall(bindSym("event"))
@@ -112,7 +126,7 @@ proc getFontHeight*(font: Font): int =
   font.height
 
 proc getTextWidth*(
-    font: Font, text: string, length: int, encoding: TextEncoding, tracking: int
+    font: LCDFont, text: string, length: int, encoding: TextEncoding, tracking: int
 ): int =
   assert(text.len == length)
   font.charWidth * length
@@ -120,28 +134,28 @@ proc getTextWidth*(
 proc fill*(font: Font): int =
   12
 
-proc fillRect*(graphics: PDGraphics, x, y, width, height: int, color: Color) =
+proc fillRect*(graphics: PlaydateGraphics, x, y, width, height: int, color: Color) =
   record("fillRect", x, y, width, height, color)
 
-proc pushContext*(graphics: PDGraphics, img: Image) =
+proc pushContext*(graphics: PlaydateGraphics, img: Image) =
   graphics.context.add(img)
 
-proc popContext*(graphics: PDGraphics) =
+proc popContext*(graphics: PlaydateGraphics) =
   graphics.context.setLen(graphics.context.len - 1)
 
-proc getImage*(sprite: Sprite): Image =
+proc getImage*(sprite: Sprite): LCDBitmap =
   sprite.img
 
-proc setFont*(graphics: PDGraphics, font: Font) =
+proc setFont*(graphics: PlaydateGraphics, font: Font) =
   record("setFont", font.name)
 
-proc setDrawMode*(graphics: PDGraphics, drawMode: DrawMode) =
+proc setDrawMode*(graphics: PlaydateGraphics, drawMode: LCDBitmapDrawMode) =
   record("drawMode", drawMode)
 
-proc drawText*(graphics: PDGraphics, text: string, x, y: int) =
+proc drawText*(graphics: PlaydateGraphics, text: string, x, y: int) =
   record("drawText", text, x, y)
 
-proc draw*(bitmap: Image, x, y: int, flip: BitmapFlip) =
+proc draw*(bitmap: Image, x, y: int, flip: LCDBitmapFlip) =
   let name = bitmap.name
   record("drawBitmap", name, x, y)
 

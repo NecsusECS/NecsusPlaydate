@@ -1,9 +1,12 @@
-import std/[tables, sequtils]
+import std/[tables, sequtils], ../graphics_stub
+
+export graphics_stub
 
 type
   PlaydateApi* = object
     file*: PlaydateFiles
     system*: PlaydateSystem
+    graphics*: PlaydateGraphics
 
   PlaydateFiles* = object
 
@@ -18,7 +21,7 @@ type
     kFileWrite
     kFileAppend
 
-let playdate* = PlaydateApi()
+let playdate* = PlaydateApi(graphics: pdGraphics)
 
 var mockFiles = initTable[string, string]()
 
