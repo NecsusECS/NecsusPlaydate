@@ -1,4 +1,4 @@
-import macros, strutils, sequtils
+import macros, strutils, sequtils, necsuspd/anchor
 
 type
   AnimationDef* = distinct int
@@ -22,6 +22,7 @@ type
   LCDBitmap* = ref object
     name: string
     data: ImageData
+    mask: LCDBitmap
 
   Image* = LCDBitmap
 
@@ -63,36 +64,6 @@ type
     kDrawModeNXOR
     kDrawModeInverted
 
-proc `==`*(a, b: AnimationDef): bool {.borrow.}
-
-proc newBitmapData(width, height: int): ImageData =
-  result = ImageData(width: width, height: height, pixels: newSeq[seq[bool]](height))
-  for y in 0 ..< height:
-    result.pixels[y] = newSeq[bool](width)
-
-proc newImage*(name: string, width, height: int): Image =
-  Image(name: name, data: newBitmapData(width, height))
-
-proc newBitmap*(graphics: PlaydateGraphics, width, height: int, color: Color): Image =
-  return newImage("anon", width, height)
-
-proc setBitmapMask*(image: Image): int =
-  return 0
-
-proc newSprite*(name: string, width, height: int): Sprite =
-  Sprite(img: newImage(name, width, height))
-
-proc newAnimationDef*(id: int = 0): AnimationDef =
-  id.AnimationDef
-
-proc newAnimation*(
-    name: string, width, height: int, def: AnimationDef = newAnimationDef()
-): Animation =
-  Animation(img: newImage(name, width, height), def: def)
-
-proc newFont*(name: string, height: int = 14, charWidth = 8): Font =
-  Font(name: name, height: height, charWidth: charWidth)
-
 let pdGraphics* = PlaydateGraphics()
 
 proc graphicActions*(): seq[string] =
@@ -121,6 +92,61 @@ macro record(action: string, elements: varargs[typed]) =
         nnkPrefix.newTree(newIdentNode("$"), child),
       )
     )
+
+proc `==`*(a, b: AnimationDef): bool {.borrow.}
+
+proc asBool(color: Color): bool =
+  case color
+  of kColorWhite:
+    return false
+  of kColorBlack:
+    return true
+
+proc newBitmapData(width, height: int, color: LCDSolidColor): ImageData =
+  result = ImageData(width: width, height: height, pixels: newSeq[seq[bool]](height))
+  for y in 0 ..< height:
+    result.pixels[y] = newSeq[bool](width)
+    for value in result.pixels[y].mitems:
+      value = color.asBool
+
+proc newImage*(name: string, width, height: int, color: LCDSolidColor): Image =
+  Image(name: name, data: newBitmapData(width, height, color))
+
+proc newBitmap*(
+    graphics: PlaydateGraphics, width, height: int, color: LCDSolidColor
+): Image =
+  return newImage("anon", width, height, color)
+
+proc width*(this: LCDBitmap): auto =
+  this.data.width
+
+proc height*(this: LCDBitmap): auto =
+  this.data.height
+
+proc getBitmapMask*(image: LCDBitmap): LCDBitmap =
+  assert(image.mask != nil)
+  image.mask
+
+proc setBitmapMask*(
+    this: LCDBitmap,
+    mask: LCDBitmap = pdGraphics.newBitmap(this.width, this.height, kColorWhite),
+): int =
+  this.mask = mask
+  return 0
+
+proc newSprite*(name: string, width, height: int): Sprite =
+  Sprite(img: newImage(name, width, height, kColorBlack))
+
+proc newAnimationDef*(id: int = 0): AnimationDef =
+  id.AnimationDef
+
+proc newAnimation*(
+    name: string, width, height: int, def: AnimationDef = newAnimationDef()
+): Animation =
+  Animation(img: newImage(name, width, height, kColorBlack), def: def)
+
+proc newFont*(name: string, height: int = 14, charWidth = 8): Font =
+  Font(name: name, height: height, charWidth: charWidth)
 
 proc getFontHeight*(font: Font): int =
   font.height
@@ -173,23 +199,10 @@ proc setMany*[W: static int](this: var Image, pixels: openarray[array[W, Color]]
   let img = this.name
   record("setMany", img, asStr)
 
-proc asBool(color: Color): bool =
-  case color
-  of kColorWhite:
-    return false
-  of kColorBlack:
-    return true
-
 proc setPixel*(this: var ImageData, x, y: int, color: Color) =
   if x >= 0 and x < this.width:
     if y >= 0 and y < this.height:
       this.pixels[y][x] = color.asBool
-
-proc width*(this: Image): auto =
-  this.data.width
-
-proc height*(this: Image): auto =
-  this.data.height
 
 proc clear*(this: var Image, color: Color) =
   for y in 0 ..< this.height:
@@ -199,18 +212,30 @@ proc clear*(this: var Image, color: Color) =
 proc getDataObj*(this: Image): ImageData =
   this.data
 
-proc `$`*(img: ImageData): string =
-  result = newStringOfCap(img.width * img.height + img.height)
-  for row in img.pixels:
-    for x in row:
-      if x:
-        result &= "X"
+iterator rows*(this: LCDBitmap): string =
+  ## Renders the rows of an image as characters in a string
+  for y in 0 ..< this.height:
+    var row = ""
+    for x in 0 ..< this.width:
+      if this.mask != nil and this.mask.data.pixels[y][x]:
+        row &= "_"
+      elif this.data.pixels[y][x]:
+        row &= "X"
       else:
-        result &= "."
-    result &= ";"
+        row &= "."
+    yield row
 
-proc `$`*(img: Image): string =
-  $img.data
+proc `==`*(this: LCDBitmap, versus: openarray[string]): bool =
+  var i = 0
+  for row in this.rows:
+    if i >= versus.len or row != versus[i]:
+      return false
+    i += 1
+  return i == versus.len
+
+proc `$`*(img: LCDBitmap): string =
+  for row in img.rows:
+    result &= row & ";"
 
 proc width*(this: Sprite): auto =
   this.img.width
@@ -235,3 +260,23 @@ proc visible*(value: Sprite | Animation): bool =
 
 proc `visible=`*(value: Sprite | Animation, flag: bool) =
   value.hidden = not flag
+
+proc set*(this: LCDBitmap, x, y: int, color: LCDSolidColor) =
+  this.data.setPixel(x, y, color)
+
+proc animation*[S: enum](
+    sheet: S,
+    timePerFrame: float32,
+    frames: Slice[int32],
+    anchor: AnchorPosition,
+    loop: bool = true,
+): AnimationDef =
+  newAnimationDef()
+
+proc newSheet*(
+    frames: seq[LCDBitmap],
+    def: AnimationDef,
+    zIndex: SomeInteger or enum,
+    absolutePos: bool = false,
+): Animation =
+  return newAnimation("custom", frames[0].width, frames[0].height, def)
