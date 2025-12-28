@@ -105,14 +105,14 @@ suite "Box Elem":
     checkGraphicActions()
 
   test "Drawing an image element":
-    img(newImage("foo", 10, 20)).draw(newSprite("testImg", 300, 100), font)
+    img(newImage("foo", 10, 20, kColorWhite)).draw(newSprite("testImg", 300, 100), font)
     checkGraphicActions(
       "drawMode(testImg, drawMode: kDrawModeCopy)",
       "drawBitmap(testImg, name: foo, x: 0, y: 0)",
     )
 
   test "Drawing a right aligned image element":
-    img(newImage("foo", 10, 20), align = AlignRight).draw(
+    img(newImage("foo", 10, 20, kColorWhite), align = AlignRight).draw(
       newSprite("testImg", 300, 100), font
     )
     checkGraphicActions(
@@ -121,7 +121,7 @@ suite "Box Elem":
     )
 
   test "Drawing a center aligned image element":
-    img(newImage("foo", 20, 20), align = AlignCenter).draw(
+    img(newImage("foo", 20, 20, kColorWhite), align = AlignCenter).draw(
       newSprite("testImg", 300, 100), font
     )
     checkGraphicActions(
@@ -131,10 +131,10 @@ suite "Box Elem":
 
   test "Stack of images":
     stack(
-      img(newImage("foo", 20, 20)),
-      img(newImage("bar", 30, 30), align = AlignCenter),
-      img(newImage("baz", 40, 40), align = AlignRight),
-      img(newImage("qux", 10, 10)),
+      img(newImage("foo", 20, 20, kColorWhite)),
+      img(newImage("bar", 30, 30, kColorWhite), align = AlignCenter),
+      img(newImage("baz", 40, 40, kColorWhite), align = AlignRight),
+      img(newImage("qux", 10, 10, kColorWhite)),
     )
     .draw(newSprite("testImg", 300, 100), font)
 
@@ -150,14 +150,16 @@ suite "Box Elem":
     )
 
   test "Calculating the dimensions of a bitmap":
-    check(img(newImage("foo", 10, 20)).dimens(font) == (width: 10, height: 20))
+    check(
+      img(newImage("foo", 10, 20, kColorWhite)).dimens(font) == (width: 10, height: 20)
+    )
     checkGraphicActions()
 
   test "Drawing rows of content":
     row(
-      img(newImage("foo", 20, 20)),
-      img(newImage("bar", 30, 30)),
-      img(newImage("baz", 40, 40)),
+      img(newImage("foo", 20, 20, kColorWhite)),
+      img(newImage("bar", 30, 30, kColorWhite)),
+      img(newImage("baz", 40, 40, kColorWhite)),
     )
     .draw(newSprite("testImg", 300, 100), font)
 
