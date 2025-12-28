@@ -12,9 +12,13 @@ import
 
 export anchor
 
-when defined(simulator) or defined(device) or defined(nimcheck) or defined(nimsuggest):
+const LIVE_COMPILE = defined(simulator) or defined(device) or defined(nimcheck) or defined(nimsuggest)
+
+when LIVE_COMPILE:
   import playdate/api, playdate/util/initreqs, sprite
 else:
+  import ../../tests/stubs/graphics
+
   proc pdlog(error: string) =
     discard
 
@@ -317,7 +321,7 @@ proc animationTime*(sheet: SpriteSheet, animation: enum): Option[int32] =
     duration += frame.duration
   return some(duration)
 
-when defined(simulator) or defined(device) or defined(nimcheck) or defined(nimsuggest):
+when LIVE_COMPILE:
   proc createFrameDef(
       sheet: SpriteSheet, keyframes: KeyframeTable[enum], frameId: int32
   ): Frame =
@@ -327,10 +331,11 @@ when defined(simulator) or defined(device) or defined(nimcheck) or defined(nimsu
     else:
       return frame(frameId, duration)
 
-  proc asAnimationDef[S: enum](
-      sheet: SpriteSheet, tag: AseFrameTag, sheetId: S, keyframes: KeyframeTable[enum]
-  ): AnimationDef =
-    ## Create an animation based on a aseprite tag
+proc asAnimationDef[S: enum](
+    sheet: SpriteSheet, tag: AseFrameTag, sheetId: S, keyframes: KeyframeTable[enum]
+): AnimationDef =
+  ## Create an animation based on a aseprite tag
+  when LIVE_COMPILE:
 
     # Read the frames to ensure they exist
     discard sheet.readFrame(tag.`from`)
@@ -342,13 +347,14 @@ when defined(simulator) or defined(device) or defined(nimcheck) or defined(nimsu
 
     return animation(sheetId, frames, sheet.spriteAnchor, sheet.isLooped(tag))
 
-  proc animationTable*[A, K: enum](
-      sheet: SpriteSheet,
-      sheetId: enum,
-      ignore: set[A] = {},
-      ignoreKeyframes: set[K] = {},
-  ): array[A, AnimationDef] =
-    ## Creates a table of animation data based on a sprite sheet
+proc animationTable*[A, K: enum](
+    sheet: SpriteSheet,
+    sheetId: enum,
+    ignore: set[A] = {},
+    ignoreKeyframes: set[K] = {},
+): array[A, AnimationDef] =
+  ## Creates a table of animation data based on a sprite sheet
+  when LIVE_COMPILE:
     let keyframeTable = findKeyframes[K](sheet, ignoreKeyframes)
     for animation in A:
       let tag = sheet.findTag(removeSuffix($animation, "Anim")).fallback(
@@ -365,11 +371,12 @@ when defined(simulator) or defined(device) or defined(nimcheck) or defined(nimsu
 
       result[animation] = entry
 
-  type NoKeyframes = enum
-    DummyKeyframe
+type NoKeyframes = enum
+  DummyKeyframe
 
-  proc basicAnimationTable*[A: enum](
-      sheet: SpriteSheet, sheetId: enum, ignore: set[A] = {}
-  ): array[A, AnimationDef] =
-    ## Creates a table of animation data based on a sprite sheet
+proc basicAnimationTable*[A: enum](
+    sheet: SpriteSheet, sheetId: enum, ignore: set[A] = {}
+): array[A, AnimationDef] =
+  ## Creates a table of animation data based on a sprite sheet
+  when LIVE_COMPILE:
     result = animationTable[A, NoKeyframes](sheet, sheetId, ignore, {DummyKeyframe})
