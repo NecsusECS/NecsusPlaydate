@@ -11,8 +11,17 @@ macro asCalc(easing: untyped): untyped =
   easing.expectKind(nnkProcDef)
   let originalName = easing.name
   let name = ident(originalName.strVal.replace("ease", "calc"))
+  let boomerang = ident(originalName.strVal & "Boomerang")
   return quote:
     `easing`
+
+    proc `boomerang`*(t: float32): float32 =
+      return `originalName`(
+        if t <= 0.5:
+          t * 2
+        else:
+          2 - (2 * t)
+      )
 
     proc `originalName`*[T](start, finish, progress: T): float32 =
       return `originalName`((progress - start) / (finish - start))
@@ -47,8 +56,19 @@ proc easeOutCubic(t: float32): float32 {.asCalc.} =
 proc easeInQuint*(t: float32): float32 {.asCalc.} =
   t * t * t * t * t
 
-proc easeOutExpo(t: float32): float32 {.asCalc.} =
-  return if t == 1: 1 else: 1 - pow(2, -10 * t)
+proc easeInExpo*(t: float32): float32 {.asCalc.} =
+  return
+    if t == 0:
+      0
+    else:
+      pow(2, 10 * t - 10)
+
+proc easeOutExpo*(t: float32): float32 {.asCalc.} =
+  return
+    if t == 1:
+      1
+    else:
+      1 - pow(2, -10 * t)
 
 proc easeInBack*(t: float32): float32 {.asCalc.} =
   const c1 = 1.70158
