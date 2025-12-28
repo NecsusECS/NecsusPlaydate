@@ -41,8 +41,14 @@ proc easeInSin*(t: float32): float32 {.asCalc.} =
 proc easeInCubic*(t: float32): float32 {.asCalc.} =
   t * t * t
 
+proc easeOutCubic(t: float32): float32 {.asCalc.} =
+  1 - pow(1 - t, 3)
+
 proc easeInQuint*(t: float32): float32 {.asCalc.} =
   t * t * t * t * t
+
+proc easeOutExpo(t: float32): float32 {.asCalc.} =
+  return if t == 1: 1 else: 1 - pow(2, -10 * t)
 
 proc easeInBack*(t: float32): float32 {.asCalc.} =
   const c1 = 1.70158
