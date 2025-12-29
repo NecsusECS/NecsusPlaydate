@@ -4,8 +4,9 @@ import
     carousel, circle, crankAlert, crankData, cursor, data_bundle, debounce, debug,
     djikstra, draw, easing, fade, files, findDir, flowfield, fpvec, glow, init, inputs,
     layout, loading, moveTo, multistep, obfuscate, particles, percent, pool, positioned,
-    rand, shake, singleton, sprite, textwrap, time, timer, treeSeq, triggerBox, types,
-    util, vec_tools, viewport, visibleState, choices, intersects, rotations, raycasts,
+    pulse, rand, shake, singleton, sprite, textwrap, time, timer, treeSeq, triggerBox,
+    types, util, vec_tools, viewport, visibleState, choices, intersects, rotations,
+    raycasts,
   ]
 
 export achievements
@@ -47,6 +48,7 @@ export particles
 export percent
 export pool
 export positioned
+export pulse
 export rand
 export raycasts
 export rotations
