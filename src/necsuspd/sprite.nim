@@ -177,7 +177,7 @@ proc newBitmapSprite*(
   return Sprite(
     sprite: sprite,
     anchorOffset: sprite.offsetFix(anchor.toAnchor),
-    absolutePos: absolutePos
+    absolutePos: absolutePos,
   )
 
 proc newAssetSprite*[A](

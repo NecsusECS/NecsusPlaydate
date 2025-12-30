@@ -1,7 +1,9 @@
 import std/unittest, necsuspd/util
 
 type TestEnum = enum
-  A, B, C
+  A
+  B
+  C
 
 suite "Utilities":
   test "Loop unrolling":

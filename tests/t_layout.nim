@@ -3,7 +3,9 @@ import unittest, necsus, necsuspd/[layout, positioned], options, vmath, stubs/gr
 proc `==`(a: (int32, int32), b: (int, int)): bool =
   return a == (b[0].int32, b[1].int32)
 
-template buildLookup(name: untyped, kind: typedesc, entities: var openarray[(Positioned, kind)]) =
+template buildLookup(
+    name: untyped, kind: typedesc, entities: var openarray[(Positioned, kind)]
+) =
   proc name(eid: EntityId): Option[(ptr Positioned, kind)] {.gcsafe, raises: [].} =
     {.cast(gcsafe).}:
       let i = eid.uint.int
@@ -14,8 +16,8 @@ var noSprites = newSeq[(Positioned, Sprite)]()
 var noAnimations = newSeq[(Positioned, Animation)]()
 
 template createLayouter(
-  sprites: var openarray[(Positioned, Sprite)] = noSprites,
-  animations: var openarray[(Positioned, Animation)] = noAnimations,
+    sprites: var openarray[(Positioned, Sprite)] = noSprites,
+    animations: var openarray[(Positioned, Animation)] = noAnimations,
 ): Layouter =
   buildLookup(getSprite, Sprite, sprites)
   buildLookup(getAnim, Animation, animations)
@@ -187,7 +189,7 @@ suite "Layout Elem":
   test "Right aligned entity inside of center columns":
     var entities = [
       (positioned(0, 0), newSprite("img", 10, 20)),
-      (positioned(0, 0), newSprite("img", 30, 40))
+      (positioned(0, 0), newSprite("img", 30, 40)),
     ]
     let layouter = createLayouter(entities)
 

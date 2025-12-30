@@ -134,6 +134,20 @@ proc makePattern*(pattern: varargs[array[8, LCDSolidColor]]): LCDPattern =
       of kColorClear, kColorXor:
         trnsp[i].clearBit(7'u8 - j.uint8)
   return makeLCDPattern(
-    clrs[0], clrs[1], clrs[2], clrs[3], clrs[4], clrs[5], clrs[6], clrs[7],
-    trnsp[0], trnsp[1], trnsp[2], trnsp[3], trnsp[4], trnsp[5], trnsp[6], trnsp[7],
+    clrs[0],
+    clrs[1],
+    clrs[2],
+    clrs[3],
+    clrs[4],
+    clrs[5],
+    clrs[6],
+    clrs[7],
+    trnsp[0],
+    trnsp[1],
+    trnsp[2],
+    trnsp[3],
+    trnsp[4],
+    trnsp[5],
+    trnsp[6],
+    trnsp[7],
   )

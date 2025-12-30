@@ -29,7 +29,7 @@ proc raycast*(
     origin, heading: FPVec2,
     isSolid: proc(x, y: int32): bool,
     maxIterations: static[int32] = 1_000,
-    tileSize: static[FPVec2] = fpvec2(1, 1)
+    tileSize: static[FPVec2] = fpvec2(1, 1),
 ): Option[FPVec2] {.inline.} =
   ## Casts a ray from the origin in the given direction and returns the first intersection
   ## with a solid tile. If the origin is on a solid tile itself, it will cast a ray until the
@@ -58,8 +58,10 @@ proc raycast*(
   var mapY = originGrid.y.toInt().fp
 
   # The distance from the origin to the first intersection with a grid cell
-  var sideDistX: FPInt = calculateSideDist(dir.x / tileSize.x, originGrid.x, mapX, deltaDistX)
-  var sideDistY: FPInt = calculateSideDist(dir.y / tileSize.y, originGrid.y, mapY, deltaDistY)
+  var sideDistX: FPInt =
+    calculateSideDist(dir.x / tileSize.x, originGrid.x, mapX, deltaDistX)
+  var sideDistY: FPInt =
+    calculateSideDist(dir.y / tileSize.y, originGrid.y, mapY, deltaDistY)
 
   var hit = if isSolid(mapX.toInt(), mapY.toInt()): InsideWall else: MissWall
   var side = XAxis

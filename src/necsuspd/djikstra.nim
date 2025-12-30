@@ -19,6 +19,7 @@ type
     ## Holds a precalculated graph of distances to a target node
     nodes: Table[N, DjikstraNode[T, N]]
 
+  #!fmt: off
   DjikstraInput*[T, N] =
     concept i
         ## Holds the input data for the Djikstra algorithm
@@ -29,6 +30,7 @@ type
           type(neighbor) is N
 
         i.cost(N, N) is T
+  #!fmt: on
 
 proc totalCost*[T, N](graph: DjikstraGraph[T, N], node: N): T =
   graph.nodes.getOrDefault(node).totalCost

@@ -14,7 +14,9 @@ type
 
   AnchorPosition* = Anchor | AnchorLock
 
-template resolver(lock: AnchorLock, left, center, right, top, middle, bottom: int32): IVec2 =
+template resolver(
+    lock: AnchorLock, left, center, right, top, middle, bottom: int32
+): IVec2 =
   block:
     var output: IVec2
     case lock

@@ -12,7 +12,8 @@ import
 
 export anchor
 
-const LIVE_COMPILE = defined(simulator) or defined(device) or defined(nimcheck) or defined(nimsuggest)
+const LIVE_COMPILE =
+  defined(simulator) or defined(device) or defined(nimcheck) or defined(nimsuggest)
 
 when LIVE_COMPILE:
   import playdate/api, playdate/util/initreqs, sprite
@@ -336,7 +337,6 @@ proc asAnimationDef[S: enum](
 ): AnimationDef =
   ## Create an animation based on a aseprite tag
   when LIVE_COMPILE:
-
     # Read the frames to ensure they exist
     discard sheet.readFrame(tag.`from`)
     discard sheet.readFrame(tag.to)
@@ -348,10 +348,7 @@ proc asAnimationDef[S: enum](
     return animation(sheetId, frames, sheet.spriteAnchor, sheet.isLooped(tag))
 
 proc animationTable*[A, K: enum](
-    sheet: SpriteSheet,
-    sheetId: enum,
-    ignore: set[A] = {},
-    ignoreKeyframes: set[K] = {},
+    sheet: SpriteSheet, sheetId: enum, ignore: set[A] = {}, ignoreKeyframes: set[K] = {}
 ): array[A, AnimationDef] =
   ## Creates a table of animation data based on a sprite sheet
   when LIVE_COMPILE:

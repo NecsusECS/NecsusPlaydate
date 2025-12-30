@@ -16,7 +16,8 @@ suite "Raycasts":
   ]
   #!fmt: on
 
-  proc mapTile(x, y: int32): bool = map[y][x] == 1
+  proc mapTile(x, y: int32): bool =
+    map[y][x] == 1
 
   test "Intersect with a solid tile horizontally":
     let intersects = raycast(fpvec2(1.5, 1.5), fpvec2(1, 0), mapTile)
@@ -47,10 +48,12 @@ suite "Raycasts":
     # With 2x2 tiles, the map coordinates should be scaled
     # Origin at (3, 3) in world space = tile [1, 1] in map coordinates
     # Casting right should hit the wall at tile [4] which is at x=8.0 in world space
-    let intersects = raycast(fpvec2(3, 3), fpvec2(1, 0), mapTile, tileSize = fpvec2(2, 2))
+    let intersects =
+      raycast(fpvec2(3, 3), fpvec2(1, 0), mapTile, tileSize = fpvec2(2, 2))
     check intersects == fpvec2(8.0, 3.0)
 
   test "Intersect with custom tile size vertically":
     # With 2x2 tiles, casting down from (3, 3) should hit at y=6.0
-    let intersects = raycast(fpvec2(3, 3), fpvec2(0, 1), mapTile, tileSize = fpvec2(2, 2))
+    let intersects =
+      raycast(fpvec2(3, 3), fpvec2(0, 1), mapTile, tileSize = fpvec2(2, 2))
     check intersects == fpvec2(3.0, 6.0)
