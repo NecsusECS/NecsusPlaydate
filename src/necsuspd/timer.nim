@@ -39,6 +39,7 @@ proc lifetimes*(
   for eid, (lifetime) in lifetimes:
     lifetime.ttl -= delta
     if lifetime.ttl <= 0:
+      log "Lifetime expired, deleting ", eid
       delete(eid)
 
 proc runTimers*(
