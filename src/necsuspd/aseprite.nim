@@ -3,8 +3,7 @@
 ##
 
 import
-  std/[macros, json, jsonutils, options, strformat, tables, sets, algorithm],
-  strutils,
+  std/[macros, json, jsonutils, options, strformat, tables, sets, algorithm, strutils],
   vmath,
   triggerBox,
   util,
@@ -253,11 +252,11 @@ proc sliceKeyAsOffset*(sheet: SpriteSheet, key: string): IVec2 =
   let anchor = sheet.anchorOffset
   return sliceKey - anchor
 
-proc isLooped(sheet: SpriteSheet, tag: AseFrameTag): bool =
-  if tag.repeat != "" and tag.repeat != "1":
-    sheet.error(fmt"FrameTag repeat can only be '1' or blank. Found: {tag.repeat}")
-    return
-  return tag.repeat == ""
+proc loop(tag: AseFrameTag): LoopMode =
+  if tag.repeat == "":
+    return InfiniteLoop.init().LoopMode
+  else:
+    return FiniteLoop.init(tag.repeat.parseInt().uint32).LoopMode
 
 proc findKeyframes[K: enum](sheet: SpriteSheet, ignore: set[K]): KeyframeTable[K] =
   ## Searches the layers in a sprite sheet and creates a table of frame # to keyframe trigger
@@ -345,7 +344,7 @@ proc asAnimationDef[S: enum](
     for frameId in (tag.`from` .. tag.to):
       frames.add(createFrameDef(sheet, keyframes, frameId))
 
-    return animation(sheetId, frames, sheet.spriteAnchor, sheet.isLooped(tag))
+    return animation(sheetId, frames, sheet.spriteAnchor, tag.loop())
 
 proc animationTable*[A, K: enum](
     sheet: SpriteSheet, sheetId: enum, ignore: set[A] = {}, ignoreKeyframes: set[K] = {}

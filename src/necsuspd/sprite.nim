@@ -9,8 +9,15 @@ import
   vec_tools,
   anchor,
   types,
-  std/[options, strformat, macros, sequtils]
-export anchor
+  std/[options, strformat, macros, sequtils],
+  fungus
+
+adtEnum(LoopMode):
+  InfiniteLoop
+  FiniteLoop:
+    uint32
+
+export anchor, LoopMode, InfiniteLoop, FiniteLoop
 
 type
   ZIndexValue = SomeInteger or enum ## A value that can be used as a zindex
@@ -42,7 +49,7 @@ type
     sheet: EnumValue
     frames: seq[Frame]
     anchor: Anchor
-    loop: bool
+    loop: LoopMode
 
   AnimationDef* = ref AnimationDefObj ## A specific animation within a sprite sheet
 
@@ -56,6 +63,7 @@ type
     anchorOffset, manualOffset: IVec2
     absolutePos: bool
     paused: bool
+    loops: uint32
 
   Animation* = ref AnimationObj
 
@@ -135,12 +143,24 @@ proc frame*(cellId: int32, time: float32, keyframe: enum): Frame =
     cellId: cellId, time: time, isKeyframe: true, keyframeValue: getEnumValue(keyframe)
   )
 
+proc asLoopMode(loop: LoopMode | bool): LoopMode {.inline.} =
+  when loop is bool:
+    return if loop:
+      InfiniteLoop.init().LoopMode
+    else:
+      FiniteLoop.init(1).LoopMode
+  else:
+    return loop
+
 proc animation*[S: enum](
-    sheet: S, frames: openarray[Frame], anchor: AnchorPosition, loop: bool = true
+    sheet: S,
+    frames: openarray[Frame],
+    anchor: AnchorPosition,
+    loop: LoopMode | bool = InfiniteLoop.init().LoopMode,
 ): AnimationDef =
   assert(frames.len > 0)
   AnimationDef(
-    sheet: sheet.getEnumValue, frames: frames.toSeq, anchor: anchor.toAnchor, loop: loop
+    sheet: sheet.getEnumValue, frames: frames.toSeq, anchor: anchor.toAnchor, loop: loop.asLoopMode()
   )
 
 proc animation*[S: enum](
@@ -148,12 +168,12 @@ proc animation*[S: enum](
     timePerFrame: float32,
     frames: Slice[int32],
     anchor: AnchorPosition,
-    loop: bool = true,
+    loop: LoopMode | bool = InfiniteLoop.init().LoopMode
 ): AnimationDef =
   var frameSeq: seq[Frame]
   for i in frames:
     frameSeq.add(frame(i.int32, timePerFrame))
-  return animation(sheet, frameSeq, anchor, loop)
+  return animation(sheet, frameSeq, anchor, loop.asLoopMode)
 
 proc `$`*(def: AnimationDef | AnimationDefObj): string =
   fmt"AnimationDef({def.sheet}, frames={def.frames}, {def.anchor}, loop={def.loop})"
@@ -246,6 +266,7 @@ proc softChange*(animation: ptr Animation | Animation, def: AnimationDef) =
   animation.def = def
   animation.frame = animation.frame.clamp(0'i32, def.frames.len.int32 - 1)
   animation.anchorOffset = animation.sprite.offsetFix(def.anchor.toAnchor)
+  animation.loops = 0
 
 proc change*(animation: ptr Animation | Animation, def: AnimationDef) =
   ## Changes the animation currently runnig for a sprite
@@ -254,6 +275,7 @@ proc change*(animation: ptr Animation | Animation, def: AnimationDef) =
   animation.frame = 0
   animation.nextFrameTime = 0
   animation.anchorOffset = animation.sprite.offsetFix(def.anchor.toAnchor)
+  animation.loops = 0
 
 proc `paused=`*(animation: ptr Animation, pause: bool) =
   ## Pauses this animation
@@ -327,6 +349,13 @@ proc moveSprites*(
   move(sprites, vp)
   move(animated, vp)
 
+proc shouldLoop(anim: Animation): bool {.inline.} =
+  match anim.def.loop:
+  of InfiniteLoop:
+    return true
+  of FiniteLoop as count:
+    return anim.loops + 1 < count
+
 proc advanceSprites*(
     time: GameTime,
     elements: FullQuery[(Animation, Option[Unpausable])],
@@ -341,8 +370,9 @@ proc advanceSprites*(
         if anim.nextFrameTime == 0:
           anim.nextFrameTime = now
         elif anim.frame == (anim.def.frames.len - 1):
-          if anim.def.loop:
+          if anim.shouldLoop():
             anim.frame = 0
+            anim.loops += 1
         else:
           anim.frame += 1
 
