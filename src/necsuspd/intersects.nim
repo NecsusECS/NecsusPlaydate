@@ -82,6 +82,12 @@ proc intersection*(segment: Segment, circle: Circle): Option[FPVec2] =
       if t2 >= fp(0) and t2 <= fp(1):
         t2
       else:
+        # Check if either endpoint is within the circle
+        let radiusSq = circle.radius * circle.radius
+        if dot(segment.a - circle.center, segment.a - circle.center) < radiusSq:
+          return some(segment.a)
+        elif dot(segment.b - circle.center, segment.b - circle.center) < radiusSq:
+          return some(segment.b)
         return none(FPVec2)
 
   return some(segment.a + delta * t)

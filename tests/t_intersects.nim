@@ -61,8 +61,8 @@ suite "intersects(segment, circle)":
     check(
       intersection(
         segment(fpvec2(0.5, 0.0), fpvec2(0.8, 0.0)), circle(fpvec2(1, 0), fp(1))
-      ) == none(FPVec2)
-    ) # No intersection with boundary
+      ).isSome
+    )
 
   test "segment is a point on the circle's edge":
     check(
