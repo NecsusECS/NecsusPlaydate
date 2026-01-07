@@ -1,4 +1,4 @@
-import macros, strutils, sequtils, necsuspd/anchor
+import std/[math, macros, strutils, sequtils], necsuspd/anchor
 
 type
   AnimationDef* = distinct int
@@ -130,7 +130,7 @@ proc getBitmapMask*(image: LCDBitmap): LCDBitmap =
 proc setBitmapMask*(
     this: LCDBitmap,
     mask: LCDBitmap = pdGraphics.newBitmap(this.width, this.height, kColorWhite),
-): int =
+): int {.discardable.} =
   this.mask = mask
   return 0
 
@@ -204,7 +204,7 @@ proc setPixel*(this: var ImageData, x, y: int, color: Color) =
     if y >= 0 and y < this.height:
       this.pixels[y][x] = color.asBool
 
-proc clear*(this: var Image, color: Color) =
+proc clear*(this: Image, color: Color) =
   for y in 0 ..< this.height:
     for x in 0 ..< this.width:
       this.data.pixels[y][x] = color.asBool
@@ -280,3 +280,29 @@ proc newSheet*(
     absolutePos: bool = false,
 ): Animation =
   return newAnimation("custom", frames[0].width, frames[0].height, def)
+
+proc drawLine*(g: PlaydateGraphics, x1, y1, x2, y2, w: int, c: LCDSolidColor) =
+  let img = g.context[^1]
+  let r = w div 2
+  let dx = abs(x2 - x1)
+  let dy = abs(y2 - y1)
+  let sx = if x1 < x2: 1 else: -1
+  let sy = if y1 < y2: 1 else: -1
+
+  proc go(x, y, err: int) =
+    for ox in -r .. r:
+      for oy in -r .. r:
+        let px = x + ox
+        let py = y + oy
+        if px in 0..<img.width and py in 0..<img.height:
+          img.data.pixels[py][px] = c.asBool
+
+    if x != x2 or y != y2:
+      let e2 = err * 2
+      go(
+        x + (if e2 > -dy: sx else: 0),
+        y + (if e2 < dx: sy else: 0),
+        err - (if e2 > -dy: dy else: 0) + (if e2 < dx: dx else: 0),
+      )
+
+  go(x1, y1, dx - dy)

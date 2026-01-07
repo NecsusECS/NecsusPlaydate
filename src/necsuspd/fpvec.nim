@@ -110,3 +110,7 @@ proc rayPointsAtCircle*(origin, direction, center: GVec2, radius: auto): bool =
   else:
     let dist2 = dot(f, f) - (dot(f, direction) * dot(f, direction)) / dirLen2
     return dist2 <= radius * radius
+
+proc perpendicular*[T](vec: GVec2[T]): GVec2[T] =
+  ## Returns a vector perpendicular to the given vector
+  return gvec2[T](-vec.y, vec.x)
