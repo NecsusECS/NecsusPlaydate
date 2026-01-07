@@ -22,19 +22,19 @@ suite "Particle System":
     var image = newSprite("img", 5, 5).getImage
 
     field(image)
-    check($image == ".XXXX;XXXXX;XXXXX;XXXXX;XXXXX;")
+    check(image == [".XXXX", "XXXXX", "XXXXX", "XXXXX", "XXXXX"])
 
     field(image)
-    check($image == "XXXXX;X.XXX;XXXXX;XXXXX;XXXXX;")
+    check(image == ["XXXXX", "X.XXX", "XXXXX", "XXXXX", "XXXXX"])
 
     field(image)
-    check($image == ".XXXX;XXXXX;XX.XX;XXXXX;XXXXX;")
+    check(image == [".XXXX", "XXXXX", "XX.XX", "XXXXX", "XXXXX"])
 
     field(image)
-    check($image == "XXXXX;X.XXX;XXXXX;XXXXX;XXXXX;")
+    check(image == ["XXXXX", "X.XXX", "XXXXX", "XXXXX", "XXXXX"])
 
     field(image)
-    check($image == ".XXXX;XXXXX;XX.XX;XXXXX;XXXXX;")
+    check(image == [".XXXX", "XXXXX", "XX.XX", "XXXXX", "XXXXX"])
 
   test "A particle spawner with a lifespan":
     let field = newParticleField(
@@ -46,13 +46,13 @@ suite "Particle System":
     var image = newSprite("img", 5, 5).getImage
 
     field(image)
-    check($image == ".XXXX;XXXXX;XXXXX;XXXXX;XXXXX;")
+    check(image == [".XXXX", "XXXXX", "XXXXX", "XXXXX", "XXXXX"])
 
     field(image)
-    check($image == "XXXXX;X.XXX;XXXXX;XXXXX;XXXXX;")
+    check(image == ["XXXXX", "X.XXX", "XXXXX", "XXXXX", "XXXXX"])
 
     field(image)
-    check($image == "XXXXX;XXXXX;XX.XX;XXXXX;XXXXX;")
+    check(image == ["XXXXX", "XXXXX", "XX.XX", "XXXXX", "XXXXX"])
 
   test "Particles outside the field dimensions":
     proc emitter(ttl: int32, spawnData: Vec2, fieldData: int32): auto =
@@ -72,7 +72,7 @@ suite "Particle System":
     var image = newSprite("img", 5, 5).getImage
 
     field(image)
-    check($image == "XXXXX;XXXXX;XXXXX;XXXXX;XXXXX;")
+    check(image == ["XXXXX", "XXXXX", "XXXXX", "XXXXX", "XXXXX"])
 
   test "A particle spawner based on an input angle":
     let field = newParticleField(
@@ -96,13 +96,13 @@ suite "Particle System":
     var image = newSprite("img", 5, 5).getImage
 
     field(image)
-    check($image == "XXXXX;XXXXX;XXXXX;XXXXX;XXX.X;")
+    check(image == ["XXXXX", "XXXXX", "XXXXX", "XXXXX", "XXX.X"])
 
     field(image)
-    check($image == "XXXXX;XXXXX;XXXXX;XXX.X;XXXXX;")
+    check(image == ["XXXXX", "XXXXX", "XXXXX", "XXX.X", "XXXXX"])
 
     field(image)
-    check($image == "XXXXX;XXXXX;XXX.X;XXXXX;XXX.X;")
+    check(image == ["XXXXX", "XXXXX", "XXX.X", "XXXXX", "XXX.X"])
 
   test "A delayed particle spawner":
     let field = newParticleField(
@@ -119,22 +119,22 @@ suite "Particle System":
     var image = newSprite("img", 5, 5).getImage
 
     field(image)
-    check($image == "XXXXX;XXXXX;XXXXX;XXXXX;XXXXX;")
+    check(image == ["XXXXX", "XXXXX", "XXXXX", "XXXXX", "XXXXX"])
 
     field(image)
-    check($image == "XXXXX;XXXXX;XXXXX;XXXXX;XXXXX;")
+    check(image == ["XXXXX", "XXXXX", "XXXXX", "XXXXX", "XXXXX"])
 
     field(image)
-    check($image == ".XXXX;XXXXX;XXXXX;XXXXX;XXXXX;")
+    check(image == [".XXXX", "XXXXX", "XXXXX", "XXXXX", "XXXXX"])
 
     field(image)
-    check($image == ".XXXX;X.XXX;XXXXX;XXXXX;XXXXX;")
+    check(image == [".XXXX", "X.XXX", "XXXXX", "XXXXX", "XXXXX"])
 
     field(image)
-    check($image == ".XXXX;X.XXX;XX.XX;XXXXX;XXXXX;")
+    check(image == [".XXXX", "X.XXX", "XX.XX", "XXXXX", "XXXXX"])
 
     field(image)
-    check($image == "XXXXX;X.XXX;XX.XX;XXXXX;XXXXX;")
+    check(image == ["XXXXX", "X.XXX", "XX.XX", "XXXXX", "XXXXX"])
 
   test "A spawner with a TTL":
     let field = newParticleField(
@@ -152,19 +152,19 @@ suite "Particle System":
     var image = newSprite("img", 5, 5).getImage
 
     field(image)
-    check($image == "XXXXX;XXXXX;XXXXX;XXXXX;XXXXX;")
+    check(image == ["XXXXX", "XXXXX", "XXXXX", "XXXXX", "XXXXX"])
 
     field(image)
-    check($image == "XXXXX;XXXXX;XXXXX;XXXXX;.XXXX;")
+    check(image == ["XXXXX", "XXXXX", "XXXXX", "XXXXX", ".XXXX"])
 
     field(image)
-    check($image == "XXXXX;XXXXX;XXXXX;.XXXX;X.XXX;")
+    check(image == ["XXXXX", "XXXXX", "XXXXX", ".XXXX", "X.XXX"])
 
     field(image)
-    check($image == "XXXXX;XXXXX;.XXXX;X.XXX;XX.XX;")
+    check(image == ["XXXXX", "XXXXX", ".XXXX", "X.XXX", "XX.XX"])
 
     field(image)
-    check($image == "XXXXX;XXXXX;X.XXX;XX.XX;XXXXX;")
+    check(image == ["XXXXX", "XXXXX", "X.XXX", "XX.XX", "XXXXX"])
 
   test "SpawnData and FieldData":
     type XCoord = distinct float32
@@ -184,11 +184,11 @@ suite "Particle System":
       var image = newSprite("img", 5, 5).getImage
 
       field(image)
-      check($image == "XXXXX;X...X;XXXXX;XXXXX;XXXXX;")
+      check(image == ["XXXXX", "X...X", "XXXXX", "XXXXX", "XXXXX"])
 
     block:
       let field = newParticleField(XCoord, YCoord, fieldData = YCoord(0.0), spawners)
       var image = newSprite("img", 5, 5).getImage
 
       field(image)
-      check($image == "X...X;XXXXX;XXXXX;XXXXX;XXXXX;")
+      check(image == ["X...X", "XXXXX", "XXXXX", "XXXXX", "XXXXX"])

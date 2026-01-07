@@ -235,7 +235,7 @@ proc `==`*(this: LCDBitmap, versus: openarray[string]): bool =
 
 proc `$`*(img: LCDBitmap): string =
   for row in img.rows:
-    result &= row & ";"
+    result &= row & "\n"
 
 proc width*(this: Sprite): auto =
   this.img.width
