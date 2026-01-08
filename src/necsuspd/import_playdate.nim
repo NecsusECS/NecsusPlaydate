@@ -5,4 +5,4 @@ template importPlaydateApi*() =
   when LIVE_COMPILE:
     import playdate/api, playdate/util/initreqs
   else:
-    import ../../tests/stubs/playdate_api
+    import stubs/playdate_api

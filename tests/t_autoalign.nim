@@ -3,7 +3,7 @@ import
   necsus,
   necsuspd/[autoalign, positioned, alignment, sprite],
   helpers,
-  stubs/sprites,
+  necsuspd/stubs/sprites,
   vmath
 
 type MyEntity = object

@@ -1,4 +1,4 @@
-import std/unittest, necsuspd/glow, stubs/graphics
+import std/unittest, necsuspd/glow, necsuspd/stubs/graphics
 
 suite "Dithered glow generation":
   test "Generate a glow image":

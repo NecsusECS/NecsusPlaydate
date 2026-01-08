@@ -1,4 +1,4 @@
-import necsuspd/achievements, std/[unittest, options, json], stubs/playdate_api
+import necsuspd/achievements, std/[unittest, options, json], necsuspd/stubs/playdate_api
 
 const sample_data =
   """

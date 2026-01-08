@@ -1,4 +1,4 @@
-import stubs/[sprites, graphics], necsuspd/sprite
+import necsuspd/stubs/[sprites, graphics], necsuspd/sprite
 
 type
   TestZIndex* = enum

@@ -1,4 +1,4 @@
-import std/unittest, necsuspd/pulse, stubs/graphics
+import std/unittest, necsuspd/pulse, necsuspd/stubs/graphics
 
 suite "Pulse generation":
   test "Creating a pulse":

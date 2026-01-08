@@ -1,4 +1,4 @@
-import std/unittest, necsuspd/lightning, stubs/graphics, vmath
+import std/unittest, necsuspd/lightning, necsuspd/stubs/graphics, vmath
 
 suite "Drawing lightning":
   test "draws a lightning bolt":

@@ -1,4 +1,4 @@
-import unittest, necsuspd/boxelem, stubs/graphics, helpers
+import unittest, necsuspd/boxelem, necsuspd/stubs/graphics, helpers
 
 proc `==`*(a: BoxDimens, b: (int, int)): bool =
   return a == (b[0].int32, b[1].int32)
