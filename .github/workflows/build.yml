@@ -22,4 +22,5 @@ jobs:
       - run: nimble install --depsOnly --accept
       - run: nimble setup
       - run: nim check -d:simulator src/necsuspd.nim
+      - run: nim check src/necsuspd.nim
       - run: nimble test

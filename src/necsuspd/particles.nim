@@ -130,7 +130,7 @@ proc restorePooledValue*(data: ParticleData) =
 
 proc setPixel(field: var BitmapDataObj, particle: var Particle) =
   const color: LCDSolidColor = LCDSolidColor.kColorWhite
-  field.setPixel(particle.location.x.toInt(), particle.location.y.toInt(), color)
+  field.set(particle.location.x.toInt(), particle.location.y.toInt(), color)
 
 proc runParticles(particles: var seq[Particle], field: var BitmapDataObj) =
   forEachDeleting(particles, i):

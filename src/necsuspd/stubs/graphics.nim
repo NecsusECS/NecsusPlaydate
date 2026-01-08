@@ -184,9 +184,6 @@ proc set*(this: BitmapDataObj, x, y: SomeInteger, color: LCDSolidColor) =
     if y >= 0 and y.int32 < this.height:
       this.pixels[y.int32][x.int32] = color.asBool
 
-proc setPixel*(this: var BitmapDataObj, x, y: SomeInteger, color: LCDSolidColor) =
-  set(this, x, y, color)
-
 proc clear*(this: Image, color: Color) =
   for y in 0 ..< this.height:
     for x in 0 ..< this.width:
@@ -220,20 +217,8 @@ proc `$`*(img: LCDBitmap): string =
   for row in img.rows:
     result &= row & "\n"
 
-# proc width*(this: Animation): auto =
-#   this.img.width
-#
-# proc height*(this: Animation): auto =
-#   this.img.height
-#
-# proc change*(animation: ptr Animation | Animation, def: AnimationDef) =
-#   animation.def = def
-
-# proc `$`*(def: AnimationDef): string =
-#   "AnimationDef(#" & $int(def) & ")"
-
 proc set*(this: LCDBitmap, x, y: int, color: LCDSolidColor) =
-  this.data.setPixel(x, y, color)
+  this.data.set(x, y, color)
 
 proc drawLine*(g: PlaydateGraphics, x1, y1, x2, y2, w: int, c: LCDSolidColor) =
   let img = g.context[^1]
