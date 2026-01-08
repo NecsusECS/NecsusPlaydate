@@ -1,5 +1,6 @@
-import playdate/api, vmath
-import util, debug
+import import_playdate, vmath, util, debug
+
+importPlaydateApi()
 
 proc getTime*(): float {.gcsafe.} =
   {.cast(gcsafe).}:

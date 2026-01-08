@@ -1,10 +1,7 @@
-import sequtils, textwrap, alignment
+import sequtils, textwrap, alignment, import_playdate, sprite
 export alignment
 
-when defined(simulator) or defined(device):
-  import playdate/api
-else:
-  import ../../tests/stubs/playdate_api
+importPlaydateApi()
 
 type
   BoxKind = enum

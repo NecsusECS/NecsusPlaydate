@@ -1,9 +1,6 @@
-import vmath, std/random, fpvec
+import import_playdate, vmath, std/random, fpvec
 
-when defined(unittests):
-  import ../../tests/stubs/playdate_api
-else:
-  import playdate/api
+importPlaydateApi()
 
 type LightningConf = object ## Configuration for generating lightning
   a, b: IVec2

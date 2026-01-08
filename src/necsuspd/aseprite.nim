@@ -7,20 +7,16 @@ import
   vmath,
   triggerBox,
   util,
-  anchor
+  anchor,
+  import_playdate,
+  sprite
 
 export anchor
 
-const LIVE_COMPILE =
-  defined(simulator) or defined(device) or defined(nimcheck) or defined(nimsuggest)
+importPlaydateApi()
 
 when LIVE_COMPILE:
-  import playdate/api, playdate/util/initreqs, sprite
-else:
-  import ../../tests/stubs/graphics
-
-  proc pdlog(error: string) =
-    discard
+  import playdate/util/initreqs
 
 type
   AseFrame* = object
@@ -122,7 +118,7 @@ proc findTag*(sheet: SpriteSheet, name: string): Option[AseFrameTag] =
 
 proc error(sheet: SpriteSheet, message: string) =
   let fullError = fmt"{message} for {sheet.meta.image}"
-  pdlog(fullError)
+  log(fullError)
   raise newException(AssertionDefect, fullError)
 
 proc eventFrames*(sheet: SpriteSheet, event: string): seq[int32] =

@@ -1,9 +1,4 @@
-import necsus, positioned, inputs, util, fpvec, std/options, vmath, fungus, findDir
-
-when defined(unittests):
-  import ../../tests/stubs/graphics
-else:
-  import sprite
+import necsus, positioned, inputs, util, fpvec, std/options, vmath, fungus, findDir, sprite
 
 adtEnum(Selected):
   NoSelection

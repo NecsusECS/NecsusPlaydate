@@ -1,12 +1,13 @@
-import std/[tables, sequtils], graphics
+import std/[tables, sequtils], graphics, sprites
 
-export graphics
+export graphics, sprites
 
 type
   PlaydateApi* = object
     file*: PlaydateFiles
     system*: PlaydateSystem
     graphics*: PlaydateGraphics
+    sprite*: PlaydateSprites
 
   PlaydateFiles* = object
 
@@ -20,6 +21,20 @@ type
     kFileReadData
     kFileWrite
     kFileAppend
+
+  PDButton* = enum
+    kButtonLeft = 1
+    kButtonRight
+    kButtonUp
+    kButtonDown
+    kButtonB
+    kButtonA
+
+  PDButtons* = set[PDButton]
+
+const
+  LCD_COLUMNS* = 400
+  LCD_ROWS* = 240
 
 let playdate* = PlaydateApi(graphics: pdGraphics)
 
@@ -65,3 +80,6 @@ proc getSecondsSinceEpoch*(
     _: PlaydateSystem
 ): tuple[seconds: uint, milliseconds: uint] =
   return (12345, 78910)
+
+proc drawFPS*(_: PlaydateSystem, x, y: int) =
+  discard

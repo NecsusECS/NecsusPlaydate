@@ -1,9 +1,6 @@
-import std/strutils
+import std/strutils, import_playdate
 
-when defined(simulator) or defined(device):
-  import playdate/api
-else:
-  import ../../tests/stubs/playdate_api
+importPlaydateApi()
 
 proc mkdirs*(path: string) =
   ## Creates all directories in a path

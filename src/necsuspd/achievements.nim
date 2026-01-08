@@ -3,12 +3,10 @@ import
   std/[options, json, strutils, macros, setutils],
   fungus,
   util,
-  files
+  files,
+  import_playdate
 
-when defined(simulator) or defined(device):
-  import playdate/api
-else:
-  import ../../tests/stubs/playdate_api
+importPlaydateApi()
 
 importJsonSchema(
   "achievements.schema.json",

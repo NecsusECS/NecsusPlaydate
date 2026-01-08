@@ -1,7 +1,6 @@
-import random/mersenne
+import random/mersenne, import_playdate
 
-when not defined(unittests):
-  import playdate/api
+importPlaydateApi()
 
 var state: MersenneTwister = initMersenneTwister(123456)
 

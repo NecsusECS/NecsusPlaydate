@@ -1,8 +1,6 @@
-import std/[math, macros, strutils, sequtils], necsuspd/anchor
+import std/[math, macros, strutils, sequtils]
 
 type
-  AnimationDef* = distinct int
-
   LCDFont* = ref object
     name: string
     height: int
@@ -10,23 +8,14 @@ type
 
   Font* = LCDFont
 
-  Sprite* = ref object
-    img: Image
-    hidden: bool
-
-  Animation* = ref object
-    img: Image
-    def*: AnimationDef
-    hidden: bool
-
   LCDBitmap* = ref object
     name: string
-    data: ImageData
+    data: BitmapDataObj
     mask: LCDBitmap
 
   Image* = LCDBitmap
 
-  ImageData* = ref object
+  BitmapDataObj* = ref object
     pixels: seq[seq[bool]]
     width*: int
     height*: int
@@ -43,6 +32,8 @@ type
     kColorWhite
 
   Color* = LCDSolidColor
+
+  LCDColor* = LCDSolidColor
 
   PlaydateGraphics* = ref object
     context: seq[Image]
@@ -63,6 +54,8 @@ type
     kDrawModeXOR
     kDrawModeNXOR
     kDrawModeInverted
+
+  LCDBitmapTable* = ref object
 
 let pdGraphics* = PlaydateGraphics()
 
@@ -93,8 +86,6 @@ macro record(action: string, elements: varargs[typed]) =
       )
     )
 
-proc `==`*(a, b: AnimationDef): bool {.borrow.}
-
 proc asBool(color: Color): bool =
   case color
   of kColorWhite:
@@ -102,8 +93,8 @@ proc asBool(color: Color): bool =
   of kColorBlack:
     return true
 
-proc newBitmapData(width, height: int, color: LCDSolidColor): ImageData =
-  result = ImageData(width: width, height: height, pixels: newSeq[seq[bool]](height))
+proc newBitmapData(width, height: int, color: LCDSolidColor): BitmapDataObj =
+  result = BitmapDataObj(width: width, height: height, pixels: newSeq[seq[bool]](height))
   for y in 0 ..< height:
     result.pixels[y] = newSeq[bool](width)
     for value in result.pixels[y].mitems:
@@ -123,6 +114,9 @@ proc width*(this: LCDBitmap): auto =
 proc height*(this: LCDBitmap): auto =
   this.data.height
 
+proc getSize*(this: LCDBitmap): auto =
+  (width: this.width, height: this.height)
+
 proc getBitmapMask*(image: LCDBitmap): LCDBitmap =
   assert(image.mask != nil)
   image.mask
@@ -133,17 +127,6 @@ proc setBitmapMask*(
 ): int {.discardable.} =
   this.mask = mask
   return 0
-
-proc newSprite*(name: string, width, height: int): Sprite =
-  Sprite(img: newImage(name, width, height, kColorBlack))
-
-proc newAnimationDef*(id: int = 0): AnimationDef =
-  id.AnimationDef
-
-proc newAnimation*(
-    name: string, width, height: int, def: AnimationDef = newAnimationDef()
-): Animation =
-  Animation(img: newImage(name, width, height, kColorBlack), def: def)
 
 proc newFont*(name: string, height: int = 14, charWidth = 8): Font =
   Font(name: name, height: height, charWidth: charWidth)
@@ -168,9 +151,6 @@ proc pushContext*(graphics: PlaydateGraphics, img: Image) =
 
 proc popContext*(graphics: PlaydateGraphics) =
   graphics.context.setLen(graphics.context.len - 1)
-
-proc getImage*(sprite: Sprite): LCDBitmap =
-  sprite.img
 
 proc setFont*(graphics: PlaydateGraphics, font: Font) =
   record("setFont", font.name)
@@ -199,17 +179,20 @@ proc setMany*[W: static int](this: var Image, pixels: openarray[array[W, Color]]
   let img = this.name
   record("setMany", img, asStr)
 
-proc setPixel*(this: var ImageData, x, y: int, color: Color) =
-  if x >= 0 and x < this.width:
-    if y >= 0 and y < this.height:
-      this.pixels[y][x] = color.asBool
+proc set*(this: BitmapDataObj, x, y: SomeInteger, color: LCDSolidColor) =
+  if x >= 0 and x.int32 < this.width:
+    if y >= 0 and y.int32 < this.height:
+      this.pixels[y.int32][x.int32] = color.asBool
+
+proc setPixel*(this: var BitmapDataObj, x, y: SomeInteger, color: LCDSolidColor) =
+  set(this, x, y, color)
 
 proc clear*(this: Image, color: Color) =
   for y in 0 ..< this.height:
     for x in 0 ..< this.width:
       this.data.pixels[y][x] = color.asBool
 
-proc getDataObj*(this: Image): ImageData =
+proc getDataObj*(this: LCDBitmap): BitmapDataObj =
   this.data
 
 iterator rows*(this: LCDBitmap): string =
@@ -237,49 +220,20 @@ proc `$`*(img: LCDBitmap): string =
   for row in img.rows:
     result &= row & "\n"
 
-proc width*(this: Sprite): auto =
-  this.img.width
+# proc width*(this: Animation): auto =
+#   this.img.width
+#
+# proc height*(this: Animation): auto =
+#   this.img.height
+#
+# proc change*(animation: ptr Animation | Animation, def: AnimationDef) =
+#   animation.def = def
 
-proc height*(this: Sprite): auto =
-  this.img.height
-
-proc width*(this: Animation): auto =
-  this.img.width
-
-proc height*(this: Animation): auto =
-  this.img.height
-
-proc change*(animation: ptr Animation | Animation, def: AnimationDef) =
-  animation.def = def
-
-proc `$`*(def: AnimationDef): string =
-  "AnimationDef(#" & $int(def) & ")"
-
-proc visible*(value: Sprite | Animation): bool =
-  not value.hidden
-
-proc `visible=`*(value: Sprite | Animation, flag: bool) =
-  value.hidden = not flag
+# proc `$`*(def: AnimationDef): string =
+#   "AnimationDef(#" & $int(def) & ")"
 
 proc set*(this: LCDBitmap, x, y: int, color: LCDSolidColor) =
   this.data.setPixel(x, y, color)
-
-proc animation*[S: enum](
-    sheet: S,
-    timePerFrame: float32,
-    frames: Slice[int32],
-    anchor: AnchorPosition,
-    loop: bool = true,
-): AnimationDef =
-  newAnimationDef()
-
-proc newSheet*(
-    frames: seq[LCDBitmap],
-    def: AnimationDef,
-    zIndex: SomeInteger or enum,
-    absolutePos: bool = false,
-): Animation =
-  return newAnimation("custom", frames[0].width, frames[0].height, def)
 
 proc drawLine*(g: PlaydateGraphics, x1, y1, x2, y2, w: int, c: LCDSolidColor) =
   let img = g.context[^1]
@@ -294,7 +248,7 @@ proc drawLine*(g: PlaydateGraphics, x1, y1, x2, y2, w: int, c: LCDSolidColor) =
       for oy in -r .. r:
         let px = x + ox
         let py = y + oy
-        if px in 0..<img.width and py in 0..<img.height:
+        if px in 0 ..< img.width and py in 0 ..< img.height:
           img.data.pixels[py][px] = c.asBool
 
     if x != x2 or y != y2:

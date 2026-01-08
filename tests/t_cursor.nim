@@ -1,8 +1,9 @@
 import
   std/[unittest, options],
   necsus,
-  necsuspd/[cursor, positioned, fpvec],
+  necsuspd/[cursor, positioned, fpvec, sprite],
   vmath,
+  helpers,
   stubs/graphics
 
 proc createStdCursorElems(create: auto): auto =

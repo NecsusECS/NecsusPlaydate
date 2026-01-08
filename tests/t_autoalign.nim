@@ -1,8 +1,9 @@
 import
   std/[unittest, options],
   necsus,
-  necsuspd/[autoalign, positioned, alignment],
-  stubs/graphics,
+  necsuspd/[autoalign, positioned, alignment, sprite],
+  helpers,
+  stubs/sprites,
   vmath
 
 type MyEntity = object

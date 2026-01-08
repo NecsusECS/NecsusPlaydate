@@ -1,9 +1,6 @@
-import vmath, perlin, fpvec, fixedpoint, dither, easing
+import vmath, perlin, fpvec, fixedpoint, dither, easing, import_playdate
 
-when defined(simulator) or defined(device) or defined(nimsuggest) or defined(nimcheck):
-  import playdate/api
-else:
-  import ../../tests/stubs/playdate_api
+importPlaydateApi()
 
 type
   GlowConfig* {.requiresInit.} = object

@@ -1,16 +1,6 @@
-import necsus, std/[macros, strutils, strformat, deques]
+import necsus, std/[macros, strutils, strformat, deques], import_playdate, util
 
-when defined(simulator) or defined(playdate):
-  import playdate/api
-
-  template log(message: string) =
-    when defined(poolLogging):
-      logToConsole(playdate.system, message)
-
-else:
-  template log(message: string) =
-    when defined(poolLogging):
-      echo message
+importPlaydateApi()
 
 type
   ObjReset*[T: ref] = proc(obj: T) {.nimcall.}

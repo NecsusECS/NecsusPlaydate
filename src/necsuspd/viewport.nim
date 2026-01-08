@@ -1,4 +1,6 @@
-import playdate/api, vmath, necsus, macros
+import import_playdate, vmath, necsus, macros
+
+importPlaydateApi()
 
 type
   ViewPort* = IVec2 ## The upper left corner of the viewport

@@ -1,18 +1,6 @@
-import necsus, util, std/[macros, tables]
+import import_playdate, necsus, util, std/[macros, tables], inputs
 
-when not defined(unittests):
-  import playdate/api, inputs
-else:
-  type
-    PDButton* = enum
-      kButtonA
-      kButtonB
-      kButtonUp
-      kButtonDown
-      kButtonLeft
-      kButtonRight
-
-    ButtonPushed* = PDButton
+importPlaydateApi()
 
 type
   MultiStepState[T] = object

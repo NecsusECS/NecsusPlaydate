@@ -1,5 +1,5 @@
 import
-  playdate/api,
+  import_playdate,
   positioned,
   necsus,
   vmath,
@@ -11,6 +11,8 @@ import
   types,
   std/[options, strformat, macros, sequtils],
   fungus
+
+importPlaydateApi()
 
 adtEnum(LoopMode):
   InfiniteLoop
@@ -425,7 +427,8 @@ proc `zIndex=`*(sprite: Sprite | Animation, index: auto) {.inline.} =
 proc setImage*(sprite: Sprite, img: LCDBitmap) {.inline.} =
   sprite.sprite.setImage(img, kBitmapUnflipped)
 
-var debugCallbacks: seq[proc(debug: LCDBitmap)]
+when defined(simulator):
+  var debugCallbacks: seq[proc(debug: LCDBitmap)]
 
 proc debugDraw*(callback: proc(debug: LCDBitmap)) {.inline.} =
   ## Registers a callback to be called when the debug bitmap is available.

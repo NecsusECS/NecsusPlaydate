@@ -1,10 +1,8 @@
-import vmath, perlin, circle, util, percent, fpvec, fixedpoint
-export fixedpoint.`<=`, fixedpoint.`$`, fixedpoint.`<`
+import vmath, perlin, circle, util, percent, fpvec, fixedpoint, import_playdate
 
-when defined(simulator) or defined(device):
-  import playdate/api
-else:
-  import ../../tests/stubs/playdate_api
+importPlaydateApi()
+
+export fixedpoint.`<=`, fixedpoint.`$`, fixedpoint.`<`
 
 type PulseConfig*[S: static int] = object
   size, steps, thickness: int32

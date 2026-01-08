@@ -1,4 +1,6 @@
-import playdate/api, std/[importutils, bitops], sprite
+import std/[importutils, bitops], sprite, import_playdate
+
+importPlaydateApi()
 
 template eachBitInRow(
     bitmap: var BitmapData | BitmapDataObj, rowWords: int32, exec: untyped

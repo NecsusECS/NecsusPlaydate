@@ -1,4 +1,6 @@
-import playdate/api, dither, math, sprite
+import import_playdate, dither, math, sprite
+
+importPlaydateApi()
 
 type
   PrecalculatedFade* = ref object

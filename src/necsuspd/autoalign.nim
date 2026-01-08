@@ -1,9 +1,6 @@
-import necsus, positioned, util, vmath, alignment, std/options
+import necsus, positioned, util, vmath, alignment, std/options, import_playdate, sprite
 
-when defined(unittests):
-  import ../../tests/stubs/graphics
-else:
-  import sprite
+importPlaydateApi()
 
 export alignment
 

@@ -1,19 +1,8 @@
-import vmath, necsus
+import vmath, necsus, import_playdate
 
-when not defined(unittests):
-  import playdate/api
-  export PDButton, PDButtons
-else:
-  type
-    PDButton* = enum
-      kButtonLeft = 1
-      kButtonRight
-      kButtonUp
-      kButtonDown
-      kButtonB
-      kButtonA
+importPlaydateApi()
 
-    PDButtons* = set[PDButton]
+export PDButton, PDButtons
 
 type
   ButtonsHeld* = PDButtons ## Tracks buttons that are currently pushed

@@ -1,9 +1,9 @@
-import unittest, necsuspd/particles, stubs/graphics, vmath
+import unittest, necsuspd/[particles, sprite], stubs/graphics, vmath, helpers
 
 proc chooseRandom(values: Slice[uint32]): uint32 =
   values.a
 
-defineParticles(ParticleData, ParticleField, Color, Image, ImageData, chooseRandom)
+nextRandom = chooseRandom
 
 suite "Particle System":
   proc emitter(ttl, spawnData, fieldData: int32): auto =

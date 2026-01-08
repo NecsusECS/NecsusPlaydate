@@ -1,4 +1,16 @@
-import vmath, sequtils, std/importutils, util, vec_tools, rand, fpvec
+import
+  import_playdate,
+  vmath,
+  sequtils,
+  std/importutils,
+  util,
+  vec_tools,
+  rand,
+  fpvec,
+  sprite,
+  necsus
+
+importPlaydateApi()
 
 type
   Particle* = object ## An individual particle being rendered
@@ -18,6 +30,11 @@ type
     emitter: ParticleProc[S, F]
 
   GetRandom = proc(values: Slice[uint32]): uint32
+
+proc defaultRandom(values: Slice[uint32]): uint32 =
+  random().rand(values)
+
+var nextRandom*: GetRandom = defaultRandom
 
 proc maxParticleCount(spawners: openarray[ParticleSpawner]): int32 =
   for spawner in spawners:
@@ -90,110 +107,92 @@ template forEachDeleting(list: typed, i, code: untyped): untyped =
     else:
       list[i] = list.pop()
 
-template defineParticles*(
-    ParticleData, ParticleField: untyped,
-    LCDSolidColor, LCDBitmap, BitmapDataObj: typedesc,
-    nextRandom: GetRandom,
+type
+  ParticleDataObj[S; F] = object ## Pre-allocated data
+    spawners: seq[ParticleSpawner[S, F]]
+    particles: seq[Particle]
+
+  ParticleData*[S; F] = ref ParticleDataObj[S, F]
+
+  ParticleField* = proc(image: var LCDBitmap): void
+    ## A callbck that runs a single tick within a particle field
+
+proc `=copy`[S, F](a: var ParticleDataObj[S, F], b: ParticleDataObj[S, F]) {.error.}
+
+proc resetPooledValue*(data: ParticleData) =
+  discard
+
+proc restorePooledValue*(data: ParticleData) =
+  data.particles.setLen(0)
+  for spawner in data.spawners.mitems:
+    spawner.nextParticle = spawner.initialDelay + 1
+    spawner.lifespan = spawner.initialLifespan
+
+proc setPixel(field: var BitmapDataObj, particle: var Particle) =
+  const color: LCDSolidColor = LCDSolidColor.kColorWhite
+  field.setPixel(particle.location.x.toInt(), particle.location.y.toInt(), color)
+
+proc runParticles(particles: var seq[Particle], field: var BitmapDataObj) =
+  forEachDeleting(particles, i):
+    particles[i].update()
+    setPixel(field, particles[i])
+
+proc runSpawn[S; F](
+    fieldData: F,
+    spawners: var seq[ParticleSpawner[S, F]],
+    particles: var seq[Particle],
+    field: var BitmapDataObj,
 ) =
-  type
-    ParticleDataObj[S; F] = object ## Pre-allocated data
-      spawners: seq[ParticleSpawner[S, F]]
-      particles: seq[Particle]
+  privateAccess(ParticleSpawner)
+  privateAccess(Particle)
+  for spawner in spawners.mitems:
+    if spawner.lifespan > 0:
+      spawner.nextParticle -= 1
+      spawner.lifespan -= 1
 
-    ParticleData*[S; F] = ref ParticleDataObj[S, F]
+      if spawner.nextParticle <= 0:
+        spawner.nextParticle = nextRandom(spawner.rate).int32
+        var particle: Particle =
+          spawner.emitter(spawner.lifespan, spawner.spawnData, fieldData)
+        setPixel(field, particle)
+        particle.lifespan -= 1
 
-    ParticleField* = proc(image: var LCDBitmap): void
-      ## A callbck that runs a single tick within a particle field
+        assert(particles.len < particles.capacity)
+        particles.add(particle)
 
-  proc `=copy`[S, F](a: var ParticleDataObj[S, F], b: ParticleDataObj[S, F]) {.error.}
-
-  proc resetPooledValue*(data: ParticleData) =
-    discard
-
-  proc restorePooledValue*(data: ParticleData) =
-    data.particles.setLen(0)
-    for spawner in data.spawners.mitems:
-      spawner.nextParticle = spawner.initialDelay + 1
-      spawner.lifespan = spawner.initialLifespan
-
-  proc setPixel(field: var BitmapDataObj, particle: var Particle) =
-    const color: LCDSolidColor = LCDSolidColor.kColorWhite
-    field.setPixel(particle.location.x.toInt(), particle.location.y.toInt(), color)
-
-  proc runParticles(particles: var seq[Particle], field: var BitmapDataObj) =
-    forEachDeleting(particles, i):
-      particles[i].update()
-      setPixel(field, particles[i])
-
-  proc runSpawn[S; F](
-      fieldData: F,
-      spawners: var seq[ParticleSpawner[S, F]],
-      particles: var seq[Particle],
-      field: var BitmapDataObj,
-  ) =
-    privateAccess(ParticleSpawner)
-    privateAccess(Particle)
-    for spawner in spawners.mitems:
-      if spawner.lifespan > 0:
-        spawner.nextParticle -= 1
-        spawner.lifespan -= 1
-
-        if spawner.nextParticle <= 0:
-          spawner.nextParticle = nextRandom(spawner.rate).int32
-          var particle: Particle =
-            spawner.emitter(spawner.lifespan, spawner.spawnData, fieldData)
-          setPixel(field, particle)
-          particle.lifespan -= 1
-
-          assert(particles.len < particles.capacity)
-          particles.add(particle)
-
-  proc allocate*[S, F](spawners: openArray[ParticleSpawner[S, F]]): ParticleData[S, F] =
-    return ParticleData[S, F](
-      spawners: spawners.toSeq,
-      particles: newSeqOfCap[Particle](spawners.maxParticleCount),
-    )
-
-  proc newField*[S; F](data: ParticleData[S, F], fieldData: F): ParticleField =
-    ## Returns a particle runner
-    var data = data
-    return proc(img: var LCDBitmap) =
-      clear(img, LCDSolidColor.kColorBlack)
-      var dataObj = img.getDataObj()
-      runParticles(data.particles, dataObj)
-      runSpawn[S, F](fieldData, data.spawners, data.particles, dataObj)
-
-      # for row in field:
-      #     var rowStr: string
-      #     for pixel in row:
-      #         case pixel:
-      #         of LCDSolidColor.kColorBlack: rowStr &= "X"
-      #         of LCDSolidColor.kColorWhite: rowStr &= "."
-      #         else: rowStr &= " "
-      #     echo rowStr
-      # echo ""
-
-  proc newParticleField*(
-      S, F: typedesc, fieldData: F, spawners: openArray[ParticleSpawner[S, F]]
-  ): ParticleField =
-    let alloced = allocate(spawners)
-    newField[S, F](alloced, fieldData)
-
-when not defined(unittests):
-  import playdate/api, sprite, necsus
-
-  proc nextRandom(values: Slice[uint32]): uint32 =
-    random().rand(values)
-
-  proc setPixel*(view: var BitmapDataObj, x, y: int, color: LCDSolidColor) {.inline.} =
-    set(view, x, y, color)
-
-  defineParticles(
-    ParticleData, ParticleField, LCDSolidColor, LCDBitmap, BitmapDataObj, nextRandom
+proc allocate*[S, F](spawners: openArray[ParticleSpawner[S, F]]): ParticleData[S, F] =
+  return ParticleData[S, F](
+    spawners: spawners.toSeq,
+    particles: newSeqOfCap[Particle](spawners.maxParticleCount),
   )
 
-  proc updateParticles*(particles: Query[(Sprite, ParticleField)]) =
-    for (sprite, particle) in particles:
-      var image = sprite.getBitmapMask
-      particle(image)
-      sprite.markDirty
+proc newField*[S; F](data: ParticleData[S, F], fieldData: F): ParticleField =
+  ## Returns a particle runner
+  var data = data
+  return proc(img: var LCDBitmap) =
+    clear(img, LCDSolidColor.kColorBlack)
+    var dataObj = img.getDataObj()
+    runParticles(data.particles, dataObj)
+    runSpawn[S, F](fieldData, data.spawners, data.particles, dataObj)
+
+    # for row in field:
+    #     var rowStr: string
+    #     for pixel in row:
+    #         case pixel:
+    #         of LCDSolidColor.kColorBlack: rowStr &= "X"
+    #         of LCDSolidColor.kColorWhite: rowStr &= "."
+    #         else: rowStr &= " "
+    #     echo rowStr
+    # echo ""
+
+proc newParticleField*(
+    S, F: typedesc, fieldData: F, spawners: openArray[ParticleSpawner[S, F]]
+): ParticleField =
+  let alloced = allocate(spawners)
+  newField[S, F](alloced, fieldData)
+
+proc updateParticles*(particles: Query[(Sprite, ParticleField)]) =
+  for (sprite, particle) in particles:
+    var image = sprite.getBitmapMask
+    particle(image)
+    sprite.markDirty

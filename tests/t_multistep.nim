@@ -1,4 +1,4 @@
-import unittest, necsus, necsuspd/[multistep]
+import unittest, necsus, necsuspd/[multistep, inputs], stubs/playdate_api
 
 type
   TestStep1 = object

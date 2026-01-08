@@ -1,10 +1,5 @@
-import necsus, sequtils, positioned, options, vmath, alignment, util
+import necsus, sequtils, positioned, options, vmath, alignment, util, sprite
 export alignment
-
-when defined(unittests):
-  import ../../tests/stubs/graphics
-else:
-  import sprite
 
 type
   Layouter* = object

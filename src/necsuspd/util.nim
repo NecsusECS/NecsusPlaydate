@@ -1,8 +1,8 @@
-import std/[macros, options, strutils, macrocache, importutils, setutils], types
-export types
+import std/[macros, options, strutils, macrocache, importutils, setutils], types, import_playdate
 
-when not defined(unittests):
-  import playdate/api
+importPlaydateApi()
+
+export types
 
 macro log*(args: varargs[typed]): untyped =
   ## Logs a message, assuming logging is enabled
