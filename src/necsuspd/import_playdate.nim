@@ -3,6 +3,6 @@ const LIVE_COMPILE* =
 
 template importPlaydateApi*() =
   when LIVE_COMPILE:
-    import playdate/api, playdate/util/initreqs
+    import playdate/api
   else:
     import stubs/playdate_api
