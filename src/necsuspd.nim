@@ -3,10 +3,10 @@ import
     achievements, alignment, anchor, aseprite, assetBag, autoalign, awards, boxelem, c,
     carousel, circle, crankAlert, crankData, cursor, data_bundle, debounce, debug,
     djikstra, draw, easing, fade, files, findDir, flowfield, fpvec, glow, init, inputs,
-    layout, loading, moveTo, multistep, obfuscate, particles, percent, pool, positioned,
-    pulse, rand, shake, singleton, sprite, textwrap, time, timer, treeSeq, triggerBox,
-    types, util, vec_tools, viewport, visibleState, choices, intersects, rotations,
-    raycasts,
+    layout, lightning, loading, moveTo, multistep, obfuscate, particles, percent, pool,
+    positioned, pulse, rand, shake, singleton, sprite, textwrap, time, timer, treeSeq,
+    triggerBox, types, util, vec_tools, viewport, visibleState, choices, intersects,
+    rotations, raycasts,
   ]
 
 export achievements
@@ -40,6 +40,7 @@ export init
 export inputs
 export intersects
 export layout
+export lightning
 export loading
 export moveTo
 export multistep

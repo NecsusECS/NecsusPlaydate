@@ -11,7 +11,11 @@ jobs:
       - run: git config --global --add safe.directory "$(pwd)"
       - name: Check exported that everything is exported
         run: |
-          find src/necsuspd -name "*.nim" | cut -d/ -f3 | cut -d. -f1 | xargs -n1 echo export | sort > /tmp/exports_expected.txt
+          find src/necsuspd -name "*.nim" -not -path "*/stubs/*" -not -name import_playdate.nim \
+            | cut -d/ -f3 \
+            | cut -d. -f1 \
+            | xargs -n1 echo export \
+            | sort > /tmp/exports_expected.txt
           grep "export" src/necsuspd.nim | sort > /tmp/exports_actual.txt
           diff /tmp/exports_expected.txt /tmp/exports_actual.txt
       - run: choosenim update -y 2.2.0
