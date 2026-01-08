@@ -1,11 +1,11 @@
 import fpvec, std/options, std/math, vmath
 
 type
-  CollisionSide = enum
+  CollisionSide {.used.} = enum
     XAxis
     YAxis
 
-  HasCollision = enum
+  HasCollision {.used.} = enum
     InsideWall
     MissWall
     HitWall

@@ -12,7 +12,6 @@ proc c_fseek(
 
 const
   SEEK_SET = 0
-  SEEK_CUR = 1
   SEEK_END = 2
 
 proc c_ftell(f: CFilePtr): csize_t {.importc: "ftell", header: "<stdio.h>", tags: [].}

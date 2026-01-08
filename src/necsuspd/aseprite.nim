@@ -15,9 +15,6 @@ export anchor
 
 importPlaydateApi()
 
-when LIVE_COMPILE:
-  import playdate/util/initreqs
-
 type
   AseFrame* = object
     duration*: int32
