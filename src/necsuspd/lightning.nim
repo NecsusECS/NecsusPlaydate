@@ -4,14 +4,14 @@ importPlaydateApi()
 
 type LightningConf = object ## Configuration for generating lightning
   a, b: IVec2
-  width, fullDistSq: int32
+  width, fullDistSq, initialLineSize: int32
   random: Rand
   perp: FPVec2
 
 proc rand(data: var LightningConf, range: auto): auto {.inline.} =
   data.random.rand(range)
 
-proc shouldSubdivide(lightning: var LightningConf, a, b: IVec2): bool =
+proc shouldSubdivide(lightning: var LightningConf, subdivisions: int32, a, b: IVec2): bool =
   ## Calculate whether a single branch of lightning should be subdivided into a zig zag line
   let distSq = a.distSq(b)
   if distSq > (lightning.fullDistSq div 3):
@@ -19,7 +19,7 @@ proc shouldSubdivide(lightning: var LightningConf, a, b: IVec2): bool =
   elif distSq < 32:
     return false
   else:
-    return lightning.rand(0 .. 100) < 50
+    return lightning.rand(0 .. 100) < (60 - subdivisions * 10)
 
 proc distanceToCenter(lightning: var LightningConf, target: FPVec2): int32 =
   ## Calculates the distance that `target` is from the line segment formed by `lightning.a` to
@@ -60,37 +60,38 @@ proc calculateForkTarget(lightning: var LightningConf, a: IVec2, depth: int32): 
   let targetPoint = toIVec2(a.toFPVec2() + delta * branchLength)
   result = lightning.pickPointWithinWidth(targetPoint, depth)
 
-proc chooseLineWidth(lightning: var LightningConf, depth: int32): int =
-  ## Chooses the width of a line to draw
-  return
-    case depth
-    of 0:
-      2
-    of 1:
-      lightning.rand(1 .. 2)
-    else:
-      1
+proc forkLineSize(lightning: var LightningConf, depth, lineSize: int32): int32 =
+  ## Chooses the width of a line to draw for a fork
+  let maxLineSize = lightning.initialLineSize - depth + 1
+  let decrease = if lightning.rand(0'i32..100'i32) < 20: 0'i32 else: 1'i32
+  return clamp(lineSize - decrease, 0, maxLineSize)
 
-proc drawBranch(lightning: var LightningConf, a, b: IVec2, depth: int32) =
+proc drawBranch(lightning: var LightningConf, a, b: IVec2, subdivisions, depth, lineSize: int32) =
   ## Draws a branch of lightning between `a` and `b`. This will randomly choose to create a 'zig zag'
   ## pattern by subdividing the line into two smaller segments. It will also randomly choose whether
   ## to fork the lightning into smaller branches
-  if lightning.shouldSubdivide(a, b):
+  if lightning.shouldSubdivide(subdivisions, a, b):
     let newMid = lightning.calculateSubdivide(a, b, depth)
-    lightning.drawBranch(a, newMid, depth)
-    lightning.drawBranch(newMid, b, depth)
+    lightning.drawBranch(a, newMid, subdivisions + 1, depth, lineSize)
+    lightning.drawBranch(newMid, b, subdivisions + 1, depth, lineSize)
   else:
     playdate.graphics.drawLine(
-      a.x.int, a.y.int, b.x.int, b.y.int, lightning.chooseLineWidth(depth), kColorWhite
+      a.x.int, a.y.int, b.x.int, b.y.int, lineSize, kColorWhite
     )
 
-  let likelyhoodOfFork = 20 div (depth + 1)
+  let likelyhoodOfFork = 30 div (depth + 1)
   if depth <= 4 and lightning.rand(0 .. 100) < likelyhoodOfFork:
-    let forkTo = lightning.calculateForkTarget(a, depth + 1)
-    lightning.drawBranch(a, forkTo, depth + 1)
+    let depth = depth + 1
+    let forkTo = lightning.calculateForkTarget(a, depth)
+    let newLineSize = lightning.forkLineSize(depth, lineSize)
+    lightning.drawBranch(a, forkTo, subdivisions, depth, newLineSize)
 
 proc drawLightning*(
-    img: LCDBitmap, seed: BiggestUInt, a, b: IVec2, width: SomeInteger
+    img: LCDBitmap,
+    seed: BiggestUInt,
+    a, b: IVec2,
+    width: SomeInteger,
+    initialLineSize: SomeInteger = 2
 ) =
   img.getBitmapMask.clear(kColorBlack)
   playdate.graphics.pushContext(img.getBitmapMask)
@@ -102,7 +103,8 @@ proc drawLightning*(
       b: b,
       random: initRand(seed.int64),
       perp: (b - a).toFPVec2().perpendicular().normalize(),
+      initialLineSize: initialLineSize.int32
     )
-    lightning.drawBranch(a, b, 0)
+    lightning.drawBranch(a, b, 0, 0, initialLineSize.int32)
   finally:
     playdate.graphics.popContext()
