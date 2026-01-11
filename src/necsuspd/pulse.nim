@@ -26,15 +26,9 @@ proc newPulseConfig*(
     for x in 0 ..< size:
       result.noise[y][x] = noise.simplex(x, y).fp()
 
-proc buildPulseStep*(config: static PulseConfig, frame: int32): LCDBitmap =
+proc buildPulseStep*[T](config: static PulseConfig, frame: int32, target: var T) =
   ## Builds a single step of the pulse animation.
   const maxRadius = config.size div 2
-
-  result = playdate.graphics.newBitmap(config.size, config.size, config.fgColor)
-  discard result.setBitmapMask(
-    playdate.graphics.newBitmap(config.size, config.size, kColorBlack)
-  )
-  var mask = result.getBitmapMask()
 
   let circleT = fp(frame + 1) / config.steps.fp()
   let localMaxRadius = toInt(circleT * maxRadius)
@@ -61,7 +55,18 @@ proc buildPulseStep*(config: static PulseConfig, frame: int32): LCDBitmap =
     let t = radiusT * overallT
 
     if config.noise[y][x] <= t:
-      mask.set(x, y, kColorWhite)
+      target.set(x, y, kColorWhite)
+
+proc buildPulseStep*(config: static PulseConfig, frame: int32): LCDBitmap =
+  ## Builds a single step of the pulse animation.
+  const maxRadius = config.size div 2
+
+  result = playdate.graphics.newBitmap(config.size, config.size, config.fgColor)
+  discard result.setBitmapMask(
+    playdate.graphics.newBitmap(config.size, config.size, kColorBlack)
+  )
+  var mask = result.getBitmapMask()
+  buildPulseStep(config, frame, mask)
 
 proc buildPulseFrames*(config: static PulseConfig): seq[LCDBitmap] =
   ## Builds a sequence of LCDBitmap frames for a pulse effect.
