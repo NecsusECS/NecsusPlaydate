@@ -359,7 +359,7 @@ proc shouldLoop(anim: Animation): bool {.inline.} =
     return anim.loops + 1 < count
 
 proc advanceSprites*(
-    time: GameTime,
+    time: GlobalGameTime,
     elements: FullQuery[(Animation, Option[Unpausable])],
     events: Outbox[Keyframe],
 ) =

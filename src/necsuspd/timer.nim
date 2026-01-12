@@ -33,7 +33,7 @@ proc newLifetime*(control: Bundle[LifetimeControl], delta: SomeNumber): Lifetime
 
 proc lifetimes*(
     lifetimes: FullQuery[(ptr Lifetime,)], time: GameTimeDelta, delete: Delete
-) {.depends(gameTime).} =
+) =
   ## System for deleting objects with a lifetime
   let delta = time.get
   for eid, (lifetime) in lifetimes:
@@ -44,7 +44,7 @@ proc lifetimes*(
 
 proc runTimers*(
     timers: FullQuery[(Timer,)], time: GameTime, delete: Delete
-) {.depends(gameTime, lifetimes).} =
+) {.depends(lifetimes).} =
   ## System for triggering timers
   for eid, (timer) in timers:
     if timer.timestamp <= time.get:
