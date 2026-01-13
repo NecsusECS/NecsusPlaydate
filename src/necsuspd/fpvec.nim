@@ -115,6 +115,11 @@ proc perpendicular*[T](vec: GVec2[T]): GVec2[T] =
   ## Returns a vector perpendicular to the given vector
   return gvec2[T](-vec.y, vec.x)
 
-proc safeNormalize*[T](a: GVec2[T]): GVec2[T] =
+proc safeNormalize*[T](a: GVec2[T]): GVec2[T] {.inline.} =
+  ## Takes the normal of a vector, ensuring that no division by zero occurs
   let length = a.length
-  return if length == 0: gvec2[T](T(0), T(0)) else: a / length
+  return
+    if length == 0:
+      gvec2[T](T(0), T(0))
+    else:
+      a / length
