@@ -114,3 +114,7 @@ proc rayPointsAtCircle*(origin, direction, center: GVec2, radius: auto): bool =
 proc perpendicular*[T](vec: GVec2[T]): GVec2[T] =
   ## Returns a vector perpendicular to the given vector
   return gvec2[T](-vec.y, vec.x)
+
+proc safeNormalize*[T](a: GVec2[T]): GVec2[T] =
+  let length = a.length
+  return if length == 0: gvec2[T](T(0), T(0)) else: a / length
