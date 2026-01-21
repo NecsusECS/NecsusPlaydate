@@ -113,10 +113,14 @@ proc findTag*(sheet: SpriteSheet, name: string): Option[AseFrameTag] =
     if tag.name.toLowerAscii == searchName:
       return some(tag)
 
-proc error(sheet: SpriteSheet, message: string) =
-  let fullError = fmt"{message} for {sheet.meta.image}"
-  log(fullError)
-  raise newException(AssertionDefect, fullError)
+template error(sheet: SpriteSheet, message: string) =
+  block:
+    let fullError = message & " for " & sheet.meta.image
+    when nimvm:
+      error(fullError)
+    else:
+      log(fullError)
+    raise newException(AssertionDefect, fullError)
 
 proc eventFrames*(sheet: SpriteSheet, event: string): seq[int32] =
   ## Returns the frames at which an event occurs
@@ -285,7 +289,10 @@ proc strideToSpeed*(sheet: SpriteSheet, sliceName: string): float32 =
   for frame in min(first.frame, last.frame) .. max(first.frame, last.frame):
     totalMs += sheet.frames[frame].duration
 
-  result = (last.bounds.x - first.bounds.x).float32 / totalMs.float32 * 1000
+  let firstCoord = vec2(first.bounds.x.float32, first.bounds.y.float32)
+  let lastCoord = vec2(last.bounds.x.float32, last.bounds.y.float32)
+
+  return (firstCoord.dist(lastCoord) + 1) / totalMs.float32 * 1000
 
 proc loadAsepriteJson*(path: string): SpriteSheet {.compileTime.} =
   let json = parseJson(slurp(getProjectPath() & "/../" & path))

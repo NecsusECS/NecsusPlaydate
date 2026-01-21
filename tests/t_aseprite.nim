@@ -194,8 +194,7 @@ suite "Aseprite SpriteSheet Utilities":
           )
         ],
     )
-    # Speed = (last.x - first.x) / totalMs * 1000 = (30 - 10) / (100 + 200) * 1000 = 20 / 300 * 1000 = 66.666...
-    check abs(strideSheet.strideToSpeed("StrideBox") - 66.6667) < 0.01
+    check abs(strideSheet.strideToSpeed("StrideBox") - 69.9999) < 0.01
 
   test "slicePoint functions return correct points with default anchor (BottomMiddle)":
     check sheet.slicePointFromTopLeft("HitBox") == some(ivec2(15, 25))
