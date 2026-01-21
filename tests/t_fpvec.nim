@@ -63,3 +63,22 @@ suite "rayPointsAtCircle":
 
   test "Ray hits only with larger radius":
     check rayPointsAtCircle(fpvec2(0, 0), fpvec2(1, 0), fpvec2(5, 2), 3.0)
+
+suite "rayPointsTowards":
+  test "Ray points directly at target (minDot = 1)":
+    check rayPointsTowards(fpvec2(0, 0), fpvec2(1, 0), fpvec2(10, 0), 1.0.fp)
+
+  test "Ray points away from target (minDot = -1)":
+    check rayPointsTowards(fpvec2(0, 0), fpvec2(-1, 0), fpvec2(10, 0), -1.0.fp)
+    check not rayPointsTowards(fpvec2(0, 0), fpvec2(-1, 0), fpvec2(10, 0), -0.99.fp)
+
+  test "Ray is perpendicular to target (minDot = 0)":
+    check rayPointsTowards(fpvec2(0, 0), fpvec2(0, 1), fpvec2(10, 0), 0.0.fp)
+    check not rayPointsTowards(fpvec2(0, 0), fpvec2(0, 1), fpvec2(10, 0), 0.5.fp)
+
+  test "Degenerate direction (zero vector)":
+    check not rayPointsTowards(fpvec2(0, 0), fpvec2(0, 0), fpvec2(10, 0), 0.0.fp)
+
+  test "Degenerate toTarget (origin == target)":
+    check rayPointsTowards(fpvec2(5, 5), fpvec2(1, 0), fpvec2(5, 5), -1.0.fp)
+    check rayPointsTowards(fpvec2(5, 5), fpvec2(1, 0), fpvec2(5, 5), 0.0.fp)

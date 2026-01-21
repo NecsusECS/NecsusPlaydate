@@ -123,3 +123,14 @@ proc safeNormalize*[T](a: GVec2[T]): GVec2[T] {.inline.} =
       gvec2[T](T(0), T(0))
     else:
       a / length
+
+proc rayPointsTowards*[T](origin, dir, target: GVec2[T], minDot: T): bool =
+  ## Returns whether a ray starting at `origin` with direction `direction`
+  ## points towards `target` with a minimum dot product of `minDot`.
+  assert(minDot >= -1 and minDot <= 1, "Minimum dot product must be between -1 and 1: " & $minDot)
+  if dir.length == 0:
+    return false
+  let toTarget = safeNormalize(target - origin)
+  let forward  = safeNormalize(dir)
+  let dot = dot(forward, toTarget)
+  return dot >= minDot
