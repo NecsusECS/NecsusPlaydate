@@ -26,6 +26,9 @@ macro asCalc(easing: untyped): untyped =
     proc `originalName`*[T](start, finish, progress: T): float32 =
       return `originalName`((progress - start) / (finish - start))
 
+    proc `originalName`*[T](values: HSlice[T, T], progress: T): float32 =
+      return `originalName`(values.a, values.b, progress)
+
     proc `name`*[T](a, b: T, t: float32): T =
       let diff: T = b - a
       let scalar: float32 = `originalName`(t)
