@@ -63,7 +63,9 @@ proc setPooledReturnType(poolingProc, objType: NimNode) =
 proc logPooledAction*[T](value: T, action, name: string) =
   log(fmt"{action} pooled {name} {$T} " & value.address)
 
-proc readFromPool(name, storage, objType, size, callBuilder: NimNode): NimNode =
+proc readFromPool(name, storage, objType, initialSize, callBuilder: NimNode): NimNode =
+  let size = when defined(noPoolInit): 1.newLit else: initialSize
+
   ## Creates the body of a proc that knows how to read a pooled value or construct a new value
   return quote:
     let reset = findResetSym(resetPooledValue(result.value))
