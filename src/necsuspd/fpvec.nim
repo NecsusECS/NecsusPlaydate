@@ -13,45 +13,45 @@ type
   FPVec3* = GVec3[FPInt]
   FPVec4* = GVec4[FPInt]
 
-proc fp*(
+func fp*(
     value: SomeInteger, precision: static Natural = FPVecPrecision
-): FPInt32[precision] =
+): FPInt32[precision] {.inline.} =
   ## Creates a fixed point number
   fp32(value, precision)
 
-proc fp*(
+func fp*(
     value: SomeFloat, precision: static Natural = FPVecPrecision
-): FPInt32[precision] =
+): FPInt32[precision] {.inline.} =
   ## Creates a fixed point number
   fp32(value, precision)
 
 genVecConstructor(fpvec, FPVec, FPInt32[FPVecPrecision])
 
-proc fpvec2*(x, y: SomeNumber): FPVec2 =
+func fpvec2*(x, y: SomeNumber): FPVec2 {.inline.} =
   fpvec2(x.fp(FPVecPrecision), y.fp(FPVecPrecision))
 
-proc toFPVec2*(ivec2: IVec2): FPVec2 =
+func toFPVec2*(ivec2: IVec2): FPVec2 {.inline.} =
   fpvec2(ivec2.x, ivec2.y)
 
 template toFPVec2*(vec2: FPVec2): FPVec2 =
   vec2
 
-proc toFPVec2*(vec2: Vec2): FPVec2 =
+func toFPVec2*(vec2: Vec2): FPVec2 {.inline.} =
   fpvec2(vec2.x.fp(FPVecPrecision), vec2.y.fp(FPVecPrecision))
 
-proc toIVec2*(vec: FPVec2): IVec2 =
+func toIVec2*(vec: FPVec2): IVec2 {.inline.} =
   ivec2(vec.x.toInt, vec.y.toInt)
 
-proc toVec2*(vec: FPVec2): Vec2 =
+func toVec2*(vec: FPVec2): Vec2 {.inline.} =
   vec2(vec.x.toFloat, vec.y.toFloat)
 
-proc cross*(a, b: GVec2): auto =
+func cross*(a, b: GVec2): auto =
   ## Calculates the 2D "cross product" of two vectors, returning a scalar.
   ## This is equivalent to treating the 2D vectors as 3D vectors with a zero z-component
   ## and returning the z-component of the 3D cross product.
   return a.x * b.y - a.y * b.x
 
-proc rayPointsAtLine*(origin, direction, pointA, pointB: GVec2): bool =
+func rayPointsAtLine*(origin, direction, pointA, pointB: GVec2): bool =
   ## Returns true if the ray defined by `origin` and `direction` intersects the
   ## line segment defined by [`pointA`, `pointB`].
   let segmentVector = pointB - pointA
@@ -71,13 +71,13 @@ proc rayPointsAtLine*(origin, direction, pointA, pointB: GVec2): bool =
     let projectionB = dot(pointB - origin, direction)
     return projectionA >= 0 or projectionB >= 0
 
-proc nudge*(base, towards: FPVec2, strength: FPInt = fp(0.2)): FPVec2 =
+func nudge*(base, towards: FPVec2, strength: FPInt = fp(0.2)): FPVec2 {.inline.} =
   ## Nudges a vector towards its direction
   result = base
   if towards.lengthSq > 0:
     result += towards.normalize() * strength
 
-proc limitedAdjust*(current, preferred: FPVec2, maxDelta: FPInt): FPVec2 =
+func limitedAdjust*(current, preferred: FPVec2, maxDelta: FPInt): FPVec2 =
   ## Adjusts the current direction towards the preferred direction,
   ## but limits the maximum delta between them
 
@@ -92,7 +92,7 @@ proc limitedAdjust*(current, preferred: FPVec2, maxDelta: FPInt): FPVec2 =
       # Scale the delta to the maximum allowed length and add to current
       current + (delta * (maxDelta / deltaLength))
 
-proc rayPointsAtCircle*(origin, direction, center: GVec2, radius: auto): bool =
+func rayPointsAtCircle*(origin, direction, center: GVec2, radius: auto): bool =
   ## Returns whether a ray starting at `origin` with direction `direction`
   ## intersects a circle centered at `center` with radius `radius`.
   let f = center - origin
@@ -111,11 +111,11 @@ proc rayPointsAtCircle*(origin, direction, center: GVec2, radius: auto): bool =
     let dist2 = dot(f, f) - (dot(f, direction) * dot(f, direction)) / dirLen2
     return dist2 <= radius * radius
 
-proc perpendicular*[T](vec: GVec2[T]): GVec2[T] =
+func perpendicular*[T](vec: GVec2[T]): GVec2[T] {.inline.} =
   ## Returns a vector perpendicular to the given vector
   return gvec2[T](-vec.y, vec.x)
 
-proc safeNormalize*[T](a: GVec2[T]): GVec2[T] {.inline.} =
+func safeNormalize*[T](a: GVec2[T]): GVec2[T] {.inline.} =
   ## Takes the normal of a vector, ensuring that no division by zero occurs
   let length = a.length
   return
@@ -124,13 +124,16 @@ proc safeNormalize*[T](a: GVec2[T]): GVec2[T] {.inline.} =
     else:
       a / length
 
-proc rayPointsTowards*[T](origin, dir, target: GVec2[T], minDot: T): bool =
+func rayPointsTowards*[T](origin, dir, target: GVec2[T], minDot: T): bool =
   ## Returns whether a ray starting at `origin` with direction `direction`
   ## points towards `target` with a minimum dot product of `minDot`.
-  assert(minDot >= -1 and minDot <= 1, "Minimum dot product must be between -1 and 1: " & $minDot)
-  if dir.length == 0:
+  assert(
+    minDot >= -1 and minDot <= 1,
+    "Minimum dot product must be between -1 and 1: " & $minDot,
+  )
+  if dir.lengthSq == 0:
     return false
   let toTarget = safeNormalize(target - origin)
-  let forward  = safeNormalize(dir)
+  let forward = safeNormalize(dir)
   let dot = dot(forward, toTarget)
   return dot >= minDot
