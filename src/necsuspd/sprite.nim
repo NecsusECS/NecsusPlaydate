@@ -147,10 +147,11 @@ proc frame*(cellId: int32, time: float32, keyframe: enum): Frame =
 
 proc asLoopMode(loop: LoopMode | bool): LoopMode {.inline.} =
   when loop is bool:
-    return if loop:
-      InfiniteLoop.init().LoopMode
-    else:
-      FiniteLoop.init(1).LoopMode
+    return
+      if loop:
+        InfiniteLoop.init().LoopMode
+      else:
+        FiniteLoop.init(1).LoopMode
   else:
     return loop
 
@@ -162,7 +163,10 @@ proc animation*[S: enum](
 ): AnimationDef =
   assert(frames.len > 0)
   AnimationDef(
-    sheet: sheet.getEnumValue, frames: frames.toSeq, anchor: anchor.toAnchor, loop: loop.asLoopMode()
+    sheet: sheet.getEnumValue,
+    frames: frames.toSeq,
+    anchor: anchor.toAnchor,
+    loop: loop.asLoopMode(),
   )
 
 proc animation*[S: enum](
@@ -170,7 +174,7 @@ proc animation*[S: enum](
     timePerFrame: float32,
     frames: Slice[int32],
     anchor: AnchorPosition,
-    loop: LoopMode | bool = InfiniteLoop.init().LoopMode
+    loop: LoopMode | bool = InfiniteLoop.init().LoopMode,
 ): AnimationDef =
   var frameSeq: seq[Frame]
   for i in frames:
@@ -239,7 +243,7 @@ template newBlankSprite*(
 iterator linked*(sprite: Animation): Animation =
   yield sprite
 
-iterator linked*(sprite: Sprite): Sprite =
+iterator linked*(sprite: Sprite): Sprite {.inline.} =
   var current = sprite
   while current != nil:
     yield current
@@ -331,15 +335,15 @@ template move(movable, viewport) =
   let viewportOffset = ivec2(viewport.x, viewport.y)
   let noViewport = ivec2(0, 0)
   for (parent, pos) in movable:
-    for sprite in parent.linked:
+    for sprite in parent[].linked:
       let viewportOffset = if sprite.absolutePos: noViewport else: viewportOffset
       let absolutePos =
         pos.toIVec2 + sprite.anchorOffset + sprite.manualOffset - viewportOffset
       sprite.sprite.moveTo(absolutePos.x.cfloat, absolutePos.y.cfloat)
 
 proc moveSprites*(
-    sprites: Query[(Sprite, Positioned)],
-    animated: Query[(Animation, Positioned)],
+    sprites: Query[(ptr Sprite, Positioned)],
+    animated: Query[(ptr Animation, Positioned)],
     viewport: Shared[ViewPort],
     viewportTweaks: Query[(ViewPortTweak,)],
 ) =
@@ -360,13 +364,13 @@ proc shouldLoop(anim: Animation): bool {.inline.} =
 
 proc advanceSprites*(
     time: GlobalGameTime,
-    elements: FullQuery[(Animation, Option[Unpausable])],
+    elements: FullQuery[(ptr Animation, Option[Unpausable])],
     events: Outbox[Keyframe],
 ) =
   ## Moves ahead any sprite animations that need to be updated
   let now = time.get.float32
   for eid, (parent, unpausable) in elements:
-    for anim in parent.linked:
+    for anim in parent[].linked:
       if anim.sprite.visible and (not anim.paused or unpausable.isSome) and
           anim.nextFrameTime <= now:
         if anim.nextFrameTime == 0:
