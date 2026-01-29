@@ -62,7 +62,7 @@ type
     frameCache: seq[LCDBitmap]
     frame: int32
     nextFrameTime: float32
-    anchorOffset, manualOffset: IVec2
+    anchorOffset, manualOffset, lastPosition: IVec2
     absolutePos: bool
     paused: bool
     loops: uint32
@@ -74,7 +74,7 @@ type
   SpriteObj* = object
     image: LCDBitmap
     sprite: LCDSprite
-    anchorOffset, manualOffset: IVec2
+    anchorOffset, manualOffset, lastPosition: IVec2
     absolutePos: bool
     link: Sprite
 
@@ -204,6 +204,7 @@ proc newBitmapSprite*(
     sprite: sprite,
     anchorOffset: sprite.offsetFix(anchor.toAnchor),
     absolutePos: absolutePos,
+    lastPosition: ivec2(int32.high, int32.high),
   )
 
 proc newAssetSprite*[A](
@@ -308,6 +309,7 @@ proc newSheet*(
     sprite: playdate.sprite.newSprite(),
     absolutePos: absolutePos,
     frameCache: frames.toSeq,
+    lastPosition: ivec2(int32.high, int32.high)
   )
 
   result.sprite.setImage(result[result.frame], kBitmapUnflipped)
@@ -339,7 +341,9 @@ template move(movable, viewport) =
       let viewportOffset = if sprite.absolutePos: noViewport else: viewportOffset
       let absolutePos =
         pos.toIVec2 + sprite.anchorOffset + sprite.manualOffset - viewportOffset
-      sprite.sprite.moveTo(absolutePos.x.cfloat, absolutePos.y.cfloat)
+      if absolutePos != sprite.lastPosition:
+        sprite.sprite.moveTo(absolutePos.x.cfloat, absolutePos.y.cfloat)
+        sprite.lastPosition = absolutePos
 
 proc moveSprites*(
     sprites: Query[(ptr Sprite, Positioned)],
