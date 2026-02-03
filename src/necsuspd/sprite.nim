@@ -245,7 +245,7 @@ iterator linked*(sprite: Animation): Animation =
   yield sprite
 
 iterator linked*(sprite: Sprite): Sprite {.inline.} =
-  var current = sprite
+  var current {.cursor.} = sprite
   while current != nil:
     yield current
     current = current.link
