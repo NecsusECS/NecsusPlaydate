@@ -1,17 +1,18 @@
-import std/[tables, sequtils], graphics, sprites
+import std/[tables, sequtils], graphics, sprites, sounds
 
-export graphics, sprites
+export graphics, sprites, sounds
 
 type
-  PlaydateApi* = object
+  PlaydateApi* = ref object
     file*: PlaydateFiles
     system*: PlaydateSystem
     graphics*: PlaydateGraphics
     sprite*: PlaydateSprites
+    sound*: PlaydateSounds
 
-  PlaydateFiles* = object
+  PlaydateFiles* = ref object
 
-  PlaydateSystem* = object
+  PlaydateSystem* = ref object
 
   PDFile* = ref object
     content, path: string
@@ -32,11 +33,19 @@ type
 
   PDButtons* = set[PDButton]
 
+  NineSlice* = ref object
+
 const
   LCD_COLUMNS* = 400
   LCD_ROWS* = 240
 
-let playdate* = PlaydateApi(graphics: pdGraphics)
+let playdate* = PlaydateApi(
+  graphics: pdGraphics,
+  file: PlaydateFiles(),
+  system: PlaydateSystem(),
+  sprite: PlaydateSprites(),
+  sound: PlaydateSounds(),
+)
 
 var mockFiles = initTable[string, string]()
 
@@ -83,3 +92,6 @@ proc getSecondsSinceEpoch*(
 
 proc drawFPS*(_: PlaydateSystem, x, y: int) =
   discard
+
+proc newNineSlice*(source: LCDBitmap): NineSlice =
+  raiseAssert("Unsupported")

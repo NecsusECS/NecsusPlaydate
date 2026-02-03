@@ -15,10 +15,14 @@ type
 
   Image* = LCDBitmap
 
-  BitmapDataObj* = ref object
+  BitmapDataObj* = object
     pixels: seq[seq[bool]]
     width*: int
     height*: int
+
+  BitmapData* = ref BitmapDataObj
+
+  LCDPattern* = ref object
 
   PDStringEncoding* = enum
     kASCIIEncoding
@@ -30,6 +34,8 @@ type
   LCDSolidColor* = enum
     kColorBlack
     kColorWhite
+    kColorClear
+    kColorXor
 
   Color* = LCDSolidColor
 
@@ -88,13 +94,14 @@ macro record(action: string, elements: varargs[typed]) =
 
 proc asBool(color: Color): bool =
   case color
-  of kColorWhite:
+  of kColorWhite, kColorClear, kColorXor:
     return false
   of kColorBlack:
     return true
 
 proc newBitmapData(width, height: int, color: LCDSolidColor): BitmapDataObj =
-  result = BitmapDataObj(width: width, height: height, pixels: newSeq[seq[bool]](height))
+  result =
+    BitmapDataObj(width: width, height: height, pixels: newSeq[seq[bool]](height))
   for y in 0 ..< height:
     result.pixels[y] = newSeq[bool](width)
     for value in result.pixels[y].mitems:
@@ -107,6 +114,9 @@ proc newBitmap*(
     graphics: PlaydateGraphics, width, height: int, color: LCDSolidColor
 ): Image =
   return newImage("anon", width, height, color)
+
+proc newBitmap*(graphics: PlaydateGraphics, path: string): LCDBitmap =
+  raiseAssert("Unsupported")
 
 proc width*(this: LCDBitmap): auto =
   this.data.width
@@ -179,7 +189,7 @@ proc setMany*[W: static int](this: var Image, pixels: openarray[array[W, Color]]
   let img = this.name
   record("setMany", img, asStr)
 
-proc set*(this: BitmapDataObj, x, y: SomeInteger, color: LCDSolidColor) =
+proc set*(this: var BitmapDataObj, x, y: SomeInteger, color: LCDSolidColor) =
   if x >= 0 and x.int32 < this.width:
     if y >= 0 and y.int32 < this.height:
       this.pixels[y.int32][x.int32] = color.asBool
@@ -245,3 +255,23 @@ proc drawLine*(g: PlaydateGraphics, x1, y1, x2, y2, w: int, c: LCDSolidColor) =
       )
 
   go(x1, y1, dx - dy)
+
+proc data*(this: BitmapDataObj): ptr UncheckedArray[uint8] =
+  raiseAssert("Unimplemented")
+
+proc rowbytes*(this: BitmapDataObj): int =
+  raiseAssert("Unimplemented")
+
+proc makeLCDPattern*(
+    r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, ra, rb, rc, rd, re, rf: uint8
+): LCDPattern =
+  raiseAssert("Unimplemented")
+
+proc newBitmapTable*(_: PlaydateGraphics, path: string): LCDBitmapTable =
+  raiseAssert("Unsupported")
+
+proc getBitmapTableInfo*(table: LCDBitmapTable): tuple[count: int, cellsWide: int] =
+  raiseAssert("Unsupported")
+
+proc getBitmap*(table: LCDBitmapTable, i: int): LCDBitmap =
+  raiseAssert("Unsupported")
