@@ -8,9 +8,9 @@ import
   util,
   time,
   vec_tools,
-  playdate/api,
   options,
-  fpvec
+  fpvec,
+  import_playdate
 
 type
   CarouselData[T] = ref object

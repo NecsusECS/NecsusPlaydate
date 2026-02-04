@@ -1,7 +1,5 @@
 import necsus, std/[macros, strutils, strformat, deques], import_playdate, util
 
-importPlaydateApi()
-
 type
   ObjReset*[T: ref] = proc(obj: T) {.nimcall.}
 

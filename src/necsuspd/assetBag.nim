@@ -1,8 +1,6 @@
 import
   necsus, std/[options, strformat, typetraits, strutils], util, loading, import_playdate
 
-importPlaydateApi()
-
 type
   AssetBagDef[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId] = ref object
     ## Defines the paths to various kinds of assets

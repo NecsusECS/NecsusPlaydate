@@ -1,7 +1,5 @@
 import macros, necsus, util, import_playdate
 
-importPlaydateApi()
-
 type
   DebugKey* = char ## A single key pressed by the user.
 

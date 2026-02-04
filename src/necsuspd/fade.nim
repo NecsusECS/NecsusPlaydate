@@ -1,7 +1,5 @@
 import import_playdate, dither, math, sprite
 
-importPlaydateApi()
-
 type
   PrecalculatedFade* = ref object
     ## Precalculates a set of bitmap masks needed to fade out an image

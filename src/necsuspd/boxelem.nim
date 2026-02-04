@@ -1,8 +1,6 @@
 import sequtils, textwrap, alignment, import_playdate, sprite
 export alignment
 
-importPlaydateApi()
-
 type
   BoxKind = enum
     TextElem

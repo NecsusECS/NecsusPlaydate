@@ -13,8 +13,6 @@ import
 
 export anchor
 
-importPlaydateApi()
-
 type
   AseFrame* = object
     duration*: int32

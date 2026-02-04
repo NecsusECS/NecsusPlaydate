@@ -1,5 +1,5 @@
-import import_playdate, std/[macros, jsonutils, json, strutils], util, json_schema_import
-importPlaydateApi()
+import
+  import_playdate, std/[macros, jsonutils, json, strutils], util, json_schema_import
 
 proc bundledData*(T: typedesc, path: static[string]): T =
   ## Copies the given path into the source directory at build time,

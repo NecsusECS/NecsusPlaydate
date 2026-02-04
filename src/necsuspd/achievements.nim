@@ -6,8 +6,6 @@ import
   files,
   import_playdate
 
-importPlaydateApi()
-
 importJsonSchema(
   "achievements.schema.json",
   JsonSchemaConfig(rootTypeName: "AchievementData", typePrefix: "PD"),

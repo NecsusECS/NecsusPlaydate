@@ -1,7 +1,5 @@
 import random/mersenne, import_playdate
 
-importPlaydateApi()
-
 var state: MersenneTwister = initMersenneTwister(123456)
 
 var isset {.used.} = false

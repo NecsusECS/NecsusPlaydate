@@ -1,4 +1,4 @@
-import necsus, sprite, playdate/api, util, std/[bitops, strutils], types
+import necsus, sprite, import_playdate, util, std/[bitops, strutils], types
 
 type
   StateType = uint64

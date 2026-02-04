@@ -1,7 +1,5 @@
 import necsus, positioned, util, vmath, alignment, std/options, import_playdate, sprite
 
-importPlaydateApi()
-
 export alignment
 
 type

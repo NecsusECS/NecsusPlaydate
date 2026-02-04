@@ -1,7 +1,5 @@
 import vmath, perlin, fpvec, fixedpoint, dither, easing, import_playdate
 
-importPlaydateApi()
-
 type
   GlowConfig* {.requiresInit.} = object
     size, frames: int32

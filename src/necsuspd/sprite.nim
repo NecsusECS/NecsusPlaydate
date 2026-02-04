@@ -12,8 +12,6 @@ import
   std/[options, strformat, macros, sequtils],
   fungus
 
-importPlaydateApi()
-
 adtEnum(LoopMode):
   InfiniteLoop
   FiniteLoop:

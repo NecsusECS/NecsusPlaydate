@@ -3,7 +3,7 @@ import necsus, vmath, positioned, vec_tools, bumpy, strformat, util
 const enableDebugSprite = defined(simulator) and not defined(disableDebugSprite)
 
 when enableDebugSprite:
-  import sprite, playdate/api
+  import sprite, import_playdate
 
 type
   TriggerKind = enum

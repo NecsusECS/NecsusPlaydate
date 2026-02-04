@@ -1,7 +1,5 @@
 import std/strutils, import_playdate
 
-importPlaydateApi()
-
 proc mkdirs*(path: string) =
   ## Creates all directories in a path
   var accumDir = newStringOfCap(path.len)

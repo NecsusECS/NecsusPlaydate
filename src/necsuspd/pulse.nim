@@ -1,7 +1,5 @@
 import vmath, perlin, circle, util, percent, fpvec, fixedpoint, import_playdate
 
-importPlaydateApi()
-
 export fixedpoint.`<=`, fixedpoint.`$`, fixedpoint.`<`
 
 type PulseConfig*[S: static int] = object

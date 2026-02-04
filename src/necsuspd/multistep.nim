@@ -1,7 +1,5 @@
 import import_playdate, necsus, util, std/[macros, tables], inputs
 
-importPlaydateApi()
-
 type
   MultiStepState[T] = object
     nextIndex: int32

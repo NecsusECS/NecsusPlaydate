@@ -1,7 +1,5 @@
 import import_playdate, vmath, std/random, fpvec
 
-importPlaydateApi()
-
 type LightningConf = object ## Configuration for generating lightning
   a, b: IVec2
   width, fullDistSq, initialLineSize: int32

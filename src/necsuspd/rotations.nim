@@ -2,7 +2,7 @@ import
   std/strformat,
   fixedpoint,
   necsus,
-  playdate/api,
+  import_playdate,
   vmath,
   loading,
   util,

@@ -10,8 +10,6 @@ import
   sprite,
   necsus
 
-importPlaydateApi()
-
 type
   Particle* = object ## An individual particle being rendered
     location, velocity, acceleration: FPVec2

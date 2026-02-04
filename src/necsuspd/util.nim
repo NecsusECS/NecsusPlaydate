@@ -1,7 +1,5 @@
 import std/[macros, options, strutils, macrocache, importutils, setutils], types, import_playdate
 
-importPlaydateApi()
-
 export types
 
 macro log*(args: varargs[typed]): untyped =

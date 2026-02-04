@@ -1,4 +1,4 @@
-import necsus, playdate/api, sprite, positioned, util
+import necsus, import_playdate, sprite, positioned, util
 
 type
   CrankMode* = enum

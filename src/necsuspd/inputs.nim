@@ -1,7 +1,5 @@
 import vmath, necsus, import_playdate
 
-importPlaydateApi()
-
 export PDButton, PDButtons
 
 type
