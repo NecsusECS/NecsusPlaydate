@@ -9,7 +9,10 @@ proc bundledData*(T: typedesc, path: static[string]): T =
   static:
     const fullPath = getProjectPath() & "/../" & path
     const content = slurp(fullPath).parseJson.jsonTo(T).toBinary()
-    writeFile(getProjectPath() & "/../source/" & bundledPath, content)
+    const destination = getProjectPath() & "/../source/" & bundledPath
+    hint("Reading " & $T & " from " & fullPath)
+    hint("Copying " & $T & " to " & destination)
+    writeFile(destination, content)
 
   log "Reading bundled data ", bundledPath
   assert(playdate != nil and playdate.file != nil)
