@@ -1,4 +1,4 @@
-import macros, necsus, util, import_playdate
+import macros, necsus, util, import_playdate, std/math
 
 type
   DebugKey* = char ## A single key pressed by the user.
@@ -23,3 +23,12 @@ proc debugInputHandler*(messages: Outbox[DebugInput]) {.startupSys.} =
         log "Debug message received: ", msg
         messages(msg)
     )
+
+proc reportFPS*(delta: TimeDelta): SystemInstance =
+  var times = newSeq[float]()
+  return proc() =
+    if times.len > 100:
+      let fps = 100.0 / times.sum()
+      playdate.system.logToConsole("FPS: " & $fps)
+      times.setLen(0)
+    times.add(delta())
