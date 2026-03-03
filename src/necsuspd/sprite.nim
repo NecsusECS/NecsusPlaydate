@@ -307,7 +307,7 @@ proc newSheet*(
     sprite: playdate.sprite.newSprite(),
     absolutePos: absolutePos,
     frameCache: frames.toSeq,
-    lastPosition: ivec2(int32.high, int32.high)
+    lastPosition: ivec2(int32.high, int32.high),
   )
 
   result.sprite.setImage(result[result.frame], kBitmapUnflipped)
@@ -498,3 +498,10 @@ proc restorePooledValue*(sprite: Animation) =
 proc resetPooledValue*(sprite: Animation) =
   sprite.remove()
   sprite.reset()
+
+proc toTopLeft*(sprite: Sprite | Animation): IVec2 {.inline.} =
+  ## Calculates the vector needed to find the top-left corner of a sprite or animation
+  # Given that (0,0) on a sprite/animation represents the exact center of
+  # that entity, we need to subtract half the width and height to get the top-left corner
+  let dimens = ivec2(sprite.width.int32, sprite.height.int32)
+  return -(dimens div 2) + sprite.anchorOffset + sprite.manualOffset

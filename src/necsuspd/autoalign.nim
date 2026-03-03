@@ -12,11 +12,13 @@ type
 
 proc resolveAnchor(
     control: AutoAlign, anchor: EntityId
-): Option[tuple[pos: Positioned, width, height: int32]] =
+): Option[tuple[pos: IVec2, width, height: int32]] =
   for (pos, entity) in control.findAnchorSprite(anchor).items:
-    return some((pos, entity.width.int32, entity.height.int32))
+    return
+      some((pos.toIVec2 + entity.toTopLeft(), entity.width.int32, entity.height.int32))
   for (pos, entity) in control.findAnchorAnim(anchor).items:
-    return some((pos, entity.width.int32, entity.height.int32))
+    return
+      some((pos.toIVec2 + entity.toTopLeft(), entity.width.int32, entity.height.int32))
 
 proc align*[T](
     control: AutoAlign[T], anchor: EntityId, horizAlign, vertAlign: Alignment
@@ -27,7 +29,9 @@ proc align*[T](
     return
 
   let anchorAlign = alignment2d(details, horizAlign, vertAlign)
-  let newPos = details.pos.toIVec2 + ivec2(anchorAlign.x.int32, anchorAlign.y.int32)
+  let newPos = details.pos + ivec2(anchorAlign.x.int32, anchorAlign.y.int32)
+
+  log "Anchoring to ", details, " align ", anchorAlign, " at ", newPos
 
   for (_, targetPos) in control.findTargets:
     targetPos.pos = newPos
