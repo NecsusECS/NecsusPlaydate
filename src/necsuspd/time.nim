@@ -49,6 +49,7 @@ proc buildGameTime*(StateType: typedesc[enum]): auto =
   ## Creates a system for managing game time. The `StateType` is used to determine
   ## the current state of the game and track the time for each state separately
   var elapsed: array[StateType, float32]
+  var globalElapsed: float32
 
   return proc(
       delta: TimeDelta,
@@ -68,7 +69,8 @@ proc buildGameTime*(StateType: typedesc[enum]): auto =
     gameTime := elapsed[currentState]
 
     # Update the global game time, which isn't localized to the current state
-    globalGameTime := gameTime.get() + tickDelta
+    globalElapsed += tickDelta
+    globalGameTime := globalElapsed
 
 proc timeDebugger*(slowDownKey, speedUpKey: char): auto =
   ## Hooks in debug key monitors for adjusting the time
