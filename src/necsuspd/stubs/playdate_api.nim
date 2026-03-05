@@ -95,3 +95,6 @@ proc drawFPS*(_: PlaydateSystem, x, y: int) =
 
 proc newNineSlice*(source: LCDBitmap): NineSlice =
   raiseAssert("Unsupported")
+
+proc logToConsole*(_: PlaydateSystem, message: string) =
+  echo message
