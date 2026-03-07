@@ -126,11 +126,11 @@ proc restorePooledValue*(data: ParticleData) =
     spawner.nextParticle = spawner.initialDelay + 1
     spawner.lifespan = spawner.initialLifespan
 
-proc setPixel(field: var BitmapDataObj, particle: var Particle) =
+proc setPixel(field: var LCDBitmap, particle: var Particle) =
   const color: LCDSolidColor = LCDSolidColor.kColorWhite
   field.set(particle.location.x.toInt(), particle.location.y.toInt(), color)
 
-proc runParticles(particles: var seq[Particle], field: var BitmapDataObj) =
+proc runParticles(particles: var seq[Particle], field: var LCDBitmap) =
   forEachDeleting(particles, i):
     particles[i].update()
     setPixel(field, particles[i])
@@ -139,7 +139,7 @@ proc runSpawn[S; F](
     fieldData: F,
     spawners: var seq[ParticleSpawner[S, F]],
     particles: var seq[Particle],
-    field: var BitmapDataObj,
+    field: var LCDBitmap,
 ) =
   privateAccess(ParticleSpawner)
   privateAccess(Particle)
@@ -169,9 +169,8 @@ proc newField*[S; F](data: ParticleData[S, F], fieldData: F): ParticleField =
   var data = data
   return proc(img: var LCDBitmap) =
     clear(img, LCDSolidColor.kColorBlack)
-    var dataObj = img.getDataObj()
-    runParticles(data.particles, dataObj)
-    runSpawn[S, F](fieldData, data.spawners, data.particles, dataObj)
+    runParticles(data.particles, img)
+    runSpawn[S, F](fieldData, data.spawners, data.particles, img)
 
     # for row in field:
     #     var rowStr: string
