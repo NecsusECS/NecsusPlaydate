@@ -22,13 +22,11 @@ export anchor, LoopMode, InfiniteLoop, FiniteLoop
 type
   ZIndexValue = SomeInteger or enum ## A value that can be used as a zindex
 
-  AssetTable*[A] =
-    concept table
-        table.asset(A) is LCDBitmap
+  AssetTable*[A] = concept table
+    table.asset(A) is LCDBitmap
 
-  SheetTable*[S] =
-    concept table
-        table.sheet(S) is LCDBitmapTable
+  SheetTable*[S] = concept table
+    table.sheet(S) is LCDBitmapTable
 
   Keyframe* {.byref.} = object
     ## An event that is triggered when an animation reaches a specific frame
@@ -282,9 +280,13 @@ proc change*(animation: ptr Animation | Animation, def: AnimationDef) =
   animation.anchorOffset = animation.sprite.offsetFix(def.anchor.toAnchor)
   animation.loops = 0
 
-proc `paused=`*(animation: ptr Animation, pause: bool) =
+proc `paused=`*(animation: ptr Animation | Animation, pause: bool) =
   ## Pauses this animation
   animation.paused = pause
+
+proc `paused`*(animation: ptr Animation | Animation): bool {.inline.} =
+  ## Pauses this animation
+  animation.paused
 
 proc `[]`(anim: Animation, frame: int32): LCDBitmap =
   ## Return a frame from an animation

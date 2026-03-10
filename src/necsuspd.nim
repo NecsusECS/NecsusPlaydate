@@ -6,7 +6,7 @@ import
     layout, lightning, loading, moveTo, multistep, obfuscate, particles, percent, pool,
     positioned, pulse, rand, shake, singleton, sprite, textwrap, time, timer, treeSeq,
     triggerBox, types, util, vec_tools, viewport, visibleState, choices, intersects,
-    rotations, raycasts,
+    rotations, raycasts, paused,
   ]
 
 export achievements
@@ -46,6 +46,7 @@ export moveTo
 export multistep
 export obfuscate
 export particles
+export paused
 export percent
 export pool
 export positioned
