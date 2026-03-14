@@ -1,4 +1,7 @@
-import std/[macros, options, strutils, macrocache, importutils, setutils], types, import_playdate
+import
+  std/[macros, options, strutils, macrocache, importutils, setutils],
+  types,
+  import_playdate
 
 export types
 

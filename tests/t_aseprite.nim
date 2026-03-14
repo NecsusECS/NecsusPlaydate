@@ -183,16 +183,15 @@ suite "Aseprite SpriteSheet Utilities":
       frames = @[makeAseFrame(), makeAseFrame(duration = 200, filename = "frame1.png")],
       frameTags = @[makeAseFrameTag(name = "Stride", fromIdx = 0, toIdx = 1)],
       image = "stride.png",
-      slices =
-        @[
-          makeAseSlice(
-            "StrideBox",
-            "#00FF00",
-            "",
-            makeAseSliceKey(h = 10, w = 20, x = 10, y = 15),
-            makeAseSliceKey(h = 10, w = 20, x = 30, y = 15),
-          )
-        ],
+      slices = @[
+        makeAseSlice(
+          "StrideBox",
+          "#00FF00",
+          "",
+          makeAseSliceKey(h = 10, w = 20, x = 10, y = 15),
+          makeAseSliceKey(h = 10, w = 20, x = 30, y = 15),
+        )
+      ],
     )
     check abs(strideSheet.strideToSpeed("StrideBox") - 69.9999) < 0.01
 
@@ -205,15 +204,14 @@ suite "Aseprite SpriteSheet Utilities":
       frames = sheet.frames,
       frameTags = sheet.meta.frameTags,
       layers = sheet.meta.layers,
-      slices =
-        @[
-          makeAseSliceWithKey(
-            name = "HitBox",
-            bounds = (h: 10, w: 20, x: 5, y: 15),
-            data = "AnchorTopLeft",
-            color = "#00FF00",
-          )
-        ],
+      slices = @[
+        makeAseSliceWithKey(
+          name = "HitBox",
+          bounds = (h: 10, w: 20, x: 5, y: 15),
+          data = "AnchorTopLeft",
+          color = "#00FF00",
+        )
+      ],
     )
     check anchorSliceSheet.slicePointFromTopLeft("HitBox") == some(ivec2(5, 15))
     check anchorSliceSheet.slicePointFromCenter("HitBox") == some(ivec2(-11, -1))
@@ -224,15 +222,14 @@ suite "Aseprite SpriteSheet Utilities":
   test "slicePointFromTopLeft and slicePointFromCenter use defaultAnchor parameter":
     # Create a slice with no anchor data (empty string), so it should use the defaultAnchor
     let noAnchorSheet = makeSpriteSheet(
-      slices =
-        @[
-          makeAseSliceWithKey(
-            name = "TestBox",
-            bounds = (h: 10, w: 20, x: 5, y: 15),
-            data = "", # No anchor specified
-            color = "#00FF00",
-          )
-        ]
+      slices = @[
+        makeAseSliceWithKey(
+          name = "TestBox",
+          bounds = (h: 10, w: 20, x: 5, y: 15),
+          data = "", # No anchor specified
+          color = "#00FF00",
+        )
+      ]
     )
 
     # Test with default anchor (AnchorBottomMiddle) - should be same as no parameter
@@ -251,15 +248,14 @@ suite "Aseprite SpriteSheet Utilities":
 
     # Test that explicit anchor data overrides defaultAnchor
     let explicitAnchorSheet = makeSpriteSheet(
-      slices =
-        @[
-          makeAseSliceWithKey(
-            name = "TestBox",
-            bounds = (h: 10, w: 20, x: 5, y: 15),
-            data = "AnchorTopLeft", # Explicit anchor
-            color = "#00FF00",
-          )
-        ]
+      slices = @[
+        makeAseSliceWithKey(
+          name = "TestBox",
+          bounds = (h: 10, w: 20, x: 5, y: 15),
+          data = "AnchorTopLeft", # Explicit anchor
+          color = "#00FF00",
+        )
+      ]
     )
 
     # Should return same result regardless of defaultAnchor since explicit anchor is specified

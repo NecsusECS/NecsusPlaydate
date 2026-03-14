@@ -58,8 +58,7 @@ suite "Djikstra's algorithm":
     let graph = calculateDjikstra[int, Point](source)
 
     check(
-      graph.distances(3) ==
-        """
+      graph.distances(3) == """
         321
         210
         421
@@ -67,8 +66,7 @@ suite "Djikstra's algorithm":
     )
 
     check(
-      graph.directions(3) ==
-        """
+      graph.directions(3) == """
         vvv
         >>X
         ^^^
@@ -89,8 +87,7 @@ suite "Djikstra's algorithm":
     let graph = calculateDjikstra[int, Point](source)
 
     check(
-      graph.distances(4) ==
-        """
+      graph.distances(4) == """
         0124
         1234
         2334
@@ -99,8 +96,7 @@ suite "Djikstra's algorithm":
     )
 
     check(
-      graph.directions(4) ==
-        """
+      graph.directions(4) == """
         X<<<
         ^^^^
         ^<v^

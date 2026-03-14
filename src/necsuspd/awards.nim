@@ -88,8 +88,8 @@ template buildAwardSystems*[T: enum](
         pad = (0'i32, 0'i32, 0'i32, 0'i32),
       ),
     )
-    .pad(left = 36, top = 4)
-    .draw(sprite.getImage, assets.font(subtitleFont))
+      .pad(left = 36, top = 4)
+      .draw(sprite.getImage, assets.font(subtitleFont))
 
     let AwardPopupY = -sprite.height - 10
     const AwardPopupX = 200

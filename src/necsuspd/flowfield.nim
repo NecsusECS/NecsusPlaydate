@@ -1,11 +1,10 @@
 import fpvec, vmath
 
 type
-  FlowFieldInput* =
-    concept i
-        ## An input from which a flow field can be generated.
-        i.contains(IVec2) is bool
-        i.totalCost(IVec2) is SomeNumber
+  FlowFieldInput* = concept i
+    ## An input from which a flow field can be generated.
+    i.contains(IVec2) is bool
+    i.totalCost(IVec2) is SomeNumber
 
   FlowField*[W, H: static int32] = ref array[H, array[W, FPVec2]]
 

@@ -1,7 +1,6 @@
 import necsuspd/achievements, std/[unittest, options, json], necsuspd/stubs/playdate_api
 
-const sample_data =
-  """
+const sample_data = """
 {
   "specVersion": "1.0.0",
   "gameID": "dolor.fugiat.dolor.ad",

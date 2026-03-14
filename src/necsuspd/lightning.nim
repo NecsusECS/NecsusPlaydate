@@ -9,7 +9,9 @@ type LightningConf = object ## Configuration for generating lightning
 proc rand(data: var LightningConf, range: auto): auto {.inline.} =
   data.random.rand(range)
 
-proc shouldSubdivide(lightning: var LightningConf, subdivisions: int32, a, b: IVec2): bool =
+proc shouldSubdivide(
+    lightning: var LightningConf, subdivisions: int32, a, b: IVec2
+): bool =
   ## Calculate whether a single branch of lightning should be subdivided into a zig zag line
   let distSq = a.distSq(b)
   if distSq > (lightning.fullDistSq div 3):
@@ -61,10 +63,12 @@ proc calculateForkTarget(lightning: var LightningConf, a: IVec2, depth: int32): 
 proc forkLineSize(lightning: var LightningConf, depth, lineSize: int32): int32 =
   ## Chooses the width of a line to draw for a fork
   let maxLineSize = lightning.initialLineSize - depth + 1
-  let decrease = if lightning.rand(0'i32..100'i32) < 20: 0'i32 else: 1'i32
+  let decrease = if lightning.rand(0'i32 .. 100'i32) < 20: 0'i32 else: 1'i32
   return clamp(lineSize - decrease, 0, maxLineSize)
 
-proc drawBranch(lightning: var LightningConf, a, b: IVec2, subdivisions, depth, lineSize: int32) =
+proc drawBranch(
+    lightning: var LightningConf, a, b: IVec2, subdivisions, depth, lineSize: int32
+) =
   ## Draws a branch of lightning between `a` and `b`. This will randomly choose to create a 'zig zag'
   ## pattern by subdividing the line into two smaller segments. It will also randomly choose whether
   ## to fork the lightning into smaller branches
@@ -89,7 +93,7 @@ proc drawLightning*(
     seed: BiggestUInt,
     a, b: IVec2,
     width: SomeInteger,
-    initialLineSize: SomeInteger = 2
+    initialLineSize: SomeInteger = 2,
 ) =
   img.getBitmapMask.clear(kColorBlack)
   playdate.graphics.pushContext(img.getBitmapMask)
@@ -101,7 +105,7 @@ proc drawLightning*(
       b: b,
       random: initRand(seed.int64),
       perp: (b - a).toFPVec2().perpendicular().normalize(),
-      initialLineSize: initialLineSize.int32
+      initialLineSize: initialLineSize.int32,
     )
     lightning.drawBranch(a, b, 0, 0, initialLineSize.int32)
   finally:

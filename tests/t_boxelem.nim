@@ -136,7 +136,7 @@ suite "Box Elem":
       img(newImage("baz", 40, 40, kColorWhite), align = AlignRight),
       img(newImage("qux", 10, 10, kColorWhite)),
     )
-    .draw(newSprite("testImg", 300, 100), font)
+      .draw(newSprite("testImg", 300, 100), font)
 
     checkGraphicActions(
       "drawMode(testImg, drawMode: kDrawModeCopy)",
@@ -161,7 +161,7 @@ suite "Box Elem":
       img(newImage("bar", 30, 30, kColorWhite)),
       img(newImage("baz", 40, 40, kColorWhite)),
     )
-    .draw(newSprite("testImg", 300, 100), font)
+      .draw(newSprite("testImg", 300, 100), font)
 
     checkGraphicActions(
       "drawMode(testImg, drawMode: kDrawModeCopy)",

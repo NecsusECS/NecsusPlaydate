@@ -1,4 +1,11 @@
-import unittest, necsus, necsuspd/[layout, positioned, sprite], options, vmath, necsuspd/stubs/graphics, helpers
+import
+  unittest,
+  necsus,
+  necsuspd/[layout, positioned, sprite],
+  options,
+  vmath,
+  necsuspd/stubs/graphics,
+  helpers
 
 proc `==`(a: (int32, int32), b: (int, int)): bool =
   return a == (b[0].int32, b[1].int32)

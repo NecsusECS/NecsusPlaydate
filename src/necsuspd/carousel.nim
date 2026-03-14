@@ -1,16 +1,6 @@
 import
-  necsus,
-  positioned,
-  vmath,
-  easing,
-  inputs,
-  findDir,
-  util,
-  time,
-  vec_tools,
-  options,
-  fpvec,
-  import_playdate
+  necsus, positioned, vmath, easing, inputs, findDir, util, time, vec_tools, options,
+  fpvec, import_playdate
 
 type
   CarouselData[T] = ref object

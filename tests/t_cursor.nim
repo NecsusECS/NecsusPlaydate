@@ -69,9 +69,15 @@ runTest "Forced selection":
 
 runTest "Animation dimensions impact selection":
   let eids = [
-    createWithAnim.with(MyCursor(), positioned(0, 0), Selectable(), newAnimation("img", 500, 10)),
-    createWithAnim.with(MyCursor(), positioned(0, 300), Selectable(), newAnimation("img", 30, 10)),
-    createWithAnim.with(MyCursor(), positioned(250, 300), Selectable(), newAnimation("img", 30, 10)),
+    createWithAnim.with(
+      MyCursor(), positioned(0, 0), Selectable(), newAnimation("img", 500, 10)
+    ),
+    createWithAnim.with(
+      MyCursor(), positioned(0, 300), Selectable(), newAnimation("img", 30, 10)
+    ),
+    createWithAnim.with(
+      MyCursor(), positioned(250, 300), Selectable(), newAnimation("img", 30, 10)
+    ),
   ]
   cursor.init()
   check cursor.selection().to(EntitySelected).entityId == eids[0]
@@ -80,9 +86,15 @@ runTest "Animation dimensions impact selection":
 
 runTest "Sprite dimensions impact selection":
   let eids = [
-    createWithSprite.with(MyCursor(), positioned(0, 0), Selectable(), newSprite("img", 500, 10)),
-    createWithSprite.with(MyCursor(), positioned(0, 300), Selectable(), newSprite("img", 30, 10)),
-    createWithSprite.with(MyCursor(), positioned(250, 300), Selectable(), newSprite("img", 30, 10)),
+    createWithSprite.with(
+      MyCursor(), positioned(0, 0), Selectable(), newSprite("img", 500, 10)
+    ),
+    createWithSprite.with(
+      MyCursor(), positioned(0, 300), Selectable(), newSprite("img", 30, 10)
+    ),
+    createWithSprite.with(
+      MyCursor(), positioned(250, 300), Selectable(), newSprite("img", 30, 10)
+    ),
   ]
   cursor.init()
   check cursor.selection().to(EntitySelected).entityId == eids[0]

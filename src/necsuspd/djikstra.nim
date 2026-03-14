@@ -1,11 +1,10 @@
 import std/[hashes, sets, deques, strformat, tables, algorithm, sequtils, heapqueue]
 
 type
-  DjikstraRouteNode* =
-    concept n
-        ## An individual node in the input map
-        (n == n) is bool
-        hash(n) is Hash
+  DjikstraRouteNode* = concept n
+    ## An individual node in the input map
+    (n == n) is bool
+    hash(n) is Hash
 
   DjikstraNode*[T, N] = tuple[stepCost, totalCost: T, next: N]
     ## A node in the resulting djikstra graph
