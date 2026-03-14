@@ -32,6 +32,13 @@ proc firstElement[T](bundle: Bundle[Carousel[T]]): auto =
     return some((eid, positioned))
   return none((EntityId, ptr Positioned))
 
+proc lastElement[T](bundle: Bundle[Carousel[T]]): auto =
+  ## Return the last element in the carousel
+  var last = none((EntityId, ptr Positioned))
+  for eid, (_, positioned) in bundle.elements:
+    last = some((eid, positioned))
+  return last
+
 proc moveAllBy[T](bundle: Bundle[Carousel[T]], delta: IVec2) =
   for (_, pos) in bundle.elements:
     pos.pos = pos.toIVec2 + delta
@@ -44,6 +51,24 @@ proc reset*[T](
 ) =
   ## Resets the carousel to it's starting state
   for (eid, startPos) in bundle.firstElement:
+    bundle.moveAllBy(target - startPos.toIVec2)
+    bundle.data :=
+      CarouselData[T](
+        animating: false,
+        target: target,
+        selected: eid,
+        easing: easing,
+        duration: duration,
+      )
+
+proc resetToLast*[T](
+    bundle: Bundle[Carousel[T]],
+    target: IVec2,
+    easing: EasingCalc[Vec2],
+    duration: float32,
+) =
+  ## Resets the carousel to its last element
+  for (eid, startPos) in bundle.lastElement:
     bundle.moveAllBy(target - startPos.toIVec2)
     bundle.data :=
       CarouselData[T](
