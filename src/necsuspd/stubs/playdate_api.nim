@@ -98,3 +98,6 @@ proc newNineSlice*(source: LCDBitmap): NineSlice =
 
 proc logToConsole*(_: PlaydateSystem, message: string) =
   echo message
+
+proc getElapsedTime*(_: PlaydateSystem): float32 =
+  discard
