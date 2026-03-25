@@ -6,7 +6,7 @@ import
     layout, lightning, loading, moveTo, multistep, obfuscate, particles, percent, pool,
     positioned, pulse, rand, shake, singleton, sprite, textwrap, time, timer, treeSeq,
     triggerBox, types, util, vec_tools, viewport, visibleState, choices, intersects,
-    rotations, raycasts, paused, beam, beamfx
+    rotations, raycasts, paused, beam, beamfx,
   ]
 
 export achievements
