@@ -226,3 +226,116 @@ suite "Box Elem":
       "drawMode(testImg, drawMode: kDrawModeFillBlack)",
       "drawText(testImg, text: foo, x: 12, y: 32)",
     )
+
+  test "Fixed width wider than content reports the fixed width":
+    check(text("foo").fixedWidth(80).dimens(font) == (80, 18))
+    checkGraphicActions()
+
+  test "Fixed width narrower than content reports the fixed width":
+    check(text("foo").fixedWidth(20).dimens(font) == (20, 18))
+    checkGraphicActions()
+
+  test "Drawing with a fixed width":
+    text("foo").fixedWidth(80).draw(newSprite("testImg", 100, 100), font)
+    checkGraphicActions(
+      "setFont(testImg, font.name: foo)",
+      "drawMode(testImg, drawMode: kDrawModeFillBlack)",
+      "drawText(testImg, text: foo, x: 2, y: 2)",
+    )
+
+  test "Full width element claims all available area width in a row":
+    row(
+      img(newImage("small", 20, 20, kColorWhite)).fullWidth(),
+      img(newImage("next", 30, 30, kColorWhite)),
+    ).draw(newSprite("testImg", 300, 100), font)
+    checkGraphicActions(
+      "drawMode(testImg, drawMode: kDrawModeCopy)",
+      "drawBitmap(testImg, name: small, x: 0, y: 0)",
+      "drawMode(testImg, drawMode: kDrawModeCopy)",
+      "drawBitmap(testImg, name: next, x: 300, y: 0)",
+    )
+
+  test "Range width enforces minimum when content is below the minimum":
+    check(text("foo").rangeWidth(50, 200).dimens(font) == (50, 18))
+    checkGraphicActions()
+
+  test "Range width enforces maximum when content exceeds it":
+    check(text(loremIpsum, wrap = true).rangeWidth(50, 300).dimens(font) == (268, 52))
+    checkGraphicActions()
+
+  test "Range width passes through natural width when in range":
+    check(text("foo").rangeWidth(10, 200).dimens(font) == (28, 18))
+    checkGraphicActions()
+
+  test "Drawing a horizontal line":
+    horizLine(2).draw(newSprite("testImg", 100, 100), font)
+    checkGraphicActions(
+      "fillRect(testImg, x: 2, y: 2, width: 96, height: 2, color: kColorBlack)",
+    )
+
+  test "Center aligned text":
+    text("foo", align = AlignCenter).draw(newSprite("testImg", 100, 100), font)
+    checkGraphicActions(
+      "setFont(testImg, font.name: foo)",
+      "drawMode(testImg, drawMode: kDrawModeFillBlack)",
+      "drawText(testImg, text: foo, x: 38, y: 2)",
+    )
+
+  test "Text with a custom font uses that font instead of the default":
+    let customFont = newFont("custom", height = 10, charWidth = 6)
+    text("hi", font = customFont).draw(newSprite("testImg", 100, 100), font)
+    checkGraphicActions(
+      "setFont(testImg, font.name: custom)",
+      "drawMode(testImg, drawMode: kDrawModeFillBlack)",
+      "drawText(testImg, text: hi, x: 2, y: 2)",
+    )
+
+  test "Right aligned natural-width element is right-docked in a row":
+    const zeroPad = (0i32, 0i32, 0i32, 0i32)
+    row(
+      text("left", pad = zeroPad),
+      text("right", align = AlignRight, pad = zeroPad),
+    ).draw(newSprite("testImg", 300, 100), font)
+    checkGraphicActions(
+      "setFont(testImg, font.name: foo)",
+      "drawMode(testImg, drawMode: kDrawModeFillBlack)",
+      "drawText(testImg, text: left, x: 0, y: 0)",
+      "setFont(testImg, font.name: foo)",
+      "drawMode(testImg, drawMode: kDrawModeFillBlack)",
+      "drawText(testImg, text: right, x: 260, y: 0)",
+    )
+
+  test "Row with only right aligned elements docks them all to the right":
+    const zeroPad = (0i32, 0i32, 0i32, 0i32)
+    row(
+      text("A", align = AlignRight, pad = zeroPad).fixedWidth(40),
+    ).draw(newSprite("testImg", 300, 100), font)
+    checkGraphicActions(
+      "setFont(testImg, font.name: foo)",
+      "drawMode(testImg, drawMode: kDrawModeFillBlack)",
+      "drawText(testImg, text: A, x: 292, y: 0)",
+    )
+
+  test "Right and left aligned in a row":
+    const zeroPad = (0i32, 0i32, 0i32, 0i32)
+    row(
+     text("left", pad = zeroPad) ,
+     text("A", align = AlignRight, pad = zeroPad).fixedWidth(40),
+     text("B", align = AlignRight, pad = zeroPad).fixedWidth(40),
+     text("C", align = AlignRight, pad = zeroPad).fixedWidth(40),
+    )
+    .draw(newSprite("testImg", 300, 100), font)
+    checkGraphicActions(
+      "setFont(testImg, font.name: foo)",
+      "drawMode(testImg, drawMode: kDrawModeFillBlack)",
+      "drawText(testImg, text: left, x: 0, y: 0)",
+      "setFont(testImg, font.name: foo)",
+      "drawMode(testImg, drawMode: kDrawModeFillBlack)",
+      "drawText(testImg, text: A, x: 212, y: 0)",
+      "setFont(testImg, font.name: foo)",
+      "drawMode(testImg, drawMode: kDrawModeFillBlack)",
+      "drawText(testImg, text: B, x: 252, y: 0)",
+      "setFont(testImg, font.name: foo)",
+      "drawMode(testImg, drawMode: kDrawModeFillBlack)",
+      "drawText(testImg, text: C, x: 292, y: 0)"
+    )
