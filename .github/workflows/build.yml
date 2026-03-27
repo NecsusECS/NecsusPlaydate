@@ -11,7 +11,7 @@ jobs:
       - run: git config --global --add safe.directory "$(pwd)"
       - name: Check exported that everything is exported
         run: |
-          find src/necsuspd -name "*.nim" -not -path "*/stubs/*" -not -name import_playdate.nim \
+          find src/necsuspd -maxdepth 1 -name "*.nim" -not -name import_playdate.nim \
             | cut -d/ -f3 \
             | cut -d. -f1 \
             | xargs -n1 echo export \

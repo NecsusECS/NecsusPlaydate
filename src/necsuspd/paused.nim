@@ -1,37 +1,23 @@
-import necsus, sprite, util, std/bitops, types
+import necsus, sprite, util, util/stateflips, types
 
 type
-  StateType = uint64
-
-  PausedState* = object ## Represents when an entity should be paused
-    states: StateType
-    typeId: TypeId
+  PausedState* = distinct StateFlip ## Represents when an entity should be paused
 
   EvaluatePausedState* = object ## An event to force the evaluation of paused entities
 
 proc pausedIn*[T: enum](states: set[T]): PausedState =
   ## Creates a PausedState instance; animation is paused when current state is in `states`
-  result.typeId = getTypeId(T)
-  for value in states:
-    const maxSize = sizeof(StateType) * 8
-    assert(
-      ord(value) <= maxSize,
-      "State value exceeds maximum allowed" & $ord(value) & " vs " & $maxSize,
-    )
-    result.states.flipBit(value.ord.StateType)
+  PausedState(stateFlip(states))
 
 proc pausedIn*[T: enum](states: varargs[T]): PausedState =
   ## Creates a PausedState instance; animation is paused when current state is in `states`
-  var fullList: set[T]
-  for state in states:
-    incl(fullList, state)
-  return pausedIn(fullList)
+  PausedState(stateFlip(states))
 
 template updatePaused(T, currentState, entities: typed) =
   for eid, (pausedState, entity) in entities:
-    if pausedState.typeId == getTypeId(T):
-      let stateBit = 1.StateType shl currentState.ord.StateType
-      let shouldPause = bitand(stateBit, pausedState.states) > 0
+    let flip = StateFlip(pausedState)
+    if flip.typeId == getTypeId(T):
+      let shouldPause = matchesState(flip.states, currentState)
       if shouldPause != entity.paused:
         log "Changing animation pause for ",
           eid, " to ", shouldPause, " for state ", currentState

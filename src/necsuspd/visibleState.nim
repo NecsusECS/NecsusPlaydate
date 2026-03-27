@@ -1,42 +1,28 @@
-import necsus, sprite, import_playdate, util, std/[bitops, strutils], types
+import necsus, sprite, import_playdate, util, util/stateflips, types
 
 type
-  StateType = uint64
-
-  VisibleState* = object
-    states: StateType
-    typeId: TypeId
+  VisibleState* = distinct StateFlip
 
   EvaluateVisibleState* = object
 
 proc visibility*[T: enum](states: set[T]): VisibleState =
   ## Creates a VisibleState instance
-  result.typeId = getTypeId(T)
-  for value in states:
-    const maxSize = sizeof(StateType) * 8
-    assert(
-      ord(value) <= maxSize,
-      "State value exceeds maximum allowed" & $ord(value) & " vs " & $maxSize,
-    )
-    result.states.flipBit(value.ord.StateType)
+  VisibleState(stateFlip(states))
 
 proc visibility*[T: enum](states: varargs[T]): VisibleState =
   ## Creates a VisibleState instance
-  var fullList: set[T]
-  for state in states:
-    incl(fullList, state)
-  return visibility(fullList)
+  VisibleState(stateFlip(states))
 
 proc isVisible*[T](visibility: VisibleState, state: Shared[T]): bool =
-  assert(visibility.typeId == getTypeId(T))
-  return state.get in cast[set[T]](visibility.states)
+  let flip = StateFlip(visibility)
+  assert(flip.typeId == getTypeId(T))
+  return matchesState(flip.states, state.get)
 
 template updateVisility(T, visibleState, entities: typed) =
   for eid, (visibility, entity) in entities:
-    if visibility.typeId == getTypeId(T):
-      let currentState = 1.StateType shl visibleState.ord.StateType
-      let entityVisibility = visibility.states
-      let expect = bitand(currentState, entityVisibility) > 0
+    let flip = StateFlip(visibility)
+    if flip.typeId == getTypeId(T):
+      let expect = matchesState(flip.states, visibleState)
       if expect != entity.visible:
         log "Changing entity visibility for ",
           eid, " to ", expect, " for state ", visibleState

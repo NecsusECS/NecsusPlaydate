@@ -1,5 +1,16 @@
 import
-  necsus, positioned, inputs, util, fpvec, std/options, vmath, fungus, findDir, sprite
+  necsus,
+  positioned,
+  inputs,
+  util,
+  util/stateflips,
+  fpvec,
+  std/options,
+  vmath,
+  fungus,
+  findDir,
+  sprite,
+  types
 
 adtEnum(Selected):
   NoSelection
@@ -11,6 +22,10 @@ export Selected, NoSelection, EntitySelected, FindDir, PDButton
 type
   Selectable* {.accessory.} = object
     ## A component that marks entities that are selectable
+
+  SelectableState* = distinct StateFlip
+
+  EvaluateSelectableState* = object
 
   CursorControlDirs[T] = object ## A component that controls the cursor
     find: FullQuery[(T, Selectable, Positioned, Option[Sprite], Option[Animation])]
@@ -101,3 +116,37 @@ template buildCursorUpdator*(name, typ: untyped, activeStates: set) =
       button: ButtonPushed, control: CursorControl[typ]
   ) {.active(activeStates), eventSys.} =
     control.update(button)
+
+proc selectableState*[T: enum](states: set[T]): SelectableState =
+  ## Creates a SelectableState component that marks an entity as selectable in the given states
+  SelectableState(stateFlip(states))
+
+proc selectableState*[T: enum](states: varargs[T]): SelectableState =
+  ## Creates a SelectableState component that marks an entity as selectable in the given states
+  SelectableState(stateFlip(states))
+
+template defineSelectableStateSystems*(name: untyped, T: typed): untyped =
+  ## Toggles the Selectable component on entities based on the current state
+  proc evalSelectableState(
+      _: EvaluateSelectableState,
+      state: Shared[T],
+      toAdd: FullQuery[(SelectableState, Not[Selectable])],
+      toRemove: FullQuery[(SelectableState, Selectable)],
+      attach: Attach[(Selectable,)],
+      detach: Detach[(Selectable,)],
+  ) {.eventSys.} =
+    for eid, (selectState, _) in toAdd:
+      let flip = StateFlip(selectState)
+      if flip.typeId == getTypeId(T) and matchesState(flip.states, state.get):
+        attach(eid, (Selectable(),))
+    for eid, (selectState, _) in toRemove:
+      let flip = StateFlip(selectState)
+      if flip.typeId == getTypeId(T) and not matchesState(flip.states, state.get):
+        detach(eid)
+
+  proc name(
+      state: Shared[T], previous: Local[T], trigger: Outbox[EvaluateSelectableState]
+  ) {.depends(evalSelectableState).} =
+    if previous.isEmpty or previous != state.get:
+      previous := state.get
+      trigger(EvaluateSelectableState())

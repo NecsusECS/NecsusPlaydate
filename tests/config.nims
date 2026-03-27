@@ -1,3 +1,3 @@
 switch("path", "$projectDir/../src")
 switch("d", "unittests")
-switch("experimental", "callOperator")
+switch("passC", "-Wno-error=incompatible-pointer-types")
