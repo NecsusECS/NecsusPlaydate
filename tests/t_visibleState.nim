@@ -1,17 +1,24 @@
-import std/[unittest, options], necsus, necsuspd/[visibleState, sprite], necsuspd/stubs/graphics, helpers
+import
+  std/[unittest, options],
+  necsus,
+  necsuspd/[visibleState, sprite],
+  necsuspd/stubs/graphics,
+  helpers
 
 type GameState* = enum
-  Idle, Running, GameOver
+  Idle
+  Running
+  GameOver
 
 defineVisibleStateSystems(checkVisibleState, GameState)
 
 proc runner(
-  state: Shared[GameState],
-  spawnSprite: FullSpawn[(VisibleState, Sprite)],
-  spawnAnim: FullSpawn[(VisibleState, Animation)],
-  getSprite: Lookup[(Sprite,)],
-  getAnim: Lookup[(Animation,)],
-  tick: proc(): void,
+    state: Shared[GameState],
+    spawnSprite: FullSpawn[(VisibleState, Sprite)],
+    spawnAnim: FullSpawn[(VisibleState, Animation)],
+    getSprite: Lookup[(Sprite,)],
+    getAnim: Lookup[(Animation,)],
+    tick: proc(): void,
 ) =
   test "isVisible returns true when state matches":
     state := Idle
@@ -61,6 +68,8 @@ proc runner(
     tick()
     check getAnim(e).get()[0].visible
 
-proc testVisibleState() {.necsus(runner, [~evalVisibleState, ~checkVisibleState], newNecsusConf()).}
+proc testVisibleState() {.
+  necsus(runner, [~evalVisibleState, ~checkVisibleState], newNecsusConf())
+.}
 
 testVisibleState()

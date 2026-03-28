@@ -193,10 +193,7 @@ iterator textLines(box: BoxElem, font: LCDFont, maxWidth: int32): string =
       yield text
 
 proc renderText(
-    executeDraw: static bool,
-    box: BoxElem,
-    defaultFont: LCDFont,
-    area: DrawArea,
+    executeDraw: static bool, box: BoxElem, defaultFont: LCDFont, area: DrawArea
 ): BoxDimens =
   let font = if box.font == nil: defaultFont else: box.font
 
@@ -229,11 +226,11 @@ proc renderText(
 # while recursiveDrawInner calls recursiveDraw on child elements so children get their
 # own size constraints applied.
 proc recursiveDraw(
-    executeDraw: static bool,
-    box: BoxElem,
-    img: LCDBitmap,
-    defaultFont: LCDFont,
-    area: DrawArea,
+  executeDraw: static bool,
+  box: BoxElem,
+  img: LCDBitmap,
+  defaultFont: LCDFont,
+  area: DrawArea,
 ): BoxDimens
 
 proc renderRow(

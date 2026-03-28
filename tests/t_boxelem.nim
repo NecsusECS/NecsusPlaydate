@@ -247,7 +247,8 @@ suite "Box Elem":
     row(
       img(newImage("small", 20, 20, kColorWhite)).fullWidth(),
       img(newImage("next", 30, 30, kColorWhite)),
-    ).draw(newSprite("testImg", 300, 100), font)
+    )
+      .draw(newSprite("testImg", 300, 100), font)
     checkGraphicActions(
       "drawMode(testImg, drawMode: kDrawModeCopy)",
       "drawBitmap(testImg, name: small, x: 0, y: 0)",
@@ -270,7 +271,7 @@ suite "Box Elem":
   test "Drawing a horizontal line":
     horizLine(2).draw(newSprite("testImg", 100, 100), font)
     checkGraphicActions(
-      "fillRect(testImg, x: 2, y: 2, width: 96, height: 2, color: kColorBlack)",
+      "fillRect(testImg, x: 2, y: 2, width: 96, height: 2, color: kColorBlack)"
     )
 
   test "Center aligned text":
@@ -292,24 +293,21 @@ suite "Box Elem":
 
   test "Right aligned natural-width element is right-docked in a row":
     const zeroPad = (0i32, 0i32, 0i32, 0i32)
-    row(
-      text("left", pad = zeroPad),
-      text("right", align = AlignRight, pad = zeroPad),
-    ).draw(newSprite("testImg", 300, 100), font)
+    row(text("left", pad = zeroPad), text("right", align = AlignRight, pad = zeroPad))
+      .draw(newSprite("testImg", 300, 100), font)
     checkGraphicActions(
       "setFont(testImg, font.name: foo)",
       "drawMode(testImg, drawMode: kDrawModeFillBlack)",
-      "drawText(testImg, text: left, x: 0, y: 0)",
-      "setFont(testImg, font.name: foo)",
+      "drawText(testImg, text: left, x: 0, y: 0)", "setFont(testImg, font.name: foo)",
       "drawMode(testImg, drawMode: kDrawModeFillBlack)",
       "drawText(testImg, text: right, x: 260, y: 0)",
     )
 
   test "Row with only right aligned elements docks them all to the right":
     const zeroPad = (0i32, 0i32, 0i32, 0i32)
-    row(
-      text("A", align = AlignRight, pad = zeroPad).fixedWidth(40),
-    ).draw(newSprite("testImg", 300, 100), font)
+    row(text("A", align = AlignRight, pad = zeroPad).fixedWidth(40)).draw(
+      newSprite("testImg", 300, 100), font
+    )
     checkGraphicActions(
       "setFont(testImg, font.name: foo)",
       "drawMode(testImg, drawMode: kDrawModeFillBlack)",
@@ -319,23 +317,20 @@ suite "Box Elem":
   test "Right and left aligned in a row":
     const zeroPad = (0i32, 0i32, 0i32, 0i32)
     row(
-     text("left", pad = zeroPad) ,
-     text("A", align = AlignRight, pad = zeroPad).fixedWidth(40),
-     text("B", align = AlignRight, pad = zeroPad).fixedWidth(40),
-     text("C", align = AlignRight, pad = zeroPad).fixedWidth(40),
+      text("left", pad = zeroPad),
+      text("A", align = AlignRight, pad = zeroPad).fixedWidth(40),
+      text("B", align = AlignRight, pad = zeroPad).fixedWidth(40),
+      text("C", align = AlignRight, pad = zeroPad).fixedWidth(40),
     )
-    .draw(newSprite("testImg", 300, 100), font)
+      .draw(newSprite("testImg", 300, 100), font)
     checkGraphicActions(
       "setFont(testImg, font.name: foo)",
       "drawMode(testImg, drawMode: kDrawModeFillBlack)",
-      "drawText(testImg, text: left, x: 0, y: 0)",
-      "setFont(testImg, font.name: foo)",
+      "drawText(testImg, text: left, x: 0, y: 0)", "setFont(testImg, font.name: foo)",
       "drawMode(testImg, drawMode: kDrawModeFillBlack)",
-      "drawText(testImg, text: A, x: 212, y: 0)",
-      "setFont(testImg, font.name: foo)",
+      "drawText(testImg, text: A, x: 212, y: 0)", "setFont(testImg, font.name: foo)",
       "drawMode(testImg, drawMode: kDrawModeFillBlack)",
-      "drawText(testImg, text: B, x: 252, y: 0)",
-      "setFont(testImg, font.name: foo)",
+      "drawText(testImg, text: B, x: 252, y: 0)", "setFont(testImg, font.name: foo)",
       "drawMode(testImg, drawMode: kDrawModeFillBlack)",
-      "drawText(testImg, text: C, x: 292, y: 0)"
+      "drawText(testImg, text: C, x: 292, y: 0)",
     )

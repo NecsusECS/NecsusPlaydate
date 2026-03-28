@@ -1,4 +1,4 @@
-import percent, necsus, util, types, std/[sets]
+import percent, necsus, util, types, std/[sets], import_playdate
 
 type
   LastLoadTick = BiggestUInt
@@ -13,6 +13,7 @@ type
     allTasks: Shared[HashSet[AllTasksKey]]
     remainingTasks: Shared[HashSet[TaskKey]]
     lastTick: Shared[LastLoadTick]
+    tickStartMs: Shared[uint]
     getTick: TickId
 
   LoadProgress* = object
@@ -60,14 +61,18 @@ proc shouldRunTask(control: Bundle[LoadTasks], taskId: TaskKey): bool =
     control.allTasks.getOrRaise.incl(taskId)
     control.remainingTasks.getOrRaise.incl(taskId)
 
-  # Only execute one task per tick
-  if control.lastTick == control.getTick():
+  # On a new tick, record the start time for budget tracking
+  if control.lastTick != control.getTick():
+    control.lastTick := control.getTick()
+    control.tickStartMs := playdate.system.getCurrentTimeMilliseconds()
+
+  # Stop executing tasks once the 20ms tick budget is used up
+  if playdate.system.getCurrentTimeMilliseconds() - control.tickStartMs.getOrRaise >= 20:
     return false
 
   if not control.remainingTasks.getOrRaise.contains(taskId):
     return false
 
-  control.lastTick := control.getTick()
   control.remainingTasks.getOrRaise.excl(taskId)
 
   return true

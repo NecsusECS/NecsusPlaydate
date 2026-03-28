@@ -102,5 +102,8 @@ proc logToConsole*(_: PlaydateSystem, message: string) =
 proc getElapsedTime*(_: PlaydateSystem): float32 =
   discard
 
+proc getCurrentTimeMilliseconds*(_: PlaydateSystem): uint32 =
+  discard
+
 proc setSerialMessageCallback*(_: PlaydateSystem, callback: proc(msg: string)) =
   discard
