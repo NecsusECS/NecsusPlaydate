@@ -149,6 +149,22 @@ proc achievement*[T: enum](
     scoreValue: scoreValue,
   )
 
+proc achievement*[T](
+    id: T,
+    name: string,
+    description: (string, string),
+    progressMax: Option[int] = none(int),
+    isSecret: bool = false,
+): AchievementDef[T] =
+  achievement[T](
+    id,
+    name,
+    description = description[0] & description[1],
+    descriptionLocked = some(description[0]),
+    progressMax = progressMax,
+    isSecret = isSecret,
+  )
+
 proc extractTargetFilename(value: Option[string]): Option[string] =
   ## Given a possible filename, returns the value that will be stored in the actual achievement
   ## json file. This is just the name of the file itself with all directories removed
