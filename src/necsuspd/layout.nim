@@ -135,11 +135,111 @@ proc minWidth*[T](control: T, elem: LayoutElem): int32 =
     result = minWidth(control, elem.padnested) + elem.padding.left + elem.padding.right
 
 proc update[T](
-    enact: static bool,
-    debug: static bool,
-    control: T,
-    elem: LayoutElem,
-    area: LayoutArea,
+    enact: static bool, debug: static bool, control: T, elem: LayoutElem, area: LayoutArea
+): LayoutDimens
+
+proc updateHoriz[T](
+    enact: static bool, debug: static bool, control: T, elem: LayoutElem, area: LayoutArea
+): LayoutDimens =
+  var nestedArea = area
+  let bounds = elem.align.bounds(minWidth(control, elem), area.left, area.right)
+  nestedArea.left = bounds.left
+  nestedArea.right = bounds.right
+  when debug:
+    if elem.align != AlignLeft:
+      log "  ",
+        elem.align,
+        " bounds: (l:",
+        bounds.left,
+        " r:",
+        bounds.right,
+        "), margins: ",
+        bounds.left - area.left,
+        "px left / ",
+        area.right - bounds.right,
+        "px right"
+  let (width, height) = update(enact, debug, control, elem.horizNested, nestedArea)
+  result.height = height
+  result.width =
+    case elem.align
+    of AlignLeft:
+      width
+    of AlignCenter, AlignRight:
+      area.right - area.left
+
+proc updateSprite[T](
+    enact: static bool, control: T, elem: LayoutElem, area: LayoutArea
+): LayoutDimens =
+  let entity = control.getEntity(elem.entityId)
+  if entity.isSome:
+    let (pos, dimens) = entity.unsafeGet()
+    when enact:
+      let newPos = ivec2(area.left.int32, area.top.int32)
+      `pos=`(pos, newPos)
+    result = dimens
+  else:
+    result = (0'i32, 0'i32)
+
+proc updateCard[T](
+    enact: static bool, debug: static bool, control: T, elem: LayoutElem, area: LayoutArea
+): LayoutDimens =
+  var currentArea = area
+  var nextRowTop = area.top
+  var currentWidth = 0'i32
+  for i, card in elem.cards:
+    if i mod elem.columns == 0:
+      currentArea.left = area.left
+      currentArea.top = nextRowTop
+      result.width = max(result.width, currentWidth)
+      currentWidth = 0
+    let (width, height) = update(enact, debug, control, card, currentArea)
+    nextRowTop = max(nextRowTop, currentArea.top + height)
+    currentArea.left += width
+    currentWidth += width
+  result.width = max(result.width, currentWidth)
+  result.height = nextRowTop - area.top
+
+proc updateStack[T](
+    enact: static bool, debug: static bool, control: T, elem: LayoutElem, area: LayoutArea
+): LayoutDimens =
+  var currentArea = area
+  for child in elem.stack:
+    let (width, height) = update(enact, debug, control, child, currentArea)
+    currentArea.top += height
+    result.width = max(result.width, width)
+  result.height = currentArea.top - area.top
+
+proc updateRow[T](
+    enact: static bool, debug: static bool, control: T, elem: LayoutElem, area: LayoutArea
+): LayoutDimens =
+  var currentArea = area
+  for child in elem.row:
+    let (width, height) = update(enact, debug, control, child, currentArea)
+    currentArea.left += width
+    result.height = max(result.height, height)
+  result.width = currentArea.left - area.left
+
+proc updatePad[T](
+    enact: static bool, debug: static bool, control: T, elem: LayoutElem, area: LayoutArea
+): LayoutDimens =
+  when debug:
+    if elem.padding != (left: 0'i32, right: 0'i32, top: 0'i32, bottom: 0'i32):
+      log "  padding: l=",
+        elem.padding.left, " r=", elem.padding.right, " t=", elem.padding.top, " b=",
+        elem.padding.bottom
+  let nestedArea = (
+    left: area.left + elem.padding.left,
+    right: area.right - elem.padding.right,
+    top: area.top + elem.padding.top,
+  )
+  let (width, height) = update(enact, debug, control, elem.padnested, nestedArea)
+  result = (
+    width: elem.padding.left + width + elem.padding.right,
+    height: elem.padding.top + height + elem.padding.bottom,
+  )
+
+proc update[T](
+    enact: static bool, debug: static bool, control: T, elem: LayoutElem, area: LayoutArea
 ): LayoutDimens =
   ## Recursively applies layout
   when debug:
@@ -147,91 +247,17 @@ proc update[T](
       elem.kind, " area=(l:", area.left, " r:", area.right, " t:", area.top, ")"
   case elem.kind
   of HorizLayout:
-    var nestedArea = area
-    let bounds = elem.align.bounds(minWidth(control, elem), area.left, area.right)
-    nestedArea.left = bounds.left
-    nestedArea.right = bounds.right
-    when debug:
-      if elem.align != AlignLeft:
-        log "  ",
-          elem.align,
-          " bounds: (l:",
-          bounds.left,
-          " r:",
-          bounds.right,
-          "), margins: ",
-          bounds.left - area.left,
-          "px left / ",
-          area.right - bounds.right,
-          "px right"
-
-    let (width, height) = update(enact, debug, control, elem.horizNested, nestedArea)
-
-    result.height = height
-    result.width =
-      case elem.align
-      of AlignLeft:
-        width
-      of AlignCenter, AlignRight:
-        area.right - area.left
+    result = updateHoriz(enact, debug, control, elem, area)
   of SpriteLayout:
-    let entity = control.getEntity(elem.entityId)
-    if entity.isSome:
-      let (pos, dimens) = entity.unsafeGet()
-      if enact:
-        let newPos = ivec2(area.left.int32, area.top.int32)
-        `pos=`(pos, newPos)
-      result = dimens
-    else:
-      result = (0'i32, 0'i32)
+    result = updateSprite(enact, control, elem, area)
   of CardLayout:
-    var currentArea = area
-    var nextRowTop = area.top
-    var currentWidth = 0'i32
-    for i, card in elem.cards:
-      if i mod elem.columns == 0:
-        currentArea.left = area.left
-        currentArea.top = nextRowTop
-        result.width = max(result.width, currentWidth)
-        currentWidth = 0
-
-      let (width, height) = update(enact, debug, control, card, currentArea)
-      nextRowTop = max(nextRowTop, currentArea.top + height)
-      currentArea.left += width
-      currentWidth += width
-
-    result.width = max(result.width, currentWidth)
-    result.height = nextRowTop - area.top
+    result = updateCard(enact, debug, control, elem, area)
   of StackLayout:
-    var currentArea = area
-    for child in elem.stack:
-      let (width, height) = update(enact, debug, control, child, currentArea)
-      currentArea.top += height
-      result.width = max(result.width, width)
-    result.height = currentArea.top - area.top
+    result = updateStack(enact, debug, control, elem, area)
   of RowLayout:
-    var currentArea = area
-    for child in elem.row:
-      let (width, height) = update(enact, debug, control, child, currentArea)
-      currentArea.left += width
-      result.height = max(result.height, height)
-    result.width = currentArea.left - area.left
+    result = updateRow(enact, debug, control, elem, area)
   of PadLayout:
-    when debug:
-      if elem.padding != (left: 0'i32, right: 0'i32, top: 0'i32, bottom: 0'i32):
-        log "  padding: l=",
-          elem.padding.left, " r=", elem.padding.right, " t=", elem.padding.top, " b=",
-          elem.padding.bottom
-    let nestedArea = (
-      left: area.left + elem.padding.left,
-      right: area.right - elem.padding.right,
-      top: area.top + elem.padding.top,
-    )
-    let (width, height) = update(enact, debug, control, elem.padnested, nestedArea)
-    result = (
-      width: elem.padding.left + width + elem.padding.right,
-      height: elem.padding.top + height + elem.padding.bottom,
-    )
+    result = updatePad(enact, debug, control, elem, area)
   when debug:
     log "  -> (w:", result.width, " h:", result.height, ")"
 
