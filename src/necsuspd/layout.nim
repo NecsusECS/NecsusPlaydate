@@ -135,17 +135,37 @@ proc minWidth*[T](control: T, elem: LayoutElem): int32 =
     result = minWidth(control, elem.padnested) + elem.padding.left + elem.padding.right
 
 proc update[T](
-    enact: static bool, control: T, elem: LayoutElem, area: LayoutArea
+    enact: static bool,
+    debug: static bool,
+    control: T,
+    elem: LayoutElem,
+    area: LayoutArea,
 ): LayoutDimens =
   ## Recursively applies layout
+  when debug:
+    log "layout ",
+      elem.kind, " area=(l:", area.left, " r:", area.right, " t:", area.top, ")"
   case elem.kind
   of HorizLayout:
     var nestedArea = area
     let bounds = elem.align.bounds(minWidth(control, elem), area.left, area.right)
     nestedArea.left = bounds.left
     nestedArea.right = bounds.right
+    when debug:
+      if elem.align != AlignLeft:
+        log "  ",
+          elem.align,
+          " bounds: (l:",
+          bounds.left,
+          " r:",
+          bounds.right,
+          "), margins: ",
+          bounds.left - area.left,
+          "px left / ",
+          area.right - bounds.right,
+          "px right"
 
-    let (width, height) = update(enact, control, elem.horizNested, nestedArea)
+    let (width, height) = update(enact, debug, control, elem.horizNested, nestedArea)
 
     result.height = height
     result.width =
@@ -161,9 +181,9 @@ proc update[T](
       if enact:
         let newPos = ivec2(area.left.int32, area.top.int32)
         `pos=`(pos, newPos)
-      return dimens
+      result = dimens
     else:
-      return (0'i32, 0'i32)
+      result = (0'i32, 0'i32)
   of CardLayout:
     var currentArea = area
     var nextRowTop = area.top
@@ -175,7 +195,7 @@ proc update[T](
         result.width = max(result.width, currentWidth)
         currentWidth = 0
 
-      let (width, height) = update(enact, control, card, currentArea)
+      let (width, height) = update(enact, debug, control, card, currentArea)
       nextRowTop = max(nextRowTop, currentArea.top + height)
       currentArea.left += width
       currentWidth += width
@@ -185,35 +205,48 @@ proc update[T](
   of StackLayout:
     var currentArea = area
     for child in elem.stack:
-      let (width, height) = update(enact, control, child, currentArea)
+      let (width, height) = update(enact, debug, control, child, currentArea)
       currentArea.top += height
       result.width = max(result.width, width)
     result.height = currentArea.top - area.top
   of RowLayout:
     var currentArea = area
     for child in elem.row:
-      let (width, height) = update(enact, control, child, currentArea)
+      let (width, height) = update(enact, debug, control, child, currentArea)
       currentArea.left += width
       result.height = max(result.height, height)
     result.width = currentArea.left - area.left
   of PadLayout:
+    when debug:
+      if elem.padding != (left: 0'i32, right: 0'i32, top: 0'i32, bottom: 0'i32):
+        log "  padding: l=",
+          elem.padding.left, " r=", elem.padding.right, " t=", elem.padding.top, " b=",
+          elem.padding.bottom
     let nestedArea = (
       left: area.left + elem.padding.left,
       right: area.right - elem.padding.right,
       top: area.top + elem.padding.top,
     )
-    let (width, height) = update(enact, control, elem.padnested, nestedArea)
-    return (
+    let (width, height) = update(enact, debug, control, elem.padnested, nestedArea)
+    result = (
       width: elem.padding.left + width + elem.padding.right,
       height: elem.padding.top + height + elem.padding.bottom,
     )
+  when debug:
+    log "  -> (w:", result.width, " h:", result.height, ")"
 
 proc dimens*[T](elem: LayoutElem, control: T, x, y, width: int32): LayoutDimens =
   ## Calculates the dimensions a layout will take without moving anything
-  update(false, control, elem, (x, x + width, y))
+  update(false, false, control, elem, (x, x + width, y))
 
 proc layout*[T](
     elem: LayoutElem, control: T, x, y, width: int32
 ): LayoutDimens {.discardable.} =
   ## Applies layout operations to a set of elements
-  update(true, control, elem, (x, x + width, y))
+  update(true, false, control, elem, (x, x + width, y))
+
+proc debugLayout*[T](
+    elem: LayoutElem, control: T, x, y, width: int32
+): LayoutDimens {.discardable.} =
+  ## Like `layout` but logs positioning calculations to console
+  update(true, true, control, elem, (x, x + width, y))
