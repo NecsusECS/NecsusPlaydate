@@ -15,8 +15,7 @@ proc drawCombBeam*(img: LCDBitmap, a, b: IVec2, rng: var Rand) =
   ## Draws a comb beam from `a` to `b`. A solid core line runs between the
   ## two points, with randomly-spaced perpendicular tick marks of random length.
   img.getBitmapMask.clear(kColorBlack)
-  playdate.graphics.pushContext(img.getBitmapMask)
-  try:
+  img.getBitmapMask.drawContext:
     playdate.graphics.drawLine(a.x.int, a.y.int, b.x.int, b.y.int, 1, kColorWhite)
 
     let delta = (b - a).toFPVec2()
@@ -37,15 +36,12 @@ proc drawCombBeam*(img: LCDBitmap, a, b: IVec2, rng: var Rand) =
         tickStart.x.int, tickStart.y.int, tickEnd.x.int, tickEnd.y.int, 1, kColorWhite
       )
       t += fp(rng.rand(MIN_TICK_SPACING .. MAX_TICK_SPACING))
-  finally:
-    playdate.graphics.popContext()
 
 proc drawSinusoidalBeam*(img: LCDBitmap, a, b: IVec2, phase: float) =
   ## Draws two sinusoidal waves from `a` to `b`, tapering at both endpoints.
   ## `phase` controls the wave animation offset.
   img.getBitmapMask.clear(kColorBlack)
-  playdate.graphics.pushContext(img.getBitmapMask)
-  try:
+  img.getBitmapMask.drawContext:
     let delta = (b - a).toFPVec2()
     let dist = delta.length.toFloat()
     if dist < 1.0:
@@ -79,8 +75,6 @@ proc drawSinusoidalBeam*(img: LCDBitmap, a, b: IVec2, phase: float) =
       prevPoint2 = point2
       first = false
       t += SINUS_STEP
-  finally:
-    playdate.graphics.popContext()
 
 let sparse = block:
   ## A sparse checkerboard pattern used for rendering the laser
