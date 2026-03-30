@@ -23,6 +23,7 @@ type
   BitmapData* = ref BitmapDataObj
 
   LCDPattern* = ref object
+    data: array[16, uint8]
 
   PDStringEncoding* = enum
     kASCIIEncoding
@@ -265,7 +266,10 @@ proc rowbytes*(this: BitmapDataObj): int =
 proc makeLCDPattern*(
     r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, ra, rb, rc, rd, re, rf: uint8
 ): LCDPattern =
-  raiseAssert("Unimplemented")
+  LCDPattern(data: [r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, ra, rb, rc, rd, re, rf])
+
+proc drawLine*(g: PlaydateGraphics, x1, y1, x2, y2, w: int, c: LCDPattern) =
+  discard
 
 proc newBitmapTable*(_: PlaydateGraphics, path: string): LCDBitmapTable =
   raiseAssert("Unsupported")

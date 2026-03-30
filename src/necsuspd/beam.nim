@@ -1,4 +1,4 @@
-import import_playdate, vmath, std/[random, math], fpvec
+import import_playdate, vmath, std/[random, math], fpvec, draw
 
 const
   MIN_TICK_SPACING = 4
@@ -81,3 +81,60 @@ proc drawSinusoidalBeam*(img: LCDBitmap, a, b: IVec2, phase: float) =
       t += SINUS_STEP
   finally:
     playdate.graphics.popContext()
+
+let sparse = block:
+  ## A sparse checkerboard pattern used for rendering the laser
+  let X = kColorBlack
+  let O = kColorWhite
+  makePattern(
+    [X, X, X, O, X, X, X, O],
+    [X, O, X, X, X, O, X, X],
+    [X, X, O, X, X, X, O, X],
+    [O, X, X, X, O, X, X, X],
+    [X, X, X, O, X, X, X, O],
+    [X, O, X, X, X, O, X, X],
+    [X, X, O, X, X, X, O, X],
+    [O, X, X, X, O, X, X, X],
+  )
+
+let checkered = block:
+  ## A checkerboard pattern used for rendering the laser
+  let X = kColorBlack
+  let O = kColorWhite
+  makePattern(
+    [X, O, X, O, X, O, X, O],
+    [O, X, O, X, O, X, O, X],
+    [X, O, X, O, X, O, X, O],
+    [O, X, O, X, O, X, O, X],
+    [X, O, X, O, X, O, X, O],
+    [O, X, O, X, O, X, O, X],
+    [X, O, X, O, X, O, X, O],
+    [O, X, O, X, O, X, O, X],
+  )
+
+proc drawLaserBeam*(img: LCDBitmap, step: uint, origin: IVec2, target: IVec2): bool =
+  ## Draws an animated laser beam from `origin` to `target`.
+  ## `step` is the animation frame counter. Returns false when the animation is complete (step >= 3).
+  const lineWidth = [2, 1, 1, 1]
+
+  template line(color) =
+    playdate.graphics.drawLine(
+      origin.x.int,
+      origin.y.int,
+      target.x.int,
+      target.y.int,
+      lineWidth[step mod 4],
+      color,
+    )
+
+  img.getBitmapMask.clear(kColorBlack)
+  img.getBitmapMask.drawContext:
+    case step mod 4
+    of 3:
+      line(sparse)
+    of 2:
+      line(checkered)
+    else:
+      line(kColorWhite)
+
+  return step < 3
