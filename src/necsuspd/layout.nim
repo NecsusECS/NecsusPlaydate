@@ -135,11 +135,15 @@ proc minWidth*[T](control: T, elem: LayoutElem): int32 =
     result = minWidth(control, elem.padnested) + elem.padding.left + elem.padding.right
 
 proc update[T](
-    enact: static bool, debug: static bool, control: T, elem: LayoutElem, area: LayoutArea
+  enact: static bool, debug: static bool, control: T, elem: LayoutElem, area: LayoutArea
 ): LayoutDimens
 
 proc updateHoriz[T](
-    enact: static bool, debug: static bool, control: T, elem: LayoutElem, area: LayoutArea
+    enact: static bool,
+    debug: static bool,
+    control: T,
+    elem: LayoutElem,
+    area: LayoutArea,
 ): LayoutDimens =
   var nestedArea = area
   let bounds = elem.align.bounds(minWidth(control, elem), area.left, area.right)
@@ -181,7 +185,11 @@ proc updateSprite[T](
     result = (0'i32, 0'i32)
 
 proc updateCard[T](
-    enact: static bool, debug: static bool, control: T, elem: LayoutElem, area: LayoutArea
+    enact: static bool,
+    debug: static bool,
+    control: T,
+    elem: LayoutElem,
+    area: LayoutArea,
 ): LayoutDimens =
   var currentArea = area
   var nextRowTop = area.top
@@ -200,7 +208,11 @@ proc updateCard[T](
   result.height = nextRowTop - area.top
 
 proc updateStack[T](
-    enact: static bool, debug: static bool, control: T, elem: LayoutElem, area: LayoutArea
+    enact: static bool,
+    debug: static bool,
+    control: T,
+    elem: LayoutElem,
+    area: LayoutArea,
 ): LayoutDimens =
   var currentArea = area
   for child in elem.stack:
@@ -210,7 +222,11 @@ proc updateStack[T](
   result.height = currentArea.top - area.top
 
 proc updateRow[T](
-    enact: static bool, debug: static bool, control: T, elem: LayoutElem, area: LayoutArea
+    enact: static bool,
+    debug: static bool,
+    control: T,
+    elem: LayoutElem,
+    area: LayoutArea,
 ): LayoutDimens =
   var currentArea = area
   for child in elem.row:
@@ -220,7 +236,11 @@ proc updateRow[T](
   result.width = currentArea.left - area.left
 
 proc updatePad[T](
-    enact: static bool, debug: static bool, control: T, elem: LayoutElem, area: LayoutArea
+    enact: static bool,
+    debug: static bool,
+    control: T,
+    elem: LayoutElem,
+    area: LayoutArea,
 ): LayoutDimens =
   when debug:
     if elem.padding != (left: 0'i32, right: 0'i32, top: 0'i32, bottom: 0'i32):
@@ -239,7 +259,11 @@ proc updatePad[T](
   )
 
 proc update[T](
-    enact: static bool, debug: static bool, control: T, elem: LayoutElem, area: LayoutArea
+    enact: static bool,
+    debug: static bool,
+    control: T,
+    elem: LayoutElem,
+    area: LayoutArea,
 ): LayoutDimens =
   ## Recursively applies layout
   when debug:
