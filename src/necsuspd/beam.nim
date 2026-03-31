@@ -106,29 +106,72 @@ let checkered = block:
     [O, X, O, X, O, X, O, X],
   )
 
-proc drawLaserBeam*(img: LCDBitmap, step: uint, origin: IVec2, target: IVec2): bool =
-  ## Draws an animated laser beam from `origin` to `target`.
-  ## `step` is the animation frame counter. Returns false when the animation is complete (step >= 3).
-  const lineWidth = [2, 1, 1, 1]
+proc drawAnimatedLine(ax, ay, bx, by: int, step: uint) =
+  ## Draws a single line segment using the animated laser style for the given `step`.
+  const lineWidths = [2, 1, 1, 1]
+  let lw = lineWidths[int(step mod 4)]
+  case step mod 4
+  of 3:
+    playdate.graphics.drawLine(ax, ay, bx, by, lw, sparse)
+  of 2:
+    playdate.graphics.drawLine(ax, ay, bx, by, lw, checkered)
+  else:
+    playdate.graphics.drawLine(ax, ay, bx, by, lw, kColorWhite)
 
-  template line(color) =
-    playdate.graphics.drawLine(
-      origin.x.int,
-      origin.y.int,
-      target.x.int,
-      target.y.int,
-      lineWidth[step mod 4],
-      color,
-    )
+proc drawJaggedSegment(
+    rng: var Rand,
+    perp: FPVec2,
+    beamOrigin, beamTarget: IVec2,
+    beamDistSq: float,
+    a, b: IVec2,
+    width, depth: int32,
+    step: uint,
+) =
+  if a.distSq(b) < 100 or depth > 5:
+    drawAnimatedLine(a.x.int, a.y.int, b.x.int, b.y.int, step)
+    return
+  let mid = a + ((b - a) div 2)
+  let beamDelta = beamTarget - beamOrigin
+  let projected =
+    float(mid.x - beamOrigin.x) * float(beamDelta.x) +
+    float(mid.y - beamOrigin.y) * float(beamDelta.y)
+  let s = sin(projected / beamDistSq * PI)
+  let taper = s * s
+  let maxJitter = max(1'i32, int32(float(width * 8 div (depth + 3)) * taper))
+  let offset = (rng.rand(0'i32 .. maxJitter) - maxJitter div 2).fp
+  let displaced = toIVec2(mid.toFPVec2() + perp * offset)
+  drawJaggedSegment(
+    rng, perp, beamOrigin, beamTarget, beamDistSq, a, displaced, width, depth + 1, step
+  )
+  drawJaggedSegment(
+    rng, perp, beamOrigin, beamTarget, beamDistSq, displaced, b, width, depth + 1, step
+  )
+
+proc drawJaggedBeam*(img: LCDBitmap, step: uint, origin, target: IVec2): bool =
+  ## Draws an animated jagged beam from `origin` to `target`.
+  ## The path is deterministic (derived from the endpoints) and stays the same across animation frames.
+  ## `step` controls the animation; uses the same drawing style as the laser beam.
+  ## Returns false when the animation is complete (step >= 3).
+  const width = 20'i32
+  let seed =
+    BiggestUInt(origin.x) * 73856093 xor BiggestUInt(origin.y) * 19349663 xor
+    BiggestUInt(target.x) * 83492791 xor BiggestUInt(target.y) * 53842781
+  var rng = initRand(seed.int64)
+  let delta = target - origin
+  let beamDistSq = float(delta.x * delta.x + delta.y * delta.y)
+  let perp = delta.toFPVec2().perpendicular().normalize()
 
   img.getBitmapMask.clear(kColorBlack)
   img.getBitmapMask.drawContext:
-    case step mod 4
-    of 3:
-      line(sparse)
-    of 2:
-      line(checkered)
-    else:
-      line(kColorWhite)
+    drawJaggedSegment(
+      rng, perp, origin, target, beamDistSq, origin, target, width, 0, step
+    )
+  return step < 3
 
+proc drawLaserBeam*(img: LCDBitmap, step: uint, origin: IVec2, target: IVec2): bool =
+  ## Draws an animated laser beam from `origin` to `target`.
+  ## `step` is the animation frame counter. Returns false when the animation is complete (step >= 3).
+  img.getBitmapMask.clear(kColorBlack)
+  img.getBitmapMask.drawContext:
+    drawAnimatedLine(origin.x.int, origin.y.int, target.x.int, target.y.int, step)
   return step < 3
