@@ -6,7 +6,7 @@ import
     layout, lightning, loading, moveTo, multistep, obfuscate, particles, percent, pool,
     positioned, pulse, rand, shake, singleton, sprite, textwrap, time, timer, treeSeq,
     triggerBox, types, util, vec_tools, viewport, visibleState, choices, intersects,
-    rotations, raycasts, paused, beam, beamfx, ldtk,
+    rotations, raycasts, paused, beam, beamfx, ldtk, ldtk_draw
   ]
 
 export achievements
@@ -43,6 +43,7 @@ export inputs
 export intersects
 export layout
 export ldtk
+export ldtk_draw
 export lightning
 export loading
 export moveTo
