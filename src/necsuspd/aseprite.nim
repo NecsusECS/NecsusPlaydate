@@ -272,25 +272,38 @@ proc findKeyframes[K: enum](sheet: SpriteSheet, ignore: set[K]): KeyframeTable[K
     if key notin usedKeyframes and key notin ignore:
       sheet.error(fmt"Keyframe '{key}' is not specified in sprite sheet")
 
+proc totalDurationMs(sheet: SpriteSheet, frameRange: Slice[int32]): float32 =
+  var totalMs: int32
+  for frame in frameRange:
+    totalMs += sheet.frames[frame].duration
+  return totalMs.float32
+
 proc strideToSpeed*(sheet: SpriteSheet, sliceName: string): float32 =
-  ## Calculate the speed from the position of a slice
+  ## Calculate the speed from the position of a slice.
+  ## If the slice has only one key, the distance is derived from max(width, height)
+  ## of the slice bounds, and the user data field is parsed as the frame count for timing.
   let slice = sheet.slice(sliceName)
-  if slice.keys.len < 2:
-    sheet.error(fmt"Slice '{sliceName}' must have at least 2 keys")
+  if slice.keys.len == 0:
+    sheet.error(fmt"Slice '{sliceName}' must have at least 1 key")
     return
 
-  let sorted = slice.keys.sortedByIt(it.bounds.x)
-  let first = sorted[0]
-  let last = sorted[^1]
-
-  var totalMs = 0
-  for frame in min(first.frame, last.frame) .. max(first.frame, last.frame):
-    totalMs += sheet.frames[frame].duration
-
-  let firstCoord = vec2(first.bounds.x.float32, first.bounds.y.float32)
-  let lastCoord = vec2(last.bounds.x.float32, last.bounds.y.float32)
-
-  return (firstCoord.dist(lastCoord) + 1) / totalMs.float32 * 1000
+  if slice.keys.len == 1:
+    let key = slice.keys[0]
+    let distance = max(key.bounds.w, key.bounds.h).float32
+    let lastFrame = key.frame + slice.data.parseInt().int32
+    let totalMs = sheet.totalDurationMs(key.frame ..< lastFrame)
+    return distance / totalMs * 1000
+  else:
+    let sorted = slice.keys.sortedByIt(it.bounds.x)
+    let first = sorted[0]
+    let last = sorted[^1]
+    let firstCoord = vec2(first.bounds.x.float32, first.bounds.y.float32)
+    let lastCoord = vec2(last.bounds.x.float32, last.bounds.y.float32)
+    let distance = firstCoord.dist(lastCoord) + 1
+    let totalMs = sheet.totalDurationMs(
+      min(first.frame, last.frame) .. max(first.frame, last.frame)
+    )
+    return distance / totalMs * 1000
 
 proc loadAsepriteJson*(path: string): SpriteSheet {.compileTime.} =
   let json = parseJson(slurp(getProjectPath() & "/../" & path))
