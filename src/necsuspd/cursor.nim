@@ -23,7 +23,7 @@ type
   Selectable* {.accessory.} = object
     ## A component that marks entities that are selectable
 
-  SelectableState* = distinct StateFlip
+  SelectableState* {.accessory.} = distinct StateFlip
 
   EvaluateSelectableState* = object
 
