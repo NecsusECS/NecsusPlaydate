@@ -289,3 +289,10 @@ proc len*(kind: typedesc[enum]): int32 =
   ## Returns the number of entries in an enum
   const size = fullSet(kind).card.int32
   return size
+
+template mapIt*(kind: typedesc[enum], body: untyped): untyped =
+  ## Produces an array indexed by `kind`, evaluating `body` for each value with `it` bound to that value
+  var output: array[kind, typeof((var it {.inject.}: kind; body))]
+  for it {.inject.} in kind:
+    output[it] = body
+  output
