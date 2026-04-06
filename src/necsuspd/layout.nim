@@ -77,6 +77,10 @@ proc stackLayout*(stack: varargs[LayoutElem]): LayoutElem =
   ## Stacks values on top of each other
   LayoutElem(kind: StackLayout, stack: stack.toSeq)
 
+proc stackLayout*(stack: seq[LayoutElem]): LayoutElem =
+  ## Stacks values on top of each other
+  LayoutElem(kind: StackLayout, stack: stack)
+
 proc rowLayout*(row: varargs[LayoutElem]): LayoutElem =
   ## Aligns layout elements in a row
   LayoutElem(kind: RowLayout, row: row.toSeq)
