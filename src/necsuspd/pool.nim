@@ -168,3 +168,28 @@ macro singleton*(def: typed): untyped =
     `singletonProc`
 
   # echo result.repr
+
+macro lazy*(args: varargs[untyped]): untyped =
+  ## Declares a lazily-initialized template. Supports two syntaxes:
+  ##   lazy name: body
+  ##   lazy name = expr
+  let (name, body) =
+    if args.len == 2 and args[0].kind == nnkExprEqExpr:
+      # lazy name = lhsExpr: colonBody — colon block got attached to lazy, not lhsExpr
+      # Reconstruct: lhsExpr(colonBody)
+      (args[0][0], newNimNode(nnkCall).add(args[0][1]).add(args[1]))
+    elif args.len == 2:
+      (args[0], args[1])
+    elif args.len == 1 and args[0].kind == nnkExprEqExpr:
+      (args[0][0], args[0][1])
+    else:
+      error("Expected 'lazy name: body' or 'lazy name = expr'", args)
+
+  let procName = genSym(nskProc, name.strVal & "LazyInit")
+
+  result = quote:
+    proc `procName`(): typeof(`body`) {.singleton.} =
+      return `body`
+
+    template `name`(): typeof(`body`) =
+      `procName`()

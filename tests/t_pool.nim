@@ -116,3 +116,34 @@ suite "Pooling values":
     check(value2.name == "foobar")
     check(value2.id == 1)
     check(singletonIds == 1)
+
+suite "Lazy values":
+  test "body not evaluated until first access":
+    var count = 0
+    lazy myVal:
+      count += 1
+      42
+    check(count == 0)
+    check(myVal == 42)
+    check(count == 1)
+
+  test "body evaluated only once on repeated access":
+    var count = 0
+    lazy myVal:
+      count += 1
+      "hello"
+    check(myVal == "hello")
+    check(myVal == "hello")
+    check(count == 1)
+
+  test "lazy value returns correct result":
+    lazy myVal:
+      1 + 2
+    check(myVal == 3)
+
+  test "equals-syntax works the same":
+    var count = 0
+    lazy myVal = (count += 1; 99)
+    check(count == 0)
+    check(myVal == 99)
+    check(count == 1)
