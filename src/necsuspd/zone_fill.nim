@@ -18,7 +18,7 @@
 ## the midpoint tile of that shared edge, suitable as a waypoint for agents
 ## transitioning between zones.
 
-import std/[options], vmath
+import std/[hashes, options], vmath
 
 type
   ZoneFillInput* = concept m
@@ -38,23 +38,28 @@ type
     zones: seq[Zone]
     tileToZone: array[H, array[W, Option[ZoneId]]]
 
-proc id*(zone: Zone): ZoneId = zone.id
-  ## The unique id of this zone.
+proc hash*(id: ZoneId): Hash {.borrow.}
+proc `<`*(a, b: ZoneId): bool {.borrow.}
 
-proc bounds*(zone: Zone): ZoneRect = zone.bounds
-  ## The bounding rectangle of this zone.
+proc id*(zone: Zone): ZoneId = ## The unique id of this zone.
+  zone.id
 
-proc adjacent*(zone: Zone): seq[ZoneId] = zone.adjacent
+proc bounds*(zone: Zone): ZoneRect = ## The bounding rectangle of this zone.
+  zone.bounds
+
+proc adjacent*(zone: Zone): seq[ZoneId] =
   ## The ids of all zones that share an edge with this zone.
+  zone.adjacent
 
-proc zoneCount*[W, H: static int32](map: ZoneMap[W, H]): int = map.zones.len
+proc zoneCount*[W, H: static int32](map: ZoneMap[W, H]): int =
   ## The total number of zones in the map.
+  map.zones.len
 
-proc `[]`*[W, H: static int32](map: ZoneMap[W, H], i: int): Zone = map.zones[i]
+proc `[]`*[W, H: static int32](map: ZoneMap[W, H], i: int): Zone =
   ## Returns the zone at index i (equivalent to the zone with ZoneId(i)).
+  map.zones[i]
 
-proc `==`*(a, b: ZoneId): bool {.borrow.}
-  ## Equality for ZoneId.
+proc `==`*(a, b: ZoneId): bool {.borrow.} ## Equality for ZoneId.
 
 proc `$`*(id: ZoneId): string =
   ## Renders a ZoneId as its underlying integer value.
@@ -108,7 +113,11 @@ proc sharedEdgeMidpoint*(a, b: ZoneRect): IVec2 =
     let hi = min(a.maxCol, b.maxCol)
     return ivec2((lo + hi) div 2, a.minRow)
   else:
-    raise newException(ValueError, "Zones " & $a & " and " & $b & " do not share an edge")
+    raise
+      newException(ValueError, "Zones " & $a & " and " & $b & " do not share an edge")
+
+proc sharedEdgeMidpoint*(a, b: Zone): IVec2 =
+  sharedEdgeMidpoint(a.bounds, b.bounds)
 
 proc isValid(zone: Zone, input: ZoneFillInput): bool =
   ## Returns true if every tile within the zone's bounds is passable.
@@ -137,21 +146,32 @@ proc edgeFree[W, H: static int32](
       return false
   return true
 
-proc canExpandLeft[W, H: static int32](map: ZoneMap[W, H], input: ZoneFillInput, b: ZoneRect): bool =
+proc canExpandLeft[W, H: static int32](
+    map: ZoneMap[W, H], input: ZoneFillInput, b: ZoneRect
+): bool =
   ## Returns true if b can grow one column to the left.
   b.minCol > 0 and edgeFree[W, H](map, input, b.minCol - 1, b.minRow, b.maxRow, true)
 
-proc canExpandRight[W, H: static int32](map: ZoneMap[W, H], input: ZoneFillInput, b: ZoneRect): bool =
+proc canExpandRight[W, H: static int32](
+    map: ZoneMap[W, H], input: ZoneFillInput, b: ZoneRect
+): bool =
   ## Returns true if b can grow one column to the right.
-  b.maxCol < W - 1 and edgeFree[W, H](map, input, b.maxCol + 1, b.minRow, b.maxRow, true)
+  b.maxCol < W - 1 and edgeFree[W, H](
+    map, input, b.maxCol + 1, b.minRow, b.maxRow, true
+  )
 
-proc canExpandUp[W, H: static int32](map: ZoneMap[W, H], input: ZoneFillInput, b: ZoneRect): bool =
+proc canExpandUp[W, H: static int32](
+    map: ZoneMap[W, H], input: ZoneFillInput, b: ZoneRect
+): bool =
   ## Returns true if b can grow one row upward.
   b.minRow > 0 and edgeFree[W, H](map, input, b.minRow - 1, b.minCol, b.maxCol, false)
 
-proc canExpandDown[W, H: static int32](map: ZoneMap[W, H], input: ZoneFillInput, b: ZoneRect): bool =
+proc canExpandDown[W, H: static int32](
+    map: ZoneMap[W, H], input: ZoneFillInput, b: ZoneRect
+): bool =
   ## Returns true if b can grow one row downward.
-  b.maxRow < H - 1 and edgeFree[W, H](map, input, b.maxRow + 1, b.minCol, b.maxCol, false)
+  b.maxRow < H - 1 and
+    edgeFree[W, H](map, input, b.maxRow + 1, b.minCol, b.maxCol, false)
 
 proc floodZone[W, H: static int32](
     map: ZoneMap[W, H], input: ZoneFillInput, startPos: IVec2
@@ -189,7 +209,8 @@ proc detectZones*[W, H: static int32](map: var ZoneMap[W, H], input: ZoneFillInp
   ## Predefined zones registered with addZone are validated and seeded first;
   ## the flood fill then covers all remaining passable tiles.
   for zone in map.zones:
-    assert zone.isValid(input), "Predefined zone " & $zone.id & " contains non-passable tiles"
+    assert zone.isValid(input),
+      "Predefined zone " & $zone.id & " contains non-passable tiles"
   for row in 0'i32 ..< H:
     for col in 0'i32 ..< W:
       let pos = ivec2(col, row)
