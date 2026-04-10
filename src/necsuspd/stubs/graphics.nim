@@ -157,6 +157,9 @@ proc fill*(font: Font): int =
 proc fillRect*(graphics: PlaydateGraphics, x, y, width, height: int, color: Color) =
   record("fillRect", x, y, width, height, color)
 
+proc drawRect*(graphics: PlaydateGraphics, x, y, width, height: int, color: Color) =
+  record("drawRect", x, y, width, height, color)
+
 proc pushContext*(graphics: PlaydateGraphics, img: Image) =
   graphics.context.add(img)
 
