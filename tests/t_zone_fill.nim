@@ -1,4 +1,4 @@
-import std/[unittest, sets, options], necsuspd/zone_fill, necsuspd/fpvec, vmath
+import std/[unittest, sets, options, strutils], necsuspd/zone_fill, necsuspd/fpvec, vmath
 
 # ---------------------------------------------------------------------------
 # Test helpers
@@ -15,6 +15,9 @@ proc parseMap(rows: openarray[string]): TestMap =
     for x, ch in row:
       if ch == '.':
         result.passable.incl(ivec2(x.int32, y.int32))
+
+proc `==`[W, H: static int32](m: ZoneMap[W, H], rows: openarray[string]): bool =
+  $m == rows.join("\n")
 
 const W = 10'i32
 const H = 5'i32
@@ -36,8 +39,15 @@ suite "Zone detection":
       "##########",
     ])
     #!fmt: on
-    check m.zoneCount == 1
-    check m[0].bounds == (3'i32, 2'i32, 3'i32, 2'i32)
+    #!fmt: off
+    check m == [
+      "..........",
+      "..........",
+      "...a......",
+      "..........",
+      "..........",
+    ]
+    #!fmt: on
 
   test "Open rectangle becomes a single zone":
     #!fmt: off
@@ -49,8 +59,15 @@ suite "Zone detection":
       "##########",
     ])
     #!fmt: on
-    check m.zoneCount == 1
-    check m[0].bounds == (1'i32, 1'i32, 7'i32, 3'i32)
+    #!fmt: off
+    check m == [
+      "..........",
+      ".aaaaaaa..",
+      ".aaaaaaa..",
+      ".aaaaaaa..",
+      "..........",
+    ]
+    #!fmt: on
 
   test "Horizontal corridor stays a single zone":
     #!fmt: off
@@ -62,8 +79,15 @@ suite "Zone detection":
       "##########",
     ])
     #!fmt: on
-    check m.zoneCount == 1
-    check m[0].bounds == (0'i32, 2'i32, 9'i32, 2'i32)
+    #!fmt: off
+    check m == [
+      "..........",
+      "..........",
+      "aaaaaaaaaa",
+      "..........",
+      "..........",
+    ]
+    #!fmt: on
 
   test "L-shape creates two zones":
     # The flood fill expands the first seed into the widest balanced rect it
@@ -78,28 +102,15 @@ suite "Zone detection":
       "##########",
     ])
     #!fmt: on
-    check m.zoneCount == 2
-    check m[0].bounds == (1'i32, 1'i32, 3'i32, 3'i32)
-    check m[1].bounds == (4'i32, 1'i32, 9'i32, 2'i32)
-
-  test "Every passable tile is assigned a zone":
     #!fmt: off
-    let rows = [
-      "##########",
-      "#.........",
-      "#.........",
-      "#...######",
-      "##########",
+    check m == [
+      "..........",
+      ".aaabbbbbb",
+      ".aaabbbbbb",
+      ".aaa......",
+      "..........",
     ]
     #!fmt: on
-    let input = parseMap(rows)
-    var m: ZoneMap[W, H]
-    m.detectZones(input)
-    for y in 0'i32 ..< H:
-      for x in 0'i32 ..< W:
-        let pos = ivec2(x, y)
-        if input.isPassable(pos):
-          check m[pos].isSome
 
 # ---------------------------------------------------------------------------
 
@@ -118,14 +129,16 @@ suite "Predefined zones":
     var m: ZoneMap[W, H]
     let preId = m.addZone((1'i32, 1'i32, 3'i32, 3'i32))
     m.detectZones(input)
-    # Predefined zone keeps its id and bounds
-    check m[0].id == preId
-    check m[0].bounds == (1'i32, 1'i32, 3'i32, 3'i32)
-    # Its tiles still point to the predefined zone
-    check m[ivec2(1, 1)] == some(preId)
-    check m[ivec2(3, 3)] == some(preId)
-    # The remaining open area became a separate zone
-    check m.zoneCount == 2
+    check preId == ZoneId(0)
+    #!fmt: off
+    check m == [
+      "..........",
+      ".aaabbb...",
+      ".aaabbb...",
+      ".aaabbb...",
+      "..........",
+    ]
+    #!fmt: on
 
   test "Predefined zone containing a wall raises ValueError":
     #!fmt: off
@@ -156,7 +169,6 @@ suite "Adjacency":
       "##########",
     ])
     #!fmt: on
-    # Zone 0 (3-wide block) and zone 1 (wide right portion) share a vertical edge
     check ZoneId(1) in m[0].adjacent
     check ZoneId(0) in m[1].adjacent
 
@@ -179,11 +191,73 @@ suite "Adjacency":
       ".####.....",
       ".####.....",
     ])
+    check m == [
+      "a....bbbbb",
+      "a....bbbbb",
+      "a....bbbbb",
+      "a....bbbbb",
+      "a....bbbbb",
+    ]
     #!fmt: on
-    # Left single-column zone and right 5-column zone are separated by walls
-    check m.zoneCount == 2
     check m[0].adjacent.len == 0
     check m[1].adjacent.len == 0
+
+# ---------------------------------------------------------------------------
+
+suite "Complex map":
+  #!fmt: off
+  const level4 = [
+    "#########################",
+    "#######...........#######",
+    "#######...........#######",
+    "#######...........#######",
+    "#######...#####...#######",
+    "#....##.....#.....##....#",
+    "#....##.....#.....##....#",
+    "#....###...###...###....#",
+    "#....###...###...###....#",
+    "##....##....#....##....##",
+    "##....##....#....##....##",
+    "##.........###.........##",
+    "##.........###.........##",
+    "#########################",
+    "#########################",
+  ]
+  #!fmt: on
+
+  test "Every floor tile is assigned a zone":
+    let input = parseMap(level4)
+    var m: ZoneMap[25'i32, 15'i32]
+    m.detectZones(input)
+    for y in 0'i32 ..< 15:
+      for x in 0'i32 ..< 25:
+        let pos = ivec2(x, y)
+        if input.isPassable(pos):
+          check m[pos].isSome
+
+  test "Zone map matches expected layout":
+    let input = parseMap(level4)
+    var m: ZoneMap[25'i32, 15'i32]
+    m.detectZones(input)
+    #!fmt: off
+    check m == [
+      ".........................",
+      ".......aaaaaaaaaaa.......",
+      ".......aaaaaaaaaaa.......",
+      ".......aaaaaaaaaaa.......",
+      ".......bbb.....ccc.......",
+      ".dddd..bbbee.ffccc..gggg.",
+      ".dddd..bbbee.ffccc..gggg.",
+      ".dddd...hhh...iii...gggg.",
+      ".dddd...hhh...iii...gggg.",
+      "..jjjj..hhhk.liii..mmmm..",
+      "..jjjj..hhhk.liii..mmmm..",
+      "..jjjjnnhhh...iiioommmm..",
+      "..jjjjnnhhh...iiioommmm..",
+      ".........................",
+      ".........................",
+    ]
+    #!fmt: on
 
 # ---------------------------------------------------------------------------
 

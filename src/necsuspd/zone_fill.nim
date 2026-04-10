@@ -19,7 +19,7 @@
 ## axis lands exactly on the tile edge, the parallel axis at the midpoint tile
 ## center. Multiply by TILE_SIZE to convert to pixel coordinates.
 
-import std/[hashes, options], vmath, fpvec
+import std/[hashes, options, strutils], vmath, fpvec
 
 type
   ZoneFillInput* = concept m
@@ -206,6 +206,21 @@ proc buildAdjacency[W, H: static int32](map: var ZoneMap[W, H]) =
       if sharesEdge(map.zones[i].bounds, map.zones[j].bounds):
         map.zones[i].adjacent.add(map.zones[j].id)
         map.zones[j].adjacent.add(map.zones[i].id)
+
+proc `$`*[W, H: static int32](map: ZoneMap[W, H]): string =
+  ## Returns a debug string of the zone map. Each tile with an assigned zone
+  ## is shown as a letter (a=zone 0, b=zone 1, …). Unassigned tiles show as '.'.
+  var lines: seq[string]
+  for row in 0'i32 ..< H:
+    var line = ""
+    for col in 0'i32 ..< W:
+      let zid = map[ivec2(col, row)]
+      if zid.isSome:
+        line.add(char(ord('a') + int32(zid.get)))
+      else:
+        line.add('.')
+    lines.add(line)
+  return lines.join("\n")
 
 proc detectZones*[W, H: static int32](map: var ZoneMap[W, H], input: ZoneFillInput) =
   ## Decomposes the map into convex rectangular zones and builds an adjacency graph.
