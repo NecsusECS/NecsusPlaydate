@@ -15,10 +15,11 @@
 ## Once all zones are defined, an adjacency graph is built: two zones are
 ## adjacent when their bounding rectangles are exactly one tile apart on one
 ## axis with overlapping extents on the other. `sharedEdgeMidpoint` returns
-## the midpoint tile of that shared edge, suitable as a waypoint for agents
-## transitioning between zones.
+## the fractional tile-space position on the shared edge midpoint: the boundary
+## axis lands exactly on the tile edge, the parallel axis at the midpoint tile
+## center. Multiply by TILE_SIZE to convert to pixel coordinates.
 
-import std/[hashes, options], vmath
+import std/[hashes, options], vmath, fpvec
 
 type
   ZoneFillInput* = concept m
@@ -93,31 +94,33 @@ proc sharesEdge(a, b: ZoneRect): bool =
   if a.maxRow + 1 == b.minRow or b.maxRow + 1 == a.minRow:
     return a.minCol <= b.maxCol and a.maxCol >= b.minCol
 
-proc sharedEdgeMidpoint*(a, b: ZoneRect): IVec2 =
-  ## Returns the midpoint tile of the shared edge between two adjacent zones,
-  ## on the lower or right zone's boundary (consistent regardless of argument order).
+proc sharedEdgeMidpoint*(a, b: ZoneRect, tileSize: FPInt): FPVec2 =
+  ## Returns the pixel position of the midpoint of the shared edge between two zones.
+  ## The boundary axis lands on the exact tile edge; the parallel axis at the tile
+  ## center of the midpoint. Consistent regardless of argument order.
+  let half = tileSize / 2
   if a.maxCol + 1 == b.minCol:
     let lo = max(a.minRow, b.minRow)
     let hi = min(a.maxRow, b.maxRow)
-    return ivec2(b.minCol, (lo + hi) div 2)
+    return fpvec2(b.minCol.fp * tileSize, (lo + hi).fp / 2 * tileSize + half)
   elif b.maxCol + 1 == a.minCol:
     let lo = max(a.minRow, b.minRow)
     let hi = min(a.maxRow, b.maxRow)
-    return ivec2(a.minCol, (lo + hi) div 2)
+    return fpvec2(a.minCol.fp * tileSize, (lo + hi).fp / 2 * tileSize + half)
   elif a.maxRow + 1 == b.minRow:
     let lo = max(a.minCol, b.minCol)
     let hi = min(a.maxCol, b.maxCol)
-    return ivec2((lo + hi) div 2, b.minRow)
+    return fpvec2((lo + hi).fp / 2 * tileSize + half, b.minRow.fp * tileSize)
   elif b.maxRow + 1 == a.minRow:
     let lo = max(a.minCol, b.minCol)
     let hi = min(a.maxCol, b.maxCol)
-    return ivec2((lo + hi) div 2, a.minRow)
+    return fpvec2((lo + hi).fp / 2 * tileSize + half, a.minRow.fp * tileSize)
   else:
     raise
       newException(ValueError, "Zones " & $a & " and " & $b & " do not share an edge")
 
-proc sharedEdgeMidpoint*(a, b: Zone): IVec2 =
-  sharedEdgeMidpoint(a.bounds, b.bounds)
+proc sharedEdgeMidpoint*(a, b: Zone, tileSize: FPInt): FPVec2 =
+  sharedEdgeMidpoint(a.bounds, b.bounds, tileSize)
 
 proc isValid(zone: Zone, input: ZoneFillInput): bool =
   ## Returns true if every tile within the zone's bounds is passable.

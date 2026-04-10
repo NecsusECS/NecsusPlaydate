@@ -1,4 +1,4 @@
-import std/[unittest, sets, options], necsuspd/zone_fill, vmath
+import std/[unittest, sets, options], necsuspd/zone_fill, necsuspd/fpvec, vmath
 
 # ---------------------------------------------------------------------------
 # Test helpers
@@ -161,7 +161,8 @@ suite "Adjacency":
     check ZoneId(0) in m[1].adjacent
 
   test "Predefined zones sharing a vertical edge are adjacent":
-    let input = parseMap(["..........","..........","..........","..........",".........."])
+    let input =
+      parseMap(["..........", "..........", "..........", "..........", ".........."])
     var m: ZoneMap[W, H]
     discard m.addZone((0'i32, 0'i32, 4'i32, 4'i32))
     discard m.addZone((5'i32, 0'i32, 9'i32, 4'i32))
@@ -187,18 +188,21 @@ suite "Adjacency":
 # ---------------------------------------------------------------------------
 
 suite "sharedEdgeMidpoint":
+  # Use tileSize=1 so tile coords equal pixel coords, making expectations easy to read.
+  let ts = fp(1)
+
   test "Horizontal shared edge (zone above zone)":
-    # Shared edge between row 2 (top zone) and row 3 (arm).
-    # Overlapping cols 1..3, midpoint col = (1+3)/2 = 2.
-    # Always returns the tile on the lower zone's boundary (row 3).
+    # Overlapping cols 1..3: parallel center = (1+3)/2 * 1 + 0.5 = 2.5.
+    # Boundary row = b.minRow = 3 (exact tile edge).
     let a: ZoneRect = (1'i32, 1'i32, 9'i32, 2'i32)
     let b: ZoneRect = (1'i32, 3'i32, 3'i32, 3'i32)
-    check sharedEdgeMidpoint(a, b) == ivec2(2, 3)
-    check sharedEdgeMidpoint(b, a) == ivec2(2, 3)
+    check sharedEdgeMidpoint(a, b, ts) == fpvec2(2.5, 3.0)
+    check sharedEdgeMidpoint(b, a, ts) == fpvec2(2.5, 3.0)
 
   test "Vertical shared edge (zone left of zone)":
-    # Always returns the tile on the right zone's boundary (col 5).
+    # Boundary col = b.minCol = 5 (exact tile edge).
+    # Overlapping rows 0..4: parallel center = (0+4)/2 * 1 + 0.5 = 2.5.
     let a: ZoneRect = (0'i32, 0'i32, 4'i32, 4'i32)
     let b: ZoneRect = (5'i32, 0'i32, 9'i32, 4'i32)
-    check sharedEdgeMidpoint(a, b) == ivec2(5, 2)
-    check sharedEdgeMidpoint(b, a) == ivec2(5, 2)
+    check sharedEdgeMidpoint(a, b, ts) == fpvec2(5.0, 2.5)
+    check sharedEdgeMidpoint(b, a, ts) == fpvec2(5.0, 2.5)
