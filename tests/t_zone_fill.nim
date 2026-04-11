@@ -89,10 +89,10 @@ suite "Zone detection":
     ]
     #!fmt: on
 
-  test "L-shape creates two zones":
-    # The flood fill expands the first seed into the widest balanced rect it
-    # can form: a 3-wide block (cols 1-3, rows 1-3) constrained by the arm
-    # width. The remaining open area (cols 4-9, rows 1-2) becomes zone 1.
+  test "L-shape creates three zones":
+    # The kitty-corner check prevents zone 'a' from expanding into row 3:
+    # col 4 transitions from passable (row 2) to impassable (row 3), so the
+    # expansion is rejected. Row 3 becomes its own zone 'c'.
     #!fmt: off
     let m = detect([
       "##########",
@@ -107,7 +107,7 @@ suite "Zone detection":
       "..........",
       ".aaabbbbbb",
       ".aaabbbbbb",
-      ".aaa......",
+      ".ccc......",
       "..........",
     ]
     #!fmt: on
@@ -168,6 +168,13 @@ suite "Adjacency":
       "#...######",
       "##########",
     ])
+    check m == [
+      "..........",
+      ".aaabbbbbb",
+      ".aaabbbbbb",
+      ".ccc......",
+      "..........",
+    ]
     #!fmt: on
     check ZoneId(1) in m[0].adjacent
     check ZoneId(0) in m[1].adjacent
@@ -242,18 +249,18 @@ suite "Complex map":
     #!fmt: off
     check m == [
       ".........................",
-      ".......aaaaaaaaaaa.......",
-      ".......aaaaaaaaaaa.......",
-      ".......aaaaaaaaaaa.......",
-      ".......bbb.....ccc.......",
-      ".dddd..bbbee.ffccc..gggg.",
-      ".dddd..bbbee.ffccc..gggg.",
-      ".dddd...hhh...iii...gggg.",
-      ".dddd...hhh...iii...gggg.",
-      "..jjjj..hhhk.liii..mmmm..",
-      "..jjjj..hhhk.liii..mmmm..",
-      "..jjjjnnhhh...iiioommmm..",
-      "..jjjjnnhhh...iiioommmm..",
+      ".......aaabbbbbccc.......",
+      ".......aaabbbbbccc.......",
+      ".......aaabbbbbccc.......",
+      ".......ddd.....eee.......",
+      ".ffff..dddgg.hhiij..kkkk.",
+      ".ffff..dddgg.hhiij..kkkk.",
+      ".ffff...lll...mmm...kkkk.",
+      ".ffff...lll...mmm...kkkk.",
+      "..nnno..pppq.rsss..tuuu..",
+      "..nnno..pppq.rsss..tuuu..",
+      "..nnnvwwxxx...yyyzz{uuu..",
+      "..nnnvwwxxx...yyyzz{uuu..",
       ".........................",
       ".........................",
     ]

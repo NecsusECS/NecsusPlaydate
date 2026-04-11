@@ -149,11 +149,21 @@ proc edgeFree[W, H: static int32](
       return false
   return true
 
+proc safePassable[W, H: static int32](
+    input: ZoneFillInput, x, y: int32
+): bool {.inline.} =
+  ## Returns whether (x, y) is within bounds and passable; false if out of bounds.
+  x >= 0 and x < W and y >= 0 and y < H and input.isPassable(ivec2(x, y))
+
 proc canExpandLeft[W, H: static int32](
     map: ZoneMap[W, H], input: ZoneFillInput, b: ZoneRect
 ): bool =
   ## Returns true if b can grow one column to the left.
-  b.minCol > 0 and edgeFree[W, H](map, input, b.minCol - 1, b.minRow, b.maxRow, true)
+  b.minCol > 0 and edgeFree[W, H](map, input, b.minCol - 1, b.minRow, b.maxRow, true) and
+    safePassable[W, H](input, b.minCol, b.minRow - 1) ==
+    safePassable[W, H](input, b.minCol - 1, b.minRow - 1) and
+    safePassable[W, H](input, b.minCol, b.maxRow + 1) ==
+    safePassable[W, H](input, b.minCol - 1, b.maxRow + 1)
 
 proc canExpandRight[W, H: static int32](
     map: ZoneMap[W, H], input: ZoneFillInput, b: ZoneRect
@@ -161,20 +171,32 @@ proc canExpandRight[W, H: static int32](
   ## Returns true if b can grow one column to the right.
   b.maxCol < W - 1 and edgeFree[W, H](
     map, input, b.maxCol + 1, b.minRow, b.maxRow, true
-  )
+  ) and
+    safePassable[W, H](input, b.maxCol, b.minRow - 1) ==
+    safePassable[W, H](input, b.maxCol + 1, b.minRow - 1) and
+    safePassable[W, H](input, b.maxCol, b.maxRow + 1) ==
+    safePassable[W, H](input, b.maxCol + 1, b.maxRow + 1)
 
 proc canExpandUp[W, H: static int32](
     map: ZoneMap[W, H], input: ZoneFillInput, b: ZoneRect
 ): bool =
   ## Returns true if b can grow one row upward.
-  b.minRow > 0 and edgeFree[W, H](map, input, b.minRow - 1, b.minCol, b.maxCol, false)
+  b.minRow > 0 and edgeFree[W, H](map, input, b.minRow - 1, b.minCol, b.maxCol, false) and
+    safePassable[W, H](input, b.minCol - 1, b.minRow) ==
+    safePassable[W, H](input, b.minCol - 1, b.minRow - 1) and
+    safePassable[W, H](input, b.maxCol + 1, b.minRow) ==
+    safePassable[W, H](input, b.maxCol + 1, b.minRow - 1)
 
 proc canExpandDown[W, H: static int32](
     map: ZoneMap[W, H], input: ZoneFillInput, b: ZoneRect
 ): bool =
   ## Returns true if b can grow one row downward.
   b.maxRow < H - 1 and
-    edgeFree[W, H](map, input, b.maxRow + 1, b.minCol, b.maxCol, false)
+    edgeFree[W, H](map, input, b.maxRow + 1, b.minCol, b.maxCol, false) and
+    safePassable[W, H](input, b.minCol - 1, b.maxRow) ==
+    safePassable[W, H](input, b.minCol - 1, b.maxRow + 1) and
+    safePassable[W, H](input, b.maxCol + 1, b.maxRow) ==
+    safePassable[W, H](input, b.maxCol + 1, b.maxRow + 1)
 
 proc floodZone[W, H: static int32](
     map: ZoneMap[W, H], input: ZoneFillInput, startPos: IVec2
