@@ -94,27 +94,29 @@ proc sharesEdge(a, b: ZoneRect): bool =
   if a.maxRow + 1 == b.minRow or b.maxRow + 1 == a.minRow:
     return a.minCol <= b.maxCol and a.maxCol >= b.minCol
 
+proc colEdge(edge: int32, a, b: ZoneRect, tileSize, half: FPInt): FPVec2 {.inline.} =
+  let lo = max(a.minRow, b.minRow)
+  let hi = min(a.maxRow, b.maxRow)
+  return fpvec2(edge.fp * tileSize, (lo + hi).fp / 2 * tileSize + half)
+
+proc rowEdge(edge: int32, a, b: ZoneRect, tileSize, half: FPInt): FPVec2 {.inline.} =
+  let lo = max(a.minCol, b.minCol)
+  let hi = min(a.maxCol, b.maxCol)
+  return fpvec2((lo + hi).fp / 2 * tileSize + half, edge.fp * tileSize)
+
 proc sharedEdgeMidpoint*(a, b: ZoneRect, tileSize: FPInt): FPVec2 =
   ## Returns the pixel position of the midpoint of the shared edge between two zones.
   ## The boundary axis lands on the exact tile edge; the parallel axis at the tile
   ## center of the midpoint. Consistent regardless of argument order.
   let half = tileSize / 2
   if a.maxCol + 1 == b.minCol:
-    let lo = max(a.minRow, b.minRow)
-    let hi = min(a.maxRow, b.maxRow)
-    return fpvec2(b.minCol.fp * tileSize, (lo + hi).fp / 2 * tileSize + half)
+    colEdge(b.minCol, a, b, tileSize, half)
   elif b.maxCol + 1 == a.minCol:
-    let lo = max(a.minRow, b.minRow)
-    let hi = min(a.maxRow, b.maxRow)
-    return fpvec2(a.minCol.fp * tileSize, (lo + hi).fp / 2 * tileSize + half)
+    colEdge(a.minCol, a, b, tileSize, half)
   elif a.maxRow + 1 == b.minRow:
-    let lo = max(a.minCol, b.minCol)
-    let hi = min(a.maxCol, b.maxCol)
-    return fpvec2((lo + hi).fp / 2 * tileSize + half, b.minRow.fp * tileSize)
+    rowEdge(b.minRow, a, b, tileSize, half)
   elif b.maxRow + 1 == a.minRow:
-    let lo = max(a.minCol, b.minCol)
-    let hi = min(a.maxCol, b.maxCol)
-    return fpvec2((lo + hi).fp / 2 * tileSize + half, a.minRow.fp * tileSize)
+    rowEdge(a.minRow, a, b, tileSize, half)
   else:
     raise
       newException(ValueError, "Zones " & $a & " and " & $b & " do not share an edge")
@@ -155,48 +157,57 @@ proc safePassable[W, H: static int32](
   ## Returns whether (x, y) is within bounds and passable; false if out of bounds.
   x >= 0 and x < W and y >= 0 and y < H and input.isPassable(ivec2(x, y))
 
+proc canExpand[W, H: static int32](
+    map: ZoneMap[W, H],
+    input: ZoneFillInput,
+    inBounds: bool,
+    newEdge, curEdge, rangeMin, rangeMax: int32,
+    colIsFixed: static bool,
+): bool {.inline.} =
+  inBounds and edgeFree[W, H](map, input, newEdge, rangeMin, rangeMax, colIsFixed) and (
+    when colIsFixed:
+      safePassable[W, H](input, curEdge, rangeMin - 1) ==
+        safePassable[W, H](input, newEdge, rangeMin - 1) and
+        safePassable[W, H](input, curEdge, rangeMax + 1) ==
+        safePassable[W, H](input, newEdge, rangeMax + 1)
+    else:
+      safePassable[W, H](input, rangeMin - 1, curEdge) ==
+        safePassable[W, H](input, rangeMin - 1, newEdge) and
+        safePassable[W, H](input, rangeMax + 1, curEdge) ==
+        safePassable[W, H](input, rangeMax + 1, newEdge)
+  )
+
 proc canExpandLeft[W, H: static int32](
     map: ZoneMap[W, H], input: ZoneFillInput, b: ZoneRect
 ): bool =
   ## Returns true if b can grow one column to the left.
-  b.minCol > 0 and edgeFree[W, H](map, input, b.minCol - 1, b.minRow, b.maxRow, true) and
-    safePassable[W, H](input, b.minCol, b.minRow - 1) ==
-    safePassable[W, H](input, b.minCol - 1, b.minRow - 1) and
-    safePassable[W, H](input, b.minCol, b.maxRow + 1) ==
-    safePassable[W, H](input, b.minCol - 1, b.maxRow + 1)
+  canExpand[W, H](
+    map, input, b.minCol > 0, b.minCol - 1, b.minCol, b.minRow, b.maxRow, true
+  )
 
 proc canExpandRight[W, H: static int32](
     map: ZoneMap[W, H], input: ZoneFillInput, b: ZoneRect
 ): bool =
   ## Returns true if b can grow one column to the right.
-  b.maxCol < W - 1 and edgeFree[W, H](
-    map, input, b.maxCol + 1, b.minRow, b.maxRow, true
-  ) and
-    safePassable[W, H](input, b.maxCol, b.minRow - 1) ==
-    safePassable[W, H](input, b.maxCol + 1, b.minRow - 1) and
-    safePassable[W, H](input, b.maxCol, b.maxRow + 1) ==
-    safePassable[W, H](input, b.maxCol + 1, b.maxRow + 1)
+  canExpand[W, H](
+    map, input, b.maxCol < W - 1, b.maxCol + 1, b.maxCol, b.minRow, b.maxRow, true
+  )
 
 proc canExpandUp[W, H: static int32](
     map: ZoneMap[W, H], input: ZoneFillInput, b: ZoneRect
 ): bool =
   ## Returns true if b can grow one row upward.
-  b.minRow > 0 and edgeFree[W, H](map, input, b.minRow - 1, b.minCol, b.maxCol, false) and
-    safePassable[W, H](input, b.minCol - 1, b.minRow) ==
-    safePassable[W, H](input, b.minCol - 1, b.minRow - 1) and
-    safePassable[W, H](input, b.maxCol + 1, b.minRow) ==
-    safePassable[W, H](input, b.maxCol + 1, b.minRow - 1)
+  canExpand[W, H](
+    map, input, b.minRow > 0, b.minRow - 1, b.minRow, b.minCol, b.maxCol, false
+  )
 
 proc canExpandDown[W, H: static int32](
     map: ZoneMap[W, H], input: ZoneFillInput, b: ZoneRect
 ): bool =
   ## Returns true if b can grow one row downward.
-  b.maxRow < H - 1 and
-    edgeFree[W, H](map, input, b.maxRow + 1, b.minCol, b.maxCol, false) and
-    safePassable[W, H](input, b.minCol - 1, b.maxRow) ==
-    safePassable[W, H](input, b.minCol - 1, b.maxRow + 1) and
-    safePassable[W, H](input, b.maxCol + 1, b.maxRow) ==
-    safePassable[W, H](input, b.maxCol + 1, b.maxRow + 1)
+  canExpand[W, H](
+    map, input, b.maxRow < H - 1, b.maxRow + 1, b.maxRow, b.minCol, b.maxCol, false
+  )
 
 proc floodZone[W, H: static int32](
     map: ZoneMap[W, H], input: ZoneFillInput, startPos: IVec2
