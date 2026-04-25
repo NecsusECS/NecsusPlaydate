@@ -4,9 +4,10 @@ import
     c, carousel, circle, crankAlert, crankData, cursor, data_bundle, debounce, debug,
     djikstra, draw, drawable, easing, fade, files, findDir, flowfield, fpvec, glow, init,
     inputs, layout, lightning, loading, moveTo, multistep, obfuscate, particles, percent,
-    pool, positioned, pulse, rand, shake, singleton, sprite, textwrap, time, timer,
+    pool, positioned, pulse, rand, hebitmap, shake, singleton, textwrap, time, timer,
     treeSeq, triggerBox, types, util, vec_tools, viewport, visibleState, choices,
     intersects, rotations, raycasts, paused, beam, beamfx, ldtk, ldtk_draw, zone_fill,
+    drawlayer,
   ]
 
 export achievements
@@ -33,6 +34,7 @@ export debug
 export djikstra
 export draw
 export drawable
+export drawlayer
 export easing
 export fade
 export files
@@ -40,6 +42,7 @@ export findDir
 export flowfield
 export fpvec
 export glow
+export hebitmap
 export init
 export inputs
 export intersects
@@ -62,7 +65,6 @@ export raycasts
 export rotations
 export shake
 export singleton
-export sprite
 export textwrap
 export time
 export timer

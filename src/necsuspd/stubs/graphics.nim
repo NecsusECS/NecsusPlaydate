@@ -75,6 +75,28 @@ type
 
   LCDBitmapTable* = ref object
 
+const LCD_ROWSIZE* = 52
+
+var gFrameBuffer: array[LCD_ROWS * LCD_ROWSIZE, uint8]
+
+proc getFrame*(g: PlaydateGraphics): ptr uint8 =
+  addr gFrameBuffer[0]
+
+proc markUpdatedRows*(g: PlaydateGraphics, start, to: int) =
+  discard
+
+proc resetFrameBuffer*() =
+  zeroMem(addr gFrameBuffer[0], gFrameBuffer.len)
+
+proc hasMask*(bmp: LCDBitmap): bool =
+  bmp.mask != nil
+
+proc framebufferRow*(y: int): string =
+  for x in 0 ..< LCD_COLUMNS:
+    let b = gFrameBuffer[y * LCD_ROWSIZE + x div 8]
+    let bit = b and (1'u8 shl uint8(7 - x mod 8))
+    result.add(if bit != 0: '.' else: 'X')
+
 let pdGraphics* = PlaydateGraphics()
 
 proc graphicActions*(): seq[string] =
@@ -220,6 +242,12 @@ proc clear*(this: Image, color: Color) =
 proc getDataObj*(this: LCDBitmap): BitmapDataObj =
   this.data
 
+proc getPixels*(bmp: LCDBitmap): seq[seq[bool]] =
+  bmp.data.pixels
+
+proc getMaskPixels*(bmp: LCDBitmap): seq[seq[bool]] =
+  bmp.mask.data.pixels
+
 iterator rows*(this: LCDBitmap): string =
   ## Renders the rows of an image as characters in a string
   for y in 0 ..< this.height:
@@ -301,10 +329,3 @@ proc drawBitmap*(
     g: PlaydateGraphics, bmp: LCDBitmap, x, y: int, flip: LCDBitmapFlip
 ) =
   bmp.draw(x, y, flip)
-
-var gDebugBitmap: LCDBitmap
-
-proc getDebugBitmap*(graphics: PlaydateGraphics): LCDBitmap =
-  if gDebugBitmap == nil:
-    gDebugBitmap = newImage("debug", LCD_COLUMNS, LCD_ROWS, kColorClear)
-  return gDebugBitmap

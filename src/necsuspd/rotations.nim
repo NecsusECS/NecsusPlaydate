@@ -28,7 +28,7 @@ type
     ## `anims` is a table of generated animations for each game object
     ## `tables` is the base sprite sheets for each game object
     anims: array[ROTATIONS, array[Anims, AnimationDef]]
-    table: seq[LCDBitmap]
+    table: seq[HEBitmap]
 
 proc `=copy`[SheetId, Anims, Keyframes](
   a: var RotAnimDef[SheetId, Anims, Keyframes], b: RotAnimDef[SheetId, Anims, Keyframes]
@@ -73,14 +73,11 @@ proc fillTable[SheetId, Anims, Keyframes: enum](
     mutate: RotationMutation,
 ) =
   ## Populates the target with the frames from the source at the given rotation index
-  var size: tuple[width, height: int]
-
   for frame in 0 ..< mutate.sourceFrameCount:
     let rotated = source
       .getBitmap(frame)
       .rotated(mutate.angle.toFloat, xScale = RESIZE_RATIO, yScale = RESIZE_RATIO).bitmap
-    target.table[mutate.baseCellIdx + frame] = rotated
-    size = rotated.getSize
+    target.table[mutate.baseCellIdx + frame] = fromLCDBitmap(rotated)
 
   let baseAnims = animationTable[Anims, Keyframes](
     spriteSheet,
@@ -100,7 +97,7 @@ proc defineRotAnims[SheetId, Anims, Keyframes](
     source: LCDBitmapTable,
 ): RotAnims[Anims] =
   let frames = source.getBitmapTableInfo.count.int32
-  result = RotAnims[Anims](table: newSeq[LCDBitmap](frames * ROTATIONS))
+  result = RotAnims[Anims](table: newSeq[HEBitmap](frames * ROTATIONS))
   for rotation in 0'i32 ..< ROTATIONS:
     let mutation: RotationMutation = (rotation, frames, rotation * frames)
     result.fillTable(sheet, obj, source, mutation)
@@ -146,4 +143,4 @@ proc animation*[Anims](
   ## Returns the animation for a game object the given angle
   assert(obj != nil, fmt"Object sheet not loaded")
   let animDef = obj.animationDef(anim, angle)
-  return newSheet(obj.table, animDef, zIndex, absolutePos)
+  return newHESheet(obj.table, animDef, zIndex, absolutePos)

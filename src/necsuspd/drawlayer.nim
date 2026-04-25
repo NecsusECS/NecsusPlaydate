@@ -1,16 +1,25 @@
-import necsuspd/[import_playdate, util], vmath
+import import_playdate, hebitmap, vmath, util
 
 type
+  DrawItemKind* = enum
+    dikHE
+    dikLCD
+
   DrawItemObj* = object
     visible: bool
     zIndex: int16
     pos: IVec2
-    lcd: LCDBitmap
+    case kind: DrawItemKind
+    of dikHE: he: HEBitmap
+    of dikLCD: lcd: LCDBitmap
 
   DrawItem* = ref DrawItemObj
 
-proc newDrawItem*(lcd: LCDBitmap, zIndex: auto, visible: bool = true): DrawItem {.inline.} =
-  DrawItem(lcd: lcd, zIndex: ord(zIndex).int16, visible: visible)
+proc newDrawItem*(lcd: LCDBitmap, zIndex: auto, visible: bool = true, pos: IVec2 = ivec2(0, 0)): DrawItem {.inline.} =
+  DrawItem(kind: dikLCD, lcd: lcd, zIndex: ord(zIndex).int16, visible: visible, pos: pos)
+
+proc newDrawItem*(he: HEBitmap, zIndex: auto, visible: bool = true, pos: IVec2 = ivec2(0, 0)): DrawItem {.inline.} =
+  DrawItem(kind: dikHE, he: he, zIndex: ord(zIndex).int16, visible: visible, pos: pos)
 
 proc moveTo*(d: DrawItem, pos: IVec2) {.inline.} =
   d.pos = pos
@@ -21,9 +30,17 @@ proc pos*(d: DrawItem): IVec2 {.inline.} =
 proc zIndex*(d: DrawItem): auto {.inline.} =
   d.zIndex
 
-proc dimens*(d: DrawItem): IVec2 {.inline.} =
-  let size = d.lcd.getSize
-  return ivec2(size.width.int32, size.height.int32)
+proc dimens*(item: DrawItem): IVec2 =
+  return case item.kind
+    of dikLCD:
+      let size = item.lcd.getSize
+      ivec2(size.width.int32, size.height.int32)
+    of dikHE:
+      item.he.size
+
+proc width*(item: DrawItem): int32 {.inline.} = item.dimens[0]
+
+proc height*(item: DrawItem): int32 {.inline.} = item.dimens[1]
 
 proc `img=`*(d: DrawItem, img: LCDBitmap) {.inline.} =
   d.lcd = img
@@ -66,6 +83,16 @@ proc unregister*(item: DrawItem) =
         return
   log "ERROR: Unable to unregister item"
 
+proc getImage*(item: DrawItem): var LCDBitmap {.inline.} =
+  assert(item.kind == dikLCD, "getImage is only valid for LCD drawables")
+  return item.lcd
+
+proc setImage*(item: DrawItem, img: LCDBitmap) {.inline.} =
+  item.lcd = img
+
+proc setImage*(item: DrawItem, img: HEBitmap) {.inline.} =
+  item.he = img
+
 proc drawSprites*() =
   playdate.graphics.clear(kColorWhite)
   playdate.sprite.addDirtyRect(LCD_SCREEN_RECT)
@@ -74,7 +101,11 @@ proc drawSprites*() =
   for bucketId, bucket in gDrawLayer:
     for item in bucket:
       if item.visible:
-        item.lcd.draw(item.pos.x, item.pos.y, kBitmapUnflipped)
+        case item.kind
+        of dikHE:
+          item.he.draw(item.pos)
+        of dikLCD:
+          item.lcd.draw(item.pos.x, item.pos.y, kBitmapUnflipped)
         # log "RENDERING: (",  item.pos.x, ", ", item.pos.y, ") ",
         #   item.dimens.x, "x", item.dimens.y, " at ", bucketId
 

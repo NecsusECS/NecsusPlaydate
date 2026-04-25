@@ -47,11 +47,13 @@ type
 
   AnimObj* = object
     def*: AnimationDef
-    frameCache: seq[LCDBitmap]
     frame: int32
     nextFrameTime: float32
     paused: bool
     loops: uint32
+    case kind: DrawItemKind
+    of dikLCD: lcdFrameCache: seq[LCDBitmap]
+    of dikHE: heFrameCache: seq[HEBitmap]
 
   Anim* = ref AnimObj
 
@@ -157,7 +159,7 @@ proc change*(
   anim.def = def
   anim.frame = 0
   anim.nextFrameTime = 0
-  drawable.anchorOffset = offsetFix(drawable.getImage, def.anchor.toAnchor)
+  drawable.anchorOffset = drawable.offsetFix(def.anchor.toAnchor)
   anim.loops = 0
 
 proc softChange*(
@@ -166,7 +168,7 @@ proc softChange*(
   assert(anim.def.sheet == def.sheet)
   anim.def = def
   anim.frame = anim.frame.clamp(0'i32, def.frames.len.int32 - 1)
-  drawable.anchorOffset = offsetFix(drawable.getImage, def.anchor.toAnchor)
+  drawable.anchorOffset = drawable.offsetFix(def.anchor.toAnchor)
   anim.loops = 0
 
 proc reset*(anim: Anim, drawable: Drawable) =
@@ -194,7 +196,11 @@ proc newAnim*(frames: seq[LCDBitmap], def: AnimationDef, drawable: Drawable): An
   when compileOption("assertions"):
     for f in frames:
       assert(not f.isNil)
-  result = Anim(def: def, frameCache: frames)
+  result = Anim(kind: dikLCD, def: def, lcdFrameCache: frames)
+  change(result, drawable, def)
+
+proc newAnim*(frames: seq[HEBitmap], def: AnimationDef, drawable: Drawable): Anim =
+  result = Anim(kind: dikHE, def: def, heFrameCache: frames)
   change(result, drawable, def)
 
 proc extract[T](sysvar: SharedOrT[T]): T =
@@ -213,6 +219,16 @@ proc newSheet*(
   let a = newAnim(frames, def, d)
   return (d, a)
 
+proc newHESheet*(
+    frames: seq[HEBitmap],
+    def: AnimationDef,
+    zIndex: ZIndexValue,
+    absolutePos: bool = false,
+): (Drawable, Anim) =
+  assert(frames.len > 0)
+  result[0] = newHEDrawable(frames[0], zIndex, def.anchor.toAnchor, absolutePos)
+  result[1] = newAnim(frames, def, result[0])
+
 proc newSheet*[S: enum](
     assets: SharedOrT[SheetTable[S]],
     def: AnimationDef,
@@ -221,10 +237,10 @@ proc newSheet*[S: enum](
 ): (Drawable, Anim) =
   let table = assets.extract.sheet(def.sheet.assertAs(S))
   let frameCount = table.getBitmapTableInfo.count
-  var frames = newSeq[LCDBitmap](frameCount)
+  var frames = newSeq[HEBitmap](frameCount)
   for i in 0 ..< frameCount:
-    frames[i] = table.getBitmap(i)
-  newSheet(frames, def, zIndex, absolutePos)
+    frames[i] = fromLCDBitmap(table.getBitmap(i))
+  return newHESheet(frames, def, zIndex, absolutePos)
 
 proc newAnimSheet*(drawable: Drawable, anim: Anim): AnimSheet =
   AnimSheet(drawable: drawable, anim: anim)
@@ -267,7 +283,11 @@ proc advanceDrawables*(
 
       let currentFrame: Frame = anim.def.frames[anim.frame]
       parent.nextFrameTime = now + currentFrame.time
-      drawable[].setImage(anim.frameCache[currentFrame.cellId])
+      case anim.kind
+      of dikLCD:
+        drawable[].setImage(anim.lcdFrameCache[currentFrame.cellId])
+      of dikHE:
+        drawable[].setImage(anim.heFrameCache[currentFrame.cellId])
       let kf = currentFrame.toKeyframe(anim.def.sheet, eid)
       if kf.isSome:
         events(kf.get)

@@ -8,11 +8,10 @@ import
   vec_tools,
   anchor,
   drawlayer,
+  hebitmap,
   std/[strformat]
 
-export drawlayer
-
-export anchor
+export drawlayer, hebitmap, anchor
 
 type
   ZIndexValue* = SomeInteger or enum
@@ -36,6 +35,16 @@ proc offsetFix*(img: LCDBitmap, anchor: Anchor): IVec2 =
       img.getSize.width.int32, img.getSize.height.int32
     )
 
+proc offsetFix*(img: HEBitmap, anchor: Anchor): IVec2 =
+  return
+    anchor.offset +
+    anchor.lock.resolveFromCenter(img.size.x, img.size.y)
+
+proc offsetFix*(d: Drawable | ptr Drawable, anchor: Anchor): IVec2 =
+  let w = d.drawItem.width.int32
+  let h = d.drawItem.height.int32
+  return anchor.offset + anchor.lock.resolveFromCenter(w, h)
+
 proc `=copy`(x: var DrawableObj, y: DrawableObj) {.error.}
 
 proc `=sink`(x: var DrawableObj, y: DrawableObj) {.error.}
@@ -44,10 +53,10 @@ proc `=destroy`(d: DrawableObj) {.warning[Effect]: off.} =
   unregister(d.drawItem)
 
 proc width*(d: Drawable | ptr Drawable): auto =
-  d.drawItem.dimens.x
+  d.drawItem.width
 
 proc height*(d: Drawable | ptr Drawable): auto =
-  d.drawItem.dimens.y
+  d.drawItem.height
 
 proc visible*(d: Drawable | ptr Drawable): bool {.inline.} =
   d.drawItem.visible
@@ -76,10 +85,10 @@ proc remove*(d: Drawable | ptr Drawable) =
 proc add*(d: Drawable | ptr Drawable) =
   register(d.drawItem)
 
-proc getImage*(d: Drawable | ptr Drawable): var LCDBitmap =
-  return d.drawItem.img
+proc getImage*(d: Drawable | ptr Drawable): var LCDBitmap {.inline.} =
+  return d.drawItem.getImage
 
-proc getBitmapMask*(d: Drawable | ptr Drawable): LCDBitmap =
+proc getBitmapMask*(d: Drawable | ptr Drawable): LCDBitmap {.inline.} =
   return d.getImage.getBitmapMask
 
 proc markDirty*(d: Drawable | ptr Drawable) {.inline.} =
@@ -93,7 +102,10 @@ proc setBitmapMask*(
   discard d.getImage.setBitmapMask(img)
 
 proc setImage*(d: Drawable, img: LCDBitmap) {.inline.} =
-  d.drawItem.img = img
+  d.drawItem.setImage(img)
+
+proc setImage*(d: Drawable, img: HEBitmap) {.inline.} =
+  d.drawItem.setImage(img)
 
 iterator linked*(d: Drawable): Drawable {.inline.} =
   var current {.cursor.} = d
@@ -132,11 +144,24 @@ proc restorePooledValue*(d: Drawable) =
 proc `$`*(d: Drawable): string =
   {.cast(gcsafe).}:
     let isVisible = if d.drawItem.visible: "visible" else: "hidden"
-    let pos = d.drawItem.pos
-    return fmt"Drawable(({pos.x}, {pos.y}), {isVisible}, zIndex={d.drawItem.zIndex})"
+    return
+      fmt"Drawable(({d.drawItem.pos.x}, {d.drawItem.pos.y}), {isVisible}, zIndex={d.drawItem.zIndex})"
 
 proc newBitmapDrawable*(
     img: LCDBitmap,
+    zIndex: ZIndexValue,
+    anchor: AnchorPosition,
+    absolutePos: bool = false,
+): Drawable =
+  result = Drawable(
+    anchorOffset: offsetFix(img, anchor.toAnchor),
+    absolutePos: absolutePos,
+    drawItem: newDrawItem(img, zIndex)
+  )
+  register(result.drawItem)
+
+proc newHEDrawable*(
+    img: HEBitmap,
     zIndex: ZIndexValue,
     anchor: AnchorPosition,
     absolutePos: bool = false,
