@@ -7,7 +7,10 @@ import
   util,
   vec_tools,
   anchor,
+  drawlayer,
   std/[strformat]
+
+export drawlayer
 
 export anchor
 
@@ -18,24 +21,19 @@ type
     table.asset(A) is LCDBitmap
 
   DrawableObj* = object
-    image: LCDBitmap
-    sprite: LCDSprite
     anchorOffset*: IVec2
     manualOffset: IVec2
-    lastPosition: IVec2
     absolutePos: bool
     link: Drawable
+    drawItem*: DrawItem
 
   Drawable* = ref DrawableObj
 
-proc lcdSprite*(d: Drawable | ptr Drawable): LCDSprite {.inline.} =
-  d.sprite
-
-proc offsetFix*(sprite: LCDSprite, anchor: Anchor): IVec2 =
+proc offsetFix*(img: LCDBitmap, anchor: Anchor): IVec2 =
   return
     anchor.offset +
     anchor.lock.resolveFromCenter(
-      sprite.getImage.getSize.width.int32, sprite.getImage.getSize.height.int32
+      img.getSize.width.int32, img.getSize.height.int32
     )
 
 proc `=copy`(x: var DrawableObj, y: DrawableObj) {.error.}
@@ -43,27 +41,28 @@ proc `=copy`(x: var DrawableObj, y: DrawableObj) {.error.}
 proc `=sink`(x: var DrawableObj, y: DrawableObj) {.error.}
 
 proc `=destroy`(d: DrawableObj) {.warning[Effect]: off.} =
-  if d.sprite != nil:
-    playdate.sprite.removeSprites(@[d.sprite])
-    `=destroy`(d.sprite)
+  unregister(d.drawItem)
 
 proc width*(d: Drawable | ptr Drawable): auto =
-  d.sprite.getImage.getSize.width
+  d.drawItem.dimens.x
 
 proc height*(d: Drawable | ptr Drawable): auto =
-  d.sprite.getImage.getSize.height
+  d.drawItem.dimens.y
 
 proc visible*(d: Drawable | ptr Drawable): bool {.inline.} =
-  d.sprite.visible
+  d.drawItem.visible
 
 proc `visible=`*(d: Drawable | ptr Drawable, visible: bool) {.inline.} =
-  `visible=`(d.sprite, visible)
+  d.drawItem.visible = visible
 
 proc zIndex*(d: Drawable | ptr Drawable): int16 {.inline.} =
-  d.sprite.zIndex
+  d.drawItem.zIndex
 
 proc `zIndex=`*(d: Drawable | ptr Drawable, index: auto) {.inline.} =
-  d.sprite.zIndex = index.int16
+  if d.drawItem != nil:
+    unregister(d.drawItem)
+    d.drawItem.zIndex = index.int16
+    register(d.drawItem)
 
 proc offset*(d: Drawable | ptr Drawable): IVec2 {.inline.} =
   d.manualOffset
@@ -72,27 +71,19 @@ proc `offset=`*(d: Drawable | ptr Drawable, offset: IVec2) {.inline.} =
   d.manualOffset = offset
 
 proc remove*(d: Drawable | ptr Drawable) =
-  d.sprite.remove()
+  unregister(d.drawItem)
 
 proc add*(d: Drawable | ptr Drawable) =
-  d.sprite.add()
+  register(d.drawItem)
 
 proc getImage*(d: Drawable | ptr Drawable): var LCDBitmap =
-  if d.image.isNil:
-    d.image = d.sprite.getImage
-  return d.image
+  return d.drawItem.img
 
 proc getBitmapMask*(d: Drawable | ptr Drawable): LCDBitmap =
   return d.getImage.getBitmapMask
 
 proc markDirty*(d: Drawable | ptr Drawable) {.inline.} =
-  d.sprite.markDirty
-
-proc `collideRect=`*(d: Drawable, rectangle: PDRect) {.inline.} =
-  `collideRect=`(d.sprite, rectangle)
-
-proc setDrawMode*(d: Drawable, mode: LCDBitmapDrawMode) =
-  d.sprite.setDrawMode(mode)
+  discard
 
 proc setBitmapMask*(
     d: Drawable,
@@ -102,7 +93,7 @@ proc setBitmapMask*(
   discard d.getImage.setBitmapMask(img)
 
 proc setImage*(d: Drawable, img: LCDBitmap) {.inline.} =
-  d.sprite.setImage(img, kBitmapUnflipped)
+  d.drawItem.img = img
 
 iterator linked*(d: Drawable): Drawable {.inline.} =
   var current {.cursor.} = d
@@ -121,26 +112,28 @@ proc `link=`*(parent, child: Drawable) {.inline.} =
       assert(addr(d[]) != addr(parent[]))
   parent.link = child
 
+proc dimens*(d: Drawable | ptr Drawable): IVec2 {.inline.} =
+  return ivec2(d.width.int32, d.height.int32)
+
 proc toTopLeft*(d: Drawable | ptr Drawable): IVec2 {.inline.} =
-  let dimens = ivec2(d.width.int32, d.height.int32)
-  return -(dimens div 2) + d.anchorOffset + d.manualOffset
+  return -(d.dimens div 2) + d.anchorOffset + d.manualOffset
 
 proc hidden*(d: Drawable): auto =
-  d.sprite.visible = false
+  d.drawItem.visible = false
   return d
 
 proc resetPooledValue*(d: Drawable) =
-  d.sprite.remove()
+  unregister(d.drawItem)
 
 proc restorePooledValue*(d: Drawable) =
-  d.sprite.add()
-  d.sprite.visible = true
+  register(d.drawItem)
+  d.drawItem.visible = true
 
 proc `$`*(d: Drawable): string =
   {.cast(gcsafe).}:
-    let isVisible = if d.sprite.visible: "visible" else: "hidden"
-    return
-      fmt"Drawable({d.sprite.bounds}, {isVisible}, zIndex={d.sprite.zIndex})"
+    let isVisible = if d.drawItem.visible: "visible" else: "hidden"
+    let pos = d.drawItem.pos
+    return fmt"Drawable(({pos.x}, {pos.y}), {isVisible}, zIndex={d.drawItem.zIndex})"
 
 proc newBitmapDrawable*(
     img: LCDBitmap,
@@ -148,18 +141,12 @@ proc newBitmapDrawable*(
     anchor: AnchorPosition,
     absolutePos: bool = false,
 ): Drawable =
-  var sprite = playdate.sprite.newSprite()
-  sprite.setImage(img, kBitmapUnflipped)
-  sprite.zIndex = ord(zIndex).int16
-  sprite.setOpaque(false)
-  sprite.add()
-
-  return Drawable(
-    sprite: sprite,
-    anchorOffset: sprite.offsetFix(anchor.toAnchor),
+  result = Drawable(
+    anchorOffset: offsetFix(img, anchor.toAnchor),
     absolutePos: absolutePos,
-    lastPosition: ivec2(int32.high, int32.high),
+    drawItem: newDrawItem(img, zIndex)
   )
+  register(result.drawItem)
 
 proc newAssetDrawable*[A](
     assets: SharedOrT[AssetTable[A]],
@@ -195,25 +182,6 @@ template newBlankDrawable*(
 ): Drawable =
   newBlankDrawable(width.int32, height.int32, zIndex, anchor, color, absolutePos)
 
-when defined(simulator):
-  var debugCallbacks: seq[proc(debug: LCDBitmap)]
-
-proc debugDraw*(callback: proc(debug: LCDBitmap)) {.inline.} =
-  when defined(simulator):
-    debugCallbacks.add(callback)
-
-proc drawSprites*() =
-  playdate.sprite.drawSprites()
-
-  if defined(showFPS):
-    playdate.system.drawFPS(LCD_COLUMNS - 18, 4)
-
-  when defined(simulator):
-    var img = playdate.graphics.getDebugBitmap()
-    if img != nil:
-      for debug in debugCallbacks:
-        debug(img)
-
 proc moveDrawables*(
     drawables: Query[(ptr Drawable, Positioned)],
     viewport: Shared[ViewPort],
@@ -230,6 +198,4 @@ proc moveDrawables*(
       let vpOff = if d.absolutePos: noViewport else: viewportOffset
       let absolutePos =
         pos.toIVec2 + d.anchorOffset + d.manualOffset - vpOff
-      if absolutePos != d.lastPosition:
-        d.sprite.moveTo(absolutePos.x.cfloat, absolutePos.y.cfloat)
-        d.lastPosition = absolutePos
+      d.drawItem.moveTo(absolutePos - d.drawItem.dimens div 2)

@@ -157,7 +157,7 @@ proc change*(
   anim.def = def
   anim.frame = 0
   anim.nextFrameTime = 0
-  drawable.anchorOffset = drawable.lcdSprite.offsetFix(def.anchor.toAnchor)
+  drawable.anchorOffset = offsetFix(drawable.getImage, def.anchor.toAnchor)
   anim.loops = 0
 
 proc softChange*(
@@ -166,7 +166,7 @@ proc softChange*(
   assert(anim.def.sheet == def.sheet)
   anim.def = def
   anim.frame = anim.frame.clamp(0'i32, def.frames.len.int32 - 1)
-  drawable.anchorOffset = drawable.lcdSprite.offsetFix(def.anchor.toAnchor)
+  drawable.anchorOffset = offsetFix(drawable.getImage, def.anchor.toAnchor)
   anim.loops = 0
 
 proc reset*(anim: Anim, drawable: Drawable) =
@@ -267,9 +267,7 @@ proc advanceDrawables*(
 
       let currentFrame: Frame = anim.def.frames[anim.frame]
       parent.nextFrameTime = now + currentFrame.time
-      drawable.lcdSprite.setImage(
-        anim.frameCache[currentFrame.cellId], kBitmapUnflipped
-      )
+      drawable[].setImage(anim.frameCache[currentFrame.cellId])
       let kf = currentFrame.toKeyframe(anim.def.sheet, eid)
       if kf.isSome:
         events(kf.get)

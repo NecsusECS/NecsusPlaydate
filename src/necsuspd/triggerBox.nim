@@ -146,14 +146,7 @@ when enableDebugSprite:
       updateTriggerSprite(box.a, pos)
       updateTriggerSprite(box.b, pos)
     of TriggerBoxKind:
-      let bounds = rect(box, pos)
-      let rectangle = PDRect(
-        x: bounds.x.float32 + (bounds.w / 2),
-        y: bounds.y.float32 + (bounds.h / 2),
-        width: bounds.w.float32,
-        height: bounds.h.float32,
-      )
-      `collideRect=`(box.debugSprite, rectangle)
+      discard
 
 template triggerDebugSystem*(name: untyped, TriggerBoxType: typedesc) =
   proc `name`*(triggers: Query[tuple[box: ptr TriggerBoxType, pos: Positioned]]) =

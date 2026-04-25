@@ -1,5 +1,16 @@
 import std/[math, macros, strutils, sequtils]
 
+const LCD_COLUMNS* = 400
+const LCD_ROWS* = 240
+
+type LCDRect* = object
+  left*, right*, top*, bottom*: int
+
+proc makeLCDRect*(x, y, width, height: int): LCDRect =
+  LCDRect(left: x, right: x + width, top: y, bottom: y + height)
+
+const LCD_SCREEN_RECT* = makeLCDRect(0, 0, LCD_COLUMNS, LCD_ROWS)
+
 type
   LCDFont* = ref object
     name: string
@@ -154,6 +165,9 @@ proc getTextWidth*(
 proc fill*(font: Font): int =
   12
 
+proc clear*(graphics: PlaydateGraphics, color: LCDSolidColor) =
+  record("clear", color)
+
 proc fillRect*(graphics: PlaydateGraphics, x, y, width, height: int, color: Color) =
   record("fillRect", x, y, width, height, color)
 
@@ -282,3 +296,15 @@ proc getBitmapTableInfo*(table: LCDBitmapTable): tuple[count: int, cellsWide: in
 
 proc getBitmap*(table: LCDBitmapTable, i: int): LCDBitmap =
   raiseAssert("Unsupported")
+
+proc drawBitmap*(
+    g: PlaydateGraphics, bmp: LCDBitmap, x, y: int, flip: LCDBitmapFlip
+) =
+  bmp.draw(x, y, flip)
+
+var gDebugBitmap: LCDBitmap
+
+proc getDebugBitmap*(graphics: PlaydateGraphics): LCDBitmap =
+  if gDebugBitmap == nil:
+    gDebugBitmap = newImage("debug", LCD_COLUMNS, LCD_ROWS, kColorClear)
+  return gDebugBitmap

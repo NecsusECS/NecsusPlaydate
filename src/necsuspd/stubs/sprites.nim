@@ -66,3 +66,6 @@ proc bounds*(this: LCDSprite): PDRect =
 
 proc markDirty*(this: LCDSprite) =
   discard
+
+proc addDirtyRect*(_: PlaydateSprites, rect: LCDRect) =
+  discard

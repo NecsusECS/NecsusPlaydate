@@ -18,16 +18,6 @@ proc isVisible*[T](visibility: VisibleState, state: Shared[T]): bool =
   assert(flip.typeId == getTypeId(T))
   return matchesState(flip.states, state.get)
 
-template updateVisility(T, visibleState, entities: typed) =
-  for eid, (visibility, entity) in entities:
-    let flip = StateFlip(visibility)
-    if flip.typeId == getTypeId(T):
-      let expect = matchesState(flip.states, visibleState)
-      if expect != entity.visible:
-        log "Changing entity visibility for ",
-          eid, " to ", expect, " for state ", visibleState
-        entity.visible = expect
-
 template defineVisibleStateSystems*(name: untyped, T: typed): untyped =
   ## Shows sprites only when a specific game state is set
   proc evalVisibleState(
@@ -35,7 +25,15 @@ template defineVisibleStateSystems*(name: untyped, T: typed): untyped =
       state: Shared[T],
       drawables: FullQuery[(VisibleState, ptr Drawable)],
   ) {.eventSys.} =
-    updateVisility(T, state.get, drawables)
+    let visibleState = state.get
+    for eid, (visibility, drawable) in drawables:
+      let flip = StateFlip(visibility)
+      if flip.typeId == getTypeId(T):
+        let expect = matchesState(flip.states, visibleState)
+        if expect != drawable.visible:
+          log "Changing visibility for ",
+            eid, " to ", expect, " for state ", visibleState
+          drawable.visible = expect
 
   proc name(
       state: Shared[T], previous: Local[T], trigger: Outbox[EvaluateVisibleState]

@@ -35,10 +35,6 @@ type
 
   NineSlice* = ref object
 
-const
-  LCD_COLUMNS* = 400
-  LCD_ROWS* = 240
-
 let playdate* = PlaydateApi(
   graphics: pdGraphics,
   file: PlaydateFiles(),
