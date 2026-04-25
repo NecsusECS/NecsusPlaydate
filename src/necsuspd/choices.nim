@@ -3,7 +3,7 @@
 ## choice is represented visually by an entity with an Animation. A component
 ## is used to determine which choices are grouped together.
 ##
-import necsus, std/options, util, sprite
+import necsus, std/options, util, anim, sprite
 
 type
   Chosen {.accessory.} = object ## Tag component that flags the currently selected value
@@ -17,8 +17,8 @@ type
   ChoiceControl[T] = object
     mark: Attach[(Chosen,)]
     unmark: Detach[(Chosen,)]
-    chosen: FullQuery[(Chosen, T, Option[Animation], Option[ChosenAnim])]
-    find: Lookup[(T, Option[Animation], Option[ChosenAnim])]
+    chosen: FullQuery[(Chosen, T, Option[Anim], Option[Drawable], Option[ChosenAnim])]
+    find: Lookup[(T, Option[Anim], Option[Drawable], Option[ChosenAnim])]
     notify: Outbox[ChoseEvent[T]]
 
   Choices*[T] = Bundle[ChoiceControl[T]]
@@ -26,25 +26,25 @@ type
 proc chosen*[T](choices: Choices[T]): Option[T] =
   ## Returns the value of the first chosen choice, if any.
   assert(choices.chosen.len <= 1)
-  for (_, value, _, _) in choices.chosen:
+  for (_, value, _, _, _) in choices.chosen:
     return some(value)
 
-template setAnimation(anim: Option[Animation], def: Option[ChosenAnim], body: untyped) =
-  if anim.isSome and def.isSome:
+template setAnimation(anim: Option[Anim], drawable: Option[Drawable], def: Option[ChosenAnim], body: untyped) =
+  if anim.isSome and drawable.isSome and def.isSome:
     let it {.inject.} = def.unsafeGet
-    anim.unsafeGet.change(body)
+    change(anim.unsafeGet, drawable.unsafeGet, body)
 
 proc choose*[T](choices: Choices[T], eid: EntityId): EntityId {.discardable.} =
   ## Returns the value of the first chosen choice, if any.
-  for (value, anim, defs) in choices.find(eid).items:
-    for existing, (_, _, existingAnim, existingDefs) in choices.chosen:
+  for (value, anim, drawable, defs) in choices.find(eid).items:
+    for existing, (_, _, existingAnim, existingDrawable, existingDefs) in choices.chosen:
       if existing == eid:
         return
       choices.unmark(existing)
-      setAnimation(existingAnim, existingDefs, it.inactive)
+      setAnimation(existingAnim, existingDrawable, existingDefs, it.inactive)
 
     choices.mark(eid, (Chosen(),))
-    setAnimation(anim, defs, it.active)
+    setAnimation(anim, drawable, defs, it.active)
     log "Choosing ", $T, " as ", eid
     choices.notify((eid, value))
 

@@ -1,4 +1,4 @@
-import necsuspd/stubs/[sprites, graphics], necsuspd/sprite
+import necsuspd/stubs/[sprites, graphics], necsuspd/sprite, necsuspd/anim
 
 type
   TestZIndex* = enum
@@ -16,4 +16,12 @@ proc newAnimationDef*(id: int = 0): AnimationDef =
 proc newAnimation*(
     name: string, width, height: int, def: AnimationDef = newAnimationDef()
 ): Animation =
-  newSheet(@[newImage(name, width, height, kColorBlack)], def, FirstLayer)
+  sprite.newSheet(@[newImage(name, width, height, kColorBlack)], def, FirstLayer)
+
+proc newDrawableAnim*(
+    name: string, width, height: int, def: AnimationDef = newAnimationDef()
+): (Drawable, Anim) =
+  anim.newSheet(@[newImage(name, width, height, kColorBlack)], def, FirstLayer)
+
+proc newDrawable*(name: string, width, height: int): Drawable =
+  drawable.newBitmapDrawable(newImage(name, width, height, kColorBlack), FirstLayer, AnchorTopLeft)

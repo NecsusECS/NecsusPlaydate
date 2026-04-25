@@ -1,4 +1,4 @@
-import necsus, sprite, import_playdate, util, util/stateflips, types
+import necsus, drawable, import_playdate, util, util/stateflips, types
 
 type
   VisibleState* = distinct StateFlip
@@ -33,11 +33,9 @@ template defineVisibleStateSystems*(name: untyped, T: typed): untyped =
   proc evalVisibleState(
       _: EvaluateVisibleState,
       state: Shared[T],
-      sprites: FullQuery[(VisibleState, Sprite)],
-      anims: FullQuery[(VisibleState, Animation)],
+      drawables: FullQuery[(VisibleState, ptr Drawable)],
   ) {.eventSys.} =
-    updateVisility(T, state.get, sprites)
-    updateVisility(T, state.get, anims)
+    updateVisility(T, state.get, drawables)
 
   proc name(
       state: Shared[T], previous: Local[T], trigger: Outbox[EvaluateVisibleState]

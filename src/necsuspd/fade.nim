@@ -1,4 +1,4 @@
-import import_playdate, dither, math, sprite
+import import_playdate, dither, math, drawable
 
 type
   PrecalculatedFade* = ref object
@@ -50,12 +50,12 @@ proc createFadePrecalculation*(
     result.images[i] = baseMask.copy
     result.images[i].drawFade(gray)
 
-proc full*(fade: PrecalculatedFade, sprite: Sprite) =
+proc full*(fade: PrecalculatedFade, sprite: Drawable) =
   discard sprite.getImage.setBitmapMask(fade.images[fade.images.len - 1])
   sprite.markDirty
 
 proc draw*(
-    fade: PrecalculatedFade, sprite: Sprite, existingValue: ptr FadeState, t: float32
+    fade: PrecalculatedFade, sprite: Drawable, existingValue: ptr FadeState, t: float32
 ) =
   let newIndex = round((fade.images.len - 1).float32 * t.clamp(0.0, 1.0)).toInt.int32
   if not existingValue.initialized or existingValue.index != newIndex:

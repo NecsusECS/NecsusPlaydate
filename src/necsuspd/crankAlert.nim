@@ -1,4 +1,4 @@
-import necsus, import_playdate, sprite, positioned, util
+import necsus, import_playdate, anim, positioned, util
 
 type
   CrankMode* = enum
@@ -16,16 +16,16 @@ proc buildCrankAlerter*[Assets; SheetId: enum, Active: enum](
   return proc(
       assets: Shared[Assets],
       required: Shared[CrankMode],
-      spawn: Spawn[(CrankSprite, Positioned, Animation)],
+      spawn: Spawn[(CrankSprite, Positioned, Drawable, Anim)],
       activeState: Shared[Active],
   ): SystemInstance {.instanced.} =
     required := initialState
     var currentState = playdate.system.isCrankDocked()
 
     let anim = animation(crankSheetId, 0.1, 0'i32 .. 17'i32, AnchorBottomRight)
-    var sheet = newSheet[SheetId](assets, anim, zIndex = zindex, absolutePos = true)
-    sheet.sprite.visible = currentState
-    spawn.with(CrankSprite(), positioned(LCD_COLUMNS, LCD_ROWS - 10), sheet)
+    var (sheet, sheetAnim) = newSheet[SheetId](assets, anim, zIndex = zindex, absolutePos = true)
+    sheet.visible = currentState
+    spawn.with(CrankSprite(), positioned(LCD_COLUMNS, LCD_ROWS - 10), sheet, sheetAnim)
 
     return proc() =
       let shouldShow =
@@ -34,4 +34,4 @@ proc buildCrankAlerter*[Assets; SheetId: enum, Active: enum](
 
       if shouldShow != currentState:
         currentState = shouldShow
-        sheet.sprite.visible = currentState
+        sheet.visible = currentState

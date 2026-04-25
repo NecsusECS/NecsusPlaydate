@@ -1,7 +1,7 @@
 import
   std/[unittest, options],
   necsus,
-  necsuspd/[visibleState, sprite],
+  necsuspd/[visibleState, drawable],
   necsuspd/stubs/graphics,
   helpers
 
@@ -14,10 +14,8 @@ defineVisibleStateSystems(checkVisibleState, GameState)
 
 proc runner(
     state: Shared[GameState],
-    spawnSprite: FullSpawn[(VisibleState, Sprite)],
-    spawnAnim: FullSpawn[(VisibleState, Animation)],
-    getSprite: Lookup[(Sprite,)],
-    getAnim: Lookup[(Animation,)],
+    spawnDrawable: FullSpawn[(VisibleState, Drawable)],
+    getDrawable: Lookup[(Drawable,)],
     tick: proc(): void,
 ) =
   test "isVisible returns true when state matches":
@@ -34,39 +32,39 @@ proc runner(
     state := GameOver
     check not visibility({Idle, Running}).isVisible(state)
 
-  test "sprite is visible when state matches":
-    let e = spawnSprite.with(visibility(Idle), newSprite("test", 10, 10))
+  test "drawable is visible when state matches":
+    let e = spawnDrawable.with(visibility(Idle), newDrawable("test", 10, 10))
     state := Idle
     tick()
-    check getSprite(e).get()[0].visible
+    check getDrawable(e).get()[0].visible
 
-  test "sprite is hidden when state does not match":
-    let e = spawnSprite.with(visibility(Idle), newSprite("test2", 10, 10))
+  test "drawable is hidden when state does not match":
+    let e = spawnDrawable.with(visibility(Idle), newDrawable("test2", 10, 10))
     state := Running
     tick()
-    check not getSprite(e).get()[0].visible
+    check not getDrawable(e).get()[0].visible
 
-  test "sprite becomes visible again when state returns":
-    let e = spawnSprite.with(visibility(Idle), newSprite("test3", 10, 10))
+  test "drawable becomes visible again when state returns":
+    let e = spawnDrawable.with(visibility(Idle), newDrawable("test3", 10, 10))
     state := Running
     tick()
     state := Idle
     tick()
-    check getSprite(e).get()[0].visible
+    check getDrawable(e).get()[0].visible
 
-  test "animation is hidden when state does not match":
-    let e = spawnAnim.with(visibility(GameOver), newAnimation("test", 10, 10))
+  test "drawable is hidden when state does not match (alt)":
+    let e = spawnDrawable.with(visibility(GameOver), newDrawable("test4", 10, 10))
     state := GameOver
     tick()
     state := Idle
     tick()
-    check not getAnim(e).get()[0].visible
+    check not getDrawable(e).get()[0].visible
 
-  test "animation is visible when state matches":
-    let e = spawnAnim.with(visibility(GameOver), newAnimation("test2", 10, 10))
+  test "drawable is visible when state matches (alt)":
+    let e = spawnDrawable.with(visibility(GameOver), newDrawable("test5", 10, 10))
     state := GameOver
     tick()
-    check getAnim(e).get()[0].visible
+    check getDrawable(e).get()[0].visible
 
 proc testVisibleState() {.
   necsus(runner, [~evalVisibleState, ~checkVisibleState], newNecsusConf())

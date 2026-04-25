@@ -7,7 +7,7 @@ import
   vec_tools,
   rand,
   fpvec,
-  sprite,
+  drawable,
   necsus
 
 type
@@ -188,7 +188,7 @@ proc newParticleField*(
   let alloced = allocate(spawners)
   newField[S, F](alloced, fieldData)
 
-proc updateParticles*(particles: Query[(Sprite, ParticleField)]) =
+proc updateParticles*(particles: Query[(Drawable, ParticleField)]) =
   for (sprite, particle) in particles:
     var image = sprite.getBitmapMask
     particle(image)

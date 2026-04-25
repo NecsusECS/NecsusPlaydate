@@ -1,22 +1,18 @@
-import necsus, positioned, util, vmath, alignment, std/options, import_playdate, sprite
+import necsus, positioned, util, vmath, alignment, std/options, import_playdate, drawable
 
 export alignment
 
 type
   AutoAlignCtrl[T] = object
     findTargets: Query[(T, ptr Positioned)]
-    findAnchorSprite: Lookup[(Positioned, Sprite)]
-    findAnchorAnim: Lookup[(Positioned, Animation)]
+    findAnchorDrawable: Lookup[(Positioned, Drawable)]
 
   AutoAlign*[T] = Bundle[AutoAlignCtrl[T]]
 
 proc resolveAnchor(
     control: AutoAlign, anchor: EntityId
 ): Option[tuple[pos: IVec2, width, height: int32]] =
-  for (pos, entity) in control.findAnchorSprite(anchor).items:
-    return
-      some((pos.toIVec2 + entity.toTopLeft(), entity.width.int32, entity.height.int32))
-  for (pos, entity) in control.findAnchorAnim(anchor).items:
+  for (pos, entity) in control.findAnchorDrawable(anchor).items:
     return
       some((pos.toIVec2 + entity.toTopLeft(), entity.width.int32, entity.height.int32))
 

@@ -3,7 +3,7 @@ import necsus, vmath, positioned, vec_tools, bumpy, strformat, util
 const enableDebugSprite = defined(simulator) and not defined(disableDebugSprite)
 
 when enableDebugSprite:
-  import sprite, import_playdate
+  import drawable, import_playdate
 
 type
   TriggerKind = enum
@@ -16,7 +16,7 @@ type
       offset: IVec2
       dimens: IVec2
       when enableDebugSprite:
-        debugSprite: Sprite
+        debugSprite: Drawable
     of TriggerJoinKind:
       a, b: ref TriggerBox
 
@@ -93,7 +93,7 @@ proc triggerBox*(
   )
   when enableDebugSprite:
     result.debugSprite =
-      newBlankSprite(width, height, zIndex, AnchorTopLeft, kColorClear)
+      newBlankDrawable(width, height, zIndex, AnchorTopLeft, kColorClear)
 
 proc join*(a, b: AnyTriggerBox): TriggerBox =
   ## Combines two trigger boxes into one

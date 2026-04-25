@@ -1,7 +1,7 @@
 import
   std/[unittest, options],
   necsus,
-  necsuspd/[choices, util, sprite],
+  necsuspd/[choices, util, sprite, anim],
   vmath,
   necsuspd/stubs/graphics,
   helpers
@@ -11,28 +11,28 @@ type Selection = string
 template runTest(name: string, body: untyped) =
   runSystemOnce do(
     choices {.inject.}: Choices[Selection],
-    create {.inject.}: FullSpawn[(Selection, Animation, ChosenAnim)],
+    create {.inject.}: FullSpawn[(Selection, Drawable, Anim, ChosenAnim)],
     createBare {.inject.}: FullSpawn[(Selection,)],
     createOther {.inject.}: FullSpawn[(int, Animation, ChosenAnim)],
-    getAnim {.inject.}: Lookup[(Animation,)],
+    getAnim {.inject.}: Lookup[(Anim,)],
     events {.inject.}: Inbox[ChoseEvent[Selection]]
   ) -> void:
     let animA {.inject.}: ChosenAnim = (newAnimationDef(1), newAnimationDef(2))
     let animB {.inject.}: ChosenAnim = (newAnimationDef(3), newAnimationDef(4))
 
     template createStdEntities() {.inject.} =
-      let a {.inject.} =
-        create.with("a", newAnimation("foo", 10, 10, animA.inactive), animA)
-      let b {.inject.} =
-        create.with("b", newAnimation("bar", 10, 10, animB.inactive), animB)
+      let (aDrawable, aAnim) = newDrawableAnim("foo", 10, 10, animA.inactive)
+      let a {.inject.} = create.with("a", aDrawable, aAnim, animA)
+      let (bDrawable, bAnim) = newDrawableAnim("bar", 10, 10, animB.inactive)
+      let b {.inject.} = create.with("b", bDrawable, bAnim, animB)
 
     test name:
       body
 
-proc `==`(state: Option[(Animation,)], def: AnimationDef): bool =
+proc `==`(state: Option[(Anim,)], def: AnimationDef): bool =
   state.isSome and state.get()[0].def == def
 
-proc `$`(state: Option[(Animation,)]): string =
+proc `$`(state: Option[(Anim,)]): string =
   state.mapIt("some(" & $it[0].def & ")").get("none()")
 
 runTest "Start with nothing selected":

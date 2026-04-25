@@ -1,4 +1,4 @@
-import necsus, sprite, util, util/stateflips, types
+import necsus, anim, util, util/stateflips, types
 
 type
   PausedState* = distinct StateFlip ## Represents when an entity should be paused
@@ -28,7 +28,7 @@ template definePausedStateSystems*(name: untyped, T: typed): untyped =
   proc evalPausedState(
       _: EvaluatePausedState,
       state: Shared[T],
-      anims: FullQuery[(PausedState, Animation)],
+      anims: FullQuery[(PausedState, Anim)],
   ) {.eventSys.} =
     updatePaused(T, state.get, anims)
 
