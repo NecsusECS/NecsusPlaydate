@@ -1,4 +1,4 @@
-import necsus, achievements, sprite, positioned, files, util, std/options
+import necsus, achievements, drawable, positioned, files, util, std/options
 export achievements
 
 type
@@ -65,13 +65,13 @@ template buildAwardSystems*[T: enum](
   proc showAwardPop(
       event: ShowAwardPopup[T],
       assets: Shared[Assets],
-      spawn: FullSpawn[(AwardPopup, Positioned, Sprite)],
+      spawn: FullSpawn[(AwardPopup, Positioned, Drawable)],
       delete: Delete,
       moveTo: Bundle[MoveTo[AwardPopup]],
       timer: Bundle[TimerControl[AwardPopupTimer]],
   ) {.eventSys, depends(debugAchievements).} =
     ## Shows a notification for a granted achievement
-    let sprite = assets.newAssetSprite(
+    let sprite = assets.newAssetDrawable(
       achievementImgAsset, AnchorTopMiddle, popupZIndex, absolutePos = true
     )
 

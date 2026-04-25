@@ -27,7 +27,7 @@ proc checkGraphicActions(expected: varargs[string]) =
 
 suite "Box Elem":
   test "A basic string should be written in the top left corner":
-    text("foo").draw(newSprite("testImg", 100, 100), font)
+    text("foo").draw(newDrawable("testImg", 100, 100), font)
 
     checkGraphicActions(
       "setFont(testImg, font.name: foo)",
@@ -37,7 +37,7 @@ suite "Box Elem":
 
   test "Changing the draw mode of text":
     text("foo", drawMode = kDrawModeFillWhite).draw(
-      newSprite("testImg", 100, 100), font
+      newDrawable("testImg", 100, 100), font
     )
 
     checkGraphicActions(
@@ -47,7 +47,7 @@ suite "Box Elem":
     )
 
   test "Text wrapping":
-    text(loremIpsum, wrap = true).draw(newSprite("testImg", 200, 100), font)
+    text(loremIpsum, wrap = true).draw(newDrawable("testImg", 200, 100), font)
 
     checkGraphicActions(
       "setFont(testImg, font.name: foo)",
@@ -61,7 +61,7 @@ suite "Box Elem":
 
   test "Right aligned text wrapping":
     text(loremIpsum, wrap = true, align = AlignRight).draw(
-      newSprite("testImg", 300, 100), font
+      newDrawable("testImg", 300, 100), font
     )
 
     checkGraphicActions(
@@ -97,7 +97,7 @@ suite "Box Elem":
     checkGraphicActions()
 
   test "Drawing a blank element":
-    blank(10, 20).draw(newSprite("testImg", 300, 100), font)
+    blank(10, 20).draw(newDrawable("testImg", 300, 100), font)
     checkGraphicActions()
 
   test "Calculating the dimensions of a blank":
@@ -105,7 +105,7 @@ suite "Box Elem":
     checkGraphicActions()
 
   test "Drawing an image element":
-    img(newImage("foo", 10, 20, kColorWhite)).draw(newSprite("testImg", 300, 100), font)
+    img(newImage("foo", 10, 20, kColorWhite)).draw(newDrawable("testImg", 300, 100), font)
     checkGraphicActions(
       "drawMode(testImg, drawMode: kDrawModeCopy)",
       "drawBitmap(testImg, name: foo, x: 0, y: 0)",
@@ -113,7 +113,7 @@ suite "Box Elem":
 
   test "Drawing a right aligned image element":
     img(newImage("foo", 10, 20, kColorWhite), align = AlignRight).draw(
-      newSprite("testImg", 300, 100), font
+      newDrawable("testImg", 300, 100), font
     )
     checkGraphicActions(
       "drawMode(testImg, drawMode: kDrawModeCopy)",
@@ -122,7 +122,7 @@ suite "Box Elem":
 
   test "Drawing a center aligned image element":
     img(newImage("foo", 20, 20, kColorWhite), align = AlignCenter).draw(
-      newSprite("testImg", 300, 100), font
+      newDrawable("testImg", 300, 100), font
     )
     checkGraphicActions(
       "drawMode(testImg, drawMode: kDrawModeCopy)",
@@ -136,7 +136,7 @@ suite "Box Elem":
       img(newImage("baz", 40, 40, kColorWhite), align = AlignRight),
       img(newImage("qux", 10, 10, kColorWhite)),
     )
-      .draw(newSprite("testImg", 300, 100), font)
+      .draw(newDrawable("testImg", 300, 100), font)
 
     checkGraphicActions(
       "drawMode(testImg, drawMode: kDrawModeCopy)",
@@ -161,7 +161,7 @@ suite "Box Elem":
       img(newImage("bar", 30, 30, kColorWhite)),
       img(newImage("baz", 40, 40, kColorWhite)),
     )
-      .draw(newSprite("testImg", 300, 100), font)
+      .draw(newDrawable("testImg", 300, 100), font)
 
     checkGraphicActions(
       "drawMode(testImg, drawMode: kDrawModeCopy)",
@@ -174,7 +174,7 @@ suite "Box Elem":
 
   test "Setting the max width of a box with text in it":
     maxWidth(200, text(loremIpsum, wrap = true)).draw(
-      newSprite("testImg", 500, 100), font
+      newDrawable("testImg", 500, 100), font
     )
     checkGraphicActions(
       "setFont(testImg, font.name: foo)",
@@ -187,7 +187,7 @@ suite "Box Elem":
     )
 
     maxWidth(300, text(loremIpsum, wrap = true)).draw(
-      newSprite("testImg", 500, 100), font
+      newDrawable("testImg", 500, 100), font
     )
     checkGraphicActions(
       "setFont(testImg, font.name: foo)",
@@ -210,7 +210,7 @@ suite "Box Elem":
   test "Forcing a minimum width":
     let elem = text("foo").minWidth(80)
     check(elem.dimens(font) == (80, 18))
-    elem.draw(newSprite("testImg", 100, 100), font)
+    elem.draw(newDrawable("testImg", 100, 100), font)
     checkGraphicActions(
       "setFont(testImg, font.name: foo)",
       "drawMode(testImg, drawMode: kDrawModeFillBlack)",
@@ -220,7 +220,7 @@ suite "Box Elem":
   test "Forcing a minimum width with a padding":
     let elem = pad(text("foo").minWidth(60), 10, 20, 30, 40)
     check(elem.dimens(font) == (90, 88))
-    elem.draw(newSprite("testImg", 100, 100), font)
+    elem.draw(newDrawable("testImg", 100, 100), font)
     checkGraphicActions(
       "setFont(testImg, font.name: foo)",
       "drawMode(testImg, drawMode: kDrawModeFillBlack)",
@@ -236,7 +236,7 @@ suite "Box Elem":
     checkGraphicActions()
 
   test "Drawing with a fixed width":
-    text("foo").fixedWidth(80).draw(newSprite("testImg", 100, 100), font)
+    text("foo").fixedWidth(80).draw(newDrawable("testImg", 100, 100), font)
     checkGraphicActions(
       "setFont(testImg, font.name: foo)",
       "drawMode(testImg, drawMode: kDrawModeFillBlack)",
@@ -248,7 +248,7 @@ suite "Box Elem":
       img(newImage("small", 20, 20, kColorWhite)).fullWidth(),
       img(newImage("next", 30, 30, kColorWhite)),
     )
-      .draw(newSprite("testImg", 300, 100), font)
+      .draw(newDrawable("testImg", 300, 100), font)
     checkGraphicActions(
       "drawMode(testImg, drawMode: kDrawModeCopy)",
       "drawBitmap(testImg, name: small, x: 0, y: 0)",
@@ -269,13 +269,13 @@ suite "Box Elem":
     checkGraphicActions()
 
   test "Drawing a horizontal line":
-    horizLine(2).draw(newSprite("testImg", 100, 100), font)
+    horizLine(2).draw(newDrawable("testImg", 100, 100), font)
     checkGraphicActions(
       "fillRect(testImg, x: 2, y: 2, width: 96, height: 2, color: kColorBlack)"
     )
 
   test "Center aligned text":
-    text("foo", align = AlignCenter).draw(newSprite("testImg", 100, 100), font)
+    text("foo", align = AlignCenter).draw(newDrawable("testImg", 100, 100), font)
     checkGraphicActions(
       "setFont(testImg, font.name: foo)",
       "drawMode(testImg, drawMode: kDrawModeFillBlack)",
@@ -284,7 +284,7 @@ suite "Box Elem":
 
   test "Text with a custom font uses that font instead of the default":
     let customFont = newFont("custom", height = 10, charWidth = 6)
-    text("hi", font = customFont).draw(newSprite("testImg", 100, 100), font)
+    text("hi", font = customFont).draw(newDrawable("testImg", 100, 100), font)
     checkGraphicActions(
       "setFont(testImg, font.name: custom)",
       "drawMode(testImg, drawMode: kDrawModeFillBlack)",
@@ -294,7 +294,7 @@ suite "Box Elem":
   test "Right aligned natural-width element is right-docked in a row":
     const zeroPad = (0i32, 0i32, 0i32, 0i32)
     row(text("left", pad = zeroPad), text("right", align = AlignRight, pad = zeroPad))
-      .draw(newSprite("testImg", 300, 100), font)
+      .draw(newDrawable("testImg", 300, 100), font)
     checkGraphicActions(
       "setFont(testImg, font.name: foo)",
       "drawMode(testImg, drawMode: kDrawModeFillBlack)",
@@ -306,7 +306,7 @@ suite "Box Elem":
   test "Row with only right aligned elements docks them all to the right":
     const zeroPad = (0i32, 0i32, 0i32, 0i32)
     row(text("A", align = AlignRight, pad = zeroPad).fixedWidth(40)).draw(
-      newSprite("testImg", 300, 100), font
+      newDrawable("testImg", 300, 100), font
     )
     checkGraphicActions(
       "setFont(testImg, font.name: foo)",
@@ -322,7 +322,7 @@ suite "Box Elem":
       text("B", align = AlignRight, pad = zeroPad).fixedWidth(40),
       text("C", align = AlignRight, pad = zeroPad).fixedWidth(40),
     )
-      .draw(newSprite("testImg", 300, 100), font)
+      .draw(newDrawable("testImg", 300, 100), font)
     checkGraphicActions(
       "setFont(testImg, font.name: foo)",
       "drawMode(testImg, drawMode: kDrawModeFillBlack)",

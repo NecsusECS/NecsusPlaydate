@@ -1,4 +1,4 @@
-import std/[importutils, bitops], sprite, import_playdate
+import std/[importutils, bitops], drawable, import_playdate
 
 template eachBitInRow(
     bitmap: var BitmapData | BitmapDataObj, rowWords: int32, exec: untyped
@@ -94,7 +94,7 @@ template drawContext*(img: LCDBitmap, exec: untyped) =
   finally:
     playdate.graphics.popContext()
 
-template drawContext*(sprite: Sprite | ptr Sprite, exec: untyped) =
+template drawContext*(sprite: Drawable | ptr Drawable, exec: untyped) =
   sprite.markDirty()
   sprite.getImage.drawContext:
     exec

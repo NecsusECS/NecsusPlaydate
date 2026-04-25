@@ -1,4 +1,4 @@
-import sequtils, textwrap, alignment, import_playdate, sprite
+import sequtils, textwrap, alignment, import_playdate, drawable
 export alignment
 
 type

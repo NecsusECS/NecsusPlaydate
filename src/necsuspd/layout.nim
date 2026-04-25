@@ -1,10 +1,9 @@
-import necsus, sequtils, positioned, options, vmath, alignment, util, sprite
+import necsus, sequtils, positioned, options, vmath, alignment, util, drawable
 export alignment
 
 type
   Layouter* = object
-    getSprite*: Lookup[tuple[pos: ptr Positioned, sprite: Sprite]]
-    getAnim*: Lookup[tuple[pos: ptr Positioned, anim: Animation]]
+    getDrawable*: Lookup[tuple[pos: ptr Positioned, drawable: Drawable]]
 
   LayoutKind = enum
     SpriteLayout
@@ -39,14 +38,9 @@ type
 proc getEntity(
     control: auto, eid: EntityId
 ): Option[tuple[pos: ptr Positioned, dimens: LayoutDimens]] =
-  let sprite = control.getSprite(eid)
-  if sprite.isSome:
-    let (pos, entity) = sprite.unsafeGet
-    return some((pos, (entity.width.int32, entity.height.int32)))
-
-  let anim = control.getAnim(eid)
-  if anim.isSome:
-    let (pos, entity) = anim.unsafeGet
+  let drawable = control.getDrawable(eid)
+  if drawable.isSome:
+    let (pos, entity) = drawable.unsafeGet
     return some((pos, (entity.width.int32, entity.height.int32)))
 
   log "ERROR! Unable to find entity for layout ", eid

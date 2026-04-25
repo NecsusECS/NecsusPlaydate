@@ -1,4 +1,4 @@
-import necsus, sprite, pool, vmath, import_playdate, fpvec, positioned
+import necsus, drawable, pool, vmath, import_playdate, fpvec, positioned
 
 const BEAM_BATCH_SIZE = 4
 
@@ -41,12 +41,12 @@ template makeBeamPool*(
     step: uint
     draw: BeamDrawProc
 
-  proc `Name Pool`(): Sprite {.pooled(poolSize).} =
-    result = newBlankSprite(maxBeamLength, maxBeamLength, zIndex, AnchorMiddle)
+  proc `Name Pool`(): Drawable {.pooled(poolSize).} =
+    result = newBlankDrawable(maxBeamLength, maxBeamLength, zIndex, AnchorMiddle)
     discard result.getImage.setBitmapMask()
 
   proc `update Name Beams`*(
-      tick: TickId, beams: FullQuery[(`Name BeamState`, Sprite)], delete: Delete
+      tick: TickId, beams: FullQuery[(`Name BeamState`, ptr Drawable)], delete: Delete
   ) =
     let batchId = tick() mod BEAM_BATCH_SIZE
     for eid, (beam, sprite) in beams:
@@ -75,7 +75,7 @@ template makeBeamPool*(
 
   proc `Name`*(
       event: BeamEvent,
-      spawn: Spawn[(`Name BeamState`, Positioned, Sprite, Handle[Sprite])],
+      spawn: Spawn[(`Name BeamState`, Positioned, Drawable, Handle[Drawable])],
   ) {.eventSys, depends(`update Name Beams`).} =
     let delta = toIVec2(event.beamTarget - event.beamOrigin)
     const center = ivec2(maxBeamLength div 2, maxBeamLength div 2)

@@ -1,4 +1,4 @@
-import necsus, loading, visibleState, sprite, paused
+import necsus, loading, visibleState, anim, paused
 
 template createsSingletonSpawner*(
     name: untyped,
@@ -14,12 +14,12 @@ template createsSingletonSpawner*(
       task: Bundle[LoadTasks],
       assets: Shared[assetBagType],
       create:
-        Spawn[(typeof(entityTag), Animation, Positioned, VisibleState, PausedState)],
+        Spawn[(typeof(entityTag), Drawable, Anim, Positioned, VisibleState, PausedState)],
   ) {.active(loadingState).} =
     task.execTask($typeof(entityTag), typeof(entityTag), 0):
-      let sheet = assets.newSheet(initialAnimation, zIndex)
+      let (sheet, sheetAnim) = assets.newSheet(initialAnimation, zIndex)
       sheet.visible = false
-      set(create, (entityTag, sheet, positioned(0, 0), visibility, pausedIn))
+      set(create, (entityTag, sheet, sheetAnim, positioned(0, 0), visibility, pausedIn))
 
 template createSingletonSprite*(
     name: untyped,
@@ -35,9 +35,9 @@ template createSingletonSprite*(
   proc `name`*(
       task: Bundle[LoadTasks],
       assets: Shared[assetBagType],
-      create: Spawn[(typeof(entityTag), Sprite, Positioned, VisibleState)],
+      create: Spawn[(typeof(entityTag), Drawable, Positioned, VisibleState)],
   ) {.active(loadingState).} =
     task.execTask($typeof(entityTag), typeof(entityTag), 0):
-      let sprite = assets.newAssetSprite(initialAsset, anchor, zIndex, absolutePos)
-      sprite.visible = false
-      set(create, (entityTag, sprite, positioned(0, 0), visibility))
+      let drawable = assets.newAssetDrawable(initialAsset, anchor, zIndex, absolutePos)
+      drawable.visible = false
+      set(create, (entityTag, drawable, positioned(0, 0), visibility))

@@ -9,7 +9,7 @@ import
   vmath,
   fungus,
   findDir,
-  sprite,
+  drawable,
   types
 
 adtEnum(Selected):
@@ -28,7 +28,7 @@ type
   EvaluateSelectableState* = object
 
   CursorControlDirs[T] = object ## A component that controls the cursor
-    find: FullQuery[(T, Selectable, Positioned, Option[Sprite], Option[Animation])]
+    find: FullQuery[(T, Selectable, Positioned, Option[Drawable])]
     notify: Outbox[Selected]
     selected: Local[EntitySelected]
 
@@ -57,18 +57,16 @@ proc select*(control: CursorControl, selected: Selected) =
   of EntitySelected as selected:
     control.selected := selected
 
-proc size(sprite: Option[Sprite], anim: Option[Animation]): FPVec2 =
-  sprite.withValue(it):
-    return fpvec2(it.width, it.height)
-  anim.withValue(it):
+proc size(drawable: Option[Drawable]): FPVec2 =
+  drawable.withValue(it):
     return fpvec2(it.width, it.height)
   return fpvec2(0, 0)
 
 proc centroid[A, B](
-    entity: (A, B, Positioned, Option[Sprite], Option[Animation])
+    entity: (A, B, Positioned, Option[Drawable])
 ): FPVec2 =
-  let (_, _, pos, sprite, anim) = entity
-  return pos.toFPVec2 + (size(sprite, anim) / fpvec2(2, 2))
+  let (_, _, pos, drawable) = entity
+  return pos.toFPVec2 + (size(drawable) / fpvec2(2, 2))
 
 iterator eligible[T](bundle: CursorControl[T]): (FPVec2, EntityId) =
   ## An iterator that returns the entities available when choosing a new cursor target
