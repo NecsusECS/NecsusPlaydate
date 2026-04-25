@@ -1,17 +1,18 @@
 import
   necsuspd/[
-    achievements, alignment, anchor, aseprite, assetBag, autoalign, awards, boxelem, c,
-    carousel, circle, crankAlert, crankData, cursor, data_bundle, debounce, debug,
-    djikstra, draw, easing, fade, files, findDir, flowfield, fpvec, glow, init, inputs,
-    layout, lightning, loading, moveTo, multistep, obfuscate, particles, percent, pool,
-    positioned, pulse, rand, shake, singleton, sprite, textwrap, time, timer, treeSeq,
-    triggerBox, types, util, vec_tools, viewport, visibleState, choices, intersects,
-    rotations, raycasts, paused, beam, beamfx, ldtk, ldtk_draw, zone_fill,
+    achievements, alignment, anchor, anim, aseprite, assetBag, autoalign, awards, boxelem,
+    c, carousel, circle, crankAlert, crankData, cursor, data_bundle, debounce, debug,
+    djikstra, draw, drawable, easing, fade, files, findDir, flowfield, fpvec, glow, init,
+    inputs, layout, lightning, loading, moveTo, multistep, obfuscate, particles, percent,
+    pool, positioned, pulse, rand, shake, singleton, sprite, textwrap, time, timer,
+    treeSeq, triggerBox, types, util, vec_tools, viewport, visibleState, choices,
+    intersects, rotations, raycasts, paused, beam, beamfx, ldtk, ldtk_draw, zone_fill,
   ]
 
 export achievements
 export alignment
 export anchor
+export anim
 export aseprite
 export assetBag
 export autoalign
@@ -31,6 +32,7 @@ export debounce
 export debug
 export djikstra
 export draw
+export drawable
 export easing
 export fade
 export files

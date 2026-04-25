@@ -35,19 +35,19 @@ type
     entityId*: EntityId
 
   Frame* = object
-    time: float32
-    cellId: int32
-    case isKeyframe: bool
+    time*: float32
+    cellId*: int32
+    case isKeyframe*: bool
     of true:
-      keyframeValue: EnumValue
+      keyframeValue*: EnumValue
     of false:
       discard
 
   AnimationDefObj = object ## A specific animation within a sprite sheet
-    sheet: EnumValue
-    frames: seq[Frame]
-    anchor: Anchor
-    loop: LoopMode
+    sheet*: EnumValue
+    frames*: seq[Frame]
+    anchor*: Anchor
+    loop*: LoopMode
 
   AnimationDef* = ref AnimationDefObj ## A specific animation within a sprite sheet
 
@@ -98,6 +98,13 @@ proc modify*(
 proc keyframe*(keyframe: Keyframe, typ: typedesc[enum]): Option[typ] =
   ## Extracts the keyframe as an enum
   return keyframe.keyframeValue.getAs(typ)
+
+proc toKeyframe*(frame: Frame, sheet: EnumValue, entityId: EntityId): Option[Keyframe] =
+  ## Returns a Keyframe event if this frame has a keyframe marker, otherwise none
+  if frame.isKeyframe:
+    some(Keyframe(sheet: sheet, keyframeValue: frame.keyframeValue, entityId: entityId))
+  else:
+    none(Keyframe)
 
 proc offsetFix(sprite: LCDSprite, anchor: Anchor): IVec2 =
   ## Returns the offset necessary to align a position to the 0, 0 position of a sprite
