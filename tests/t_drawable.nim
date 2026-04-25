@@ -3,7 +3,6 @@ import
   necsuspd/[drawable, anim],
   necsuspd/stubs/[sprites, graphics],
   vmath
-from necsuspd/sprite import animation
 
 type
   TestZIndex = enum

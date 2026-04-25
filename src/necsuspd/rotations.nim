@@ -7,7 +7,7 @@ import
   loading,
   util,
   aseprite,
-  sprite,
+  anim,
   fpvec,
   assetBag
 
@@ -142,8 +142,8 @@ proc animation*[Anims](
     angle: FPInt,
     zIndex: enum,
     absolutePos: bool = false,
-): Animation =
+): (Drawable, Anim) =
   ## Returns the animation for a game object the given angle
   assert(obj != nil, fmt"Object sheet not loaded")
-  let anim = obj.animationDef(anim, angle)
-  return newSheet(obj.table, anim, zIndex, absolutePos)
+  let animDef = obj.animationDef(anim, angle)
+  return newSheet(obj.table, animDef, zIndex, absolutePos)

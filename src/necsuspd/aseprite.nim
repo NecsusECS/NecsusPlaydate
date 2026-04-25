@@ -9,7 +9,7 @@ import
   util,
   anchor,
   import_playdate,
-  sprite
+  anim
 
 export anchor
 

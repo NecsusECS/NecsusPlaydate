@@ -1,4 +1,4 @@
-import unittest, necsuspd/[particles, sprite], necsuspd/stubs/graphics, vmath, helpers
+import unittest, necsuspd/[particles], necsuspd/stubs/graphics, vmath, helpers
 
 proc chooseRandom(values: Slice[uint32]): uint32 =
   values.a
@@ -19,7 +19,7 @@ suite "Particle System":
 
   test "A particle system with a single emitter":
     let field = newField[int32, int32](simpleSpawn.allocate(), fieldData = 456)
-    var image = newSprite("img", 5, 5).getImage
+    var image = newDrawable("img", 5, 5).getImage
 
     field(image)
     check(image == [".XXXX", "XXXXX", "XXXXX", "XXXXX", "XXXXX"])
@@ -43,7 +43,7 @@ suite "Particle System":
       fieldData = 456,
       [newSpawner(2 .. 5, delay = 0, lifespan = 1, spawnData = 123'i32, emitter)],
     )
-    var image = newSprite("img", 5, 5).getImage
+    var image = newDrawable("img", 5, 5).getImage
 
     field(image)
     check(image == [".XXXX", "XXXXX", "XXXXX", "XXXXX", "XXXXX"])
@@ -69,7 +69,7 @@ suite "Particle System":
         newSpawner(2 .. 2, delay = 0, lifespan = 100, spawnData = vec2(-10, 3), emitter),
       ],
     )
-    var image = newSprite("img", 5, 5).getImage
+    var image = newDrawable("img", 5, 5).getImage
 
     field(image)
     check(image == ["XXXXX", "XXXXX", "XXXXX", "XXXXX", "XXXXX"])
@@ -93,7 +93,7 @@ suite "Particle System":
           )
       ],
     )
-    var image = newSprite("img", 5, 5).getImage
+    var image = newDrawable("img", 5, 5).getImage
 
     field(image)
     check(image == ["XXXXX", "XXXXX", "XXXXX", "XXXXX", "XXX.X"])
@@ -116,7 +116,7 @@ suite "Particle System":
           newParticle(3, vec2(0, 0), vec2(1, 1))
       ],
     )
-    var image = newSprite("img", 5, 5).getImage
+    var image = newDrawable("img", 5, 5).getImage
 
     field(image)
     check(image == ["XXXXX", "XXXXX", "XXXXX", "XXXXX", "XXXXX"])
@@ -149,7 +149,7 @@ suite "Particle System":
       ],
     )
 
-    var image = newSprite("img", 5, 5).getImage
+    var image = newDrawable("img", 5, 5).getImage
 
     field(image)
     check(image == ["XXXXX", "XXXXX", "XXXXX", "XXXXX", "XXXXX"])
@@ -181,14 +181,14 @@ suite "Particle System":
 
     block:
       let field = newParticleField(XCoord, YCoord, fieldData = YCoord(1.0), spawners)
-      var image = newSprite("img", 5, 5).getImage
+      var image = newDrawable("img", 5, 5).getImage
 
       field(image)
       check(image == ["XXXXX", "X...X", "XXXXX", "XXXXX", "XXXXX"])
 
     block:
       let field = newParticleField(XCoord, YCoord, fieldData = YCoord(0.0), spawners)
-      var image = newSprite("img", 5, 5).getImage
+      var image = newDrawable("img", 5, 5).getImage
 
       field(image)
       check(image == ["X...X", "XXXXX", "XXXXX", "XXXXX", "XXXXX"])

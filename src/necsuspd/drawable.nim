@@ -195,6 +195,25 @@ template newBlankDrawable*(
 ): Drawable =
   newBlankDrawable(width.int32, height.int32, zIndex, anchor, color, absolutePos)
 
+when defined(simulator):
+  var debugCallbacks: seq[proc(debug: LCDBitmap)]
+
+proc debugDraw*(callback: proc(debug: LCDBitmap)) {.inline.} =
+  when defined(simulator):
+    debugCallbacks.add(callback)
+
+proc drawSprites*() =
+  playdate.sprite.drawSprites()
+
+  if defined(showFPS):
+    playdate.system.drawFPS(LCD_COLUMNS - 18, 4)
+
+  when defined(simulator):
+    var img = playdate.graphics.getDebugBitmap()
+    if img != nil:
+      for debug in debugCallbacks:
+        debug(img)
+
 proc moveDrawables*(
     drawables: Query[(ptr Drawable, Positioned)],
     viewport: Shared[ViewPort],

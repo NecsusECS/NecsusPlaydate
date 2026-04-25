@@ -3,7 +3,7 @@
 ## choice is represented visually by an entity with an Animation. A component
 ## is used to determine which choices are grouped together.
 ##
-import necsus, std/options, util, anim, sprite
+import necsus, std/options, util, anim
 
 type
   Chosen {.accessory.} = object ## Tag component that flags the currently selected value

@@ -1,7 +1,7 @@
 import
   unittest,
   necsus,
-  necsuspd/[layout, positioned, sprite],
+  necsuspd/[layout, positioned, anim],
   options,
   vmath,
   necsuspd/stubs/graphics,
@@ -19,20 +19,17 @@ template buildLookup(
       if i < entities.len:
         return some((addr entities[i][0], entities[i][1]))
 
-var noSprites = newSeq[(Positioned, Sprite)]()
-var noAnimations = newSeq[(Positioned, Animation)]()
+var noDrawables = newSeq[(Positioned, Drawable)]()
 
 template createLayouter(
-    sprites: var openarray[(Positioned, Sprite)] = noSprites,
-    animations: var openarray[(Positioned, Animation)] = noAnimations,
+    drawables: var openarray[(Positioned, Drawable)] = noDrawables,
 ): Layouter =
-  buildLookup(getSprite, Sprite, sprites)
-  buildLookup(getAnim, Animation, animations)
-  Layouter(getSprite: getSprite, getAnim: getAnim)
+  buildLookup(getDrawable, Drawable, drawables)
+  Layouter(getDrawable: getDrawable)
 
 suite "Layout Elem":
-  test "A simple sprite should have layout performed":
-    var entities = [(positioned(0, 0), newSprite("layoutable", 10, 20))]
+  test "A simple drawable should have layout performed":
+    var entities = [(positioned(0, 0), newDrawable("layoutable", 10, 20))]
     let layouter = createLayouter(entities)
     let layout = spriteLayout(EntityId(0))
     let dimens = layout.layout(layouter, x = 5, y = 20, width = 40)
@@ -40,8 +37,8 @@ suite "Layout Elem":
     check(dimens == (width: 10, height: 20))
     check(layouter.minWidth(layout) == 10)
 
-  test "A right aligned sprite":
-    var entities = [(positioned(0, 0), newSprite("layoutable", 10, 20))]
+  test "A right aligned drawable":
+    var entities = [(positioned(0, 0), newDrawable("layoutable", 10, 20))]
     let layouter = createLayouter(entities)
     let layout = spriteLayout(EntityId(0), align = AlignRight)
     let dimens = layout.layout(layouter, x = 5, y = 20, width = 40)
@@ -49,8 +46,8 @@ suite "Layout Elem":
     check(dimens == (width: 40, height: 20))
     check(layouter.minWidth(layout) == 10)
 
-  test "A center aligned sprite":
-    var entities = [(positioned(0, 0), newSprite("layoutable", 10, 20))]
+  test "A center aligned drawable":
+    var entities = [(positioned(0, 0), newDrawable("layoutable", 10, 20))]
     let layouter = createLayouter(entities)
     let layout = spriteLayout(EntityId(0), align = AlignCenter)
     let dimens = layout.layout(layouter, x = 5, y = 20, width = 40)
@@ -58,17 +55,17 @@ suite "Layout Elem":
     check(dimens == (width: 40, height: 20))
     check(layouter.minWidth(layout) == 10)
 
-  test "A layout with a missing sprite should ignore it":
-    var entities = newSeq[(Positioned, Sprite)]()
+  test "A layout with a missing entity should ignore it":
+    var entities = newSeq[(Positioned, Drawable)]()
     let layouter = createLayouter(entities)
     let layout = spriteLayout(EntityId(0))
     let dimens = layout.layout(layouter, x = 5, y = 20, width = 40)
     check(dimens == (width: 0, height: 0))
     check(layouter.minWidth(layout) == 0)
 
-  test "An animation should be layoutable":
-    var entities = [(positioned(0, 0), newAnimation("layoutable", 10, 20))]
-    let layouter = createLayouter(animations = entities)
+  test "A drawable anim should be layoutable":
+    var entities = [(positioned(0, 0), newDrawable("layoutable", 10, 20))]
+    let layouter = createLayouter(entities)
     let layout = spriteLayout(EntityId(0))
     let dimens = layout.layout(layouter, x = 5, y = 20, width = 40)
     check(entities[0][0].toIVec2 == ivec2(5, 20))
@@ -77,13 +74,13 @@ suite "Layout Elem":
 
   test "Cards should be layed out in columns":
     var entities = [
-      (positioned(0, 0), newSprite("img", width = 10, height = 20)),
-      (positioned(0, 0), newSprite("img", width = 8, height = 25)),
-      (positioned(0, 0), newSprite("img", width = 8, height = 30)),
-      (positioned(0, 0), newSprite("img", width = 20, height = 20)),
-      (positioned(0, 0), newSprite("img", width = 20, height = 15)),
-      (positioned(0, 0), newSprite("img", width = 20, height = 10)),
-      (positioned(0, 0), newSprite("img", width = 20, height = 19)),
+      (positioned(0, 0), newDrawable("img", 10, 20)),
+      (positioned(0, 0), newDrawable("img", 8, 25)),
+      (positioned(0, 0), newDrawable("img", 8, 30)),
+      (positioned(0, 0), newDrawable("img", 20, 20)),
+      (positioned(0, 0), newDrawable("img", 20, 15)),
+      (positioned(0, 0), newDrawable("img", 20, 10)),
+      (positioned(0, 0), newDrawable("img", 20, 19)),
     ]
     let layouter = createLayouter(entities)
 
@@ -113,7 +110,7 @@ suite "Layout Elem":
     check(layouter.minWidth(layout) == 60)
 
   test "Card layout without any cards":
-    var entities = [(positioned(0, 0), newSprite("img", width = 10, height = 20))]
+    var entities = [(positioned(0, 0), newDrawable("img", 10, 20))]
     let layouter = createLayouter(entities)
 
     let layout = cardLayout(3)
@@ -122,7 +119,7 @@ suite "Layout Elem":
     check(layouter.minWidth(layout) == 0)
 
   test "Card layout without a full row":
-    var entities = [(positioned(0, 0), newSprite("img", width = 10, height = 20))]
+    var entities = [(positioned(0, 0), newDrawable("img", 10, 20))]
     let layouter = createLayouter(entities)
 
     let layout = cardLayout(3, EntityId(0).spriteLayout)
@@ -132,9 +129,9 @@ suite "Layout Elem":
 
   test "Stacked entities should be layed out vertically":
     var entities = [
-      (positioned(0, 0), newSprite("img", width = 10, height = 20)),
-      (positioned(0, 0), newSprite("img", width = 15, height = 30)),
-      (positioned(0, 0), newSprite("img", width = 20, height = 40)),
+      (positioned(0, 0), newDrawable("img", 10, 20)),
+      (positioned(0, 0), newDrawable("img", 15, 30)),
+      (positioned(0, 0), newDrawable("img", 20, 40)),
     ]
     let layouter = createLayouter(entities)
 
@@ -152,9 +149,9 @@ suite "Layout Elem":
 
   test "Row entities should be layed out horizontally":
     var entities = [
-      (positioned(0, 0), newSprite("img", width = 10, height = 20)),
-      (positioned(0, 0), newSprite("img", width = 15, height = 30)),
-      (positioned(0, 0), newSprite("img", width = 20, height = 40)),
+      (positioned(0, 0), newDrawable("img", 10, 20)),
+      (positioned(0, 0), newDrawable("img", 15, 30)),
+      (positioned(0, 0), newDrawable("img", 20, 40)),
     ]
     let layouter = createLayouter(entities)
 
@@ -172,7 +169,7 @@ suite "Layout Elem":
     check(layouter.minWidth(layout) == 45)
 
   test "Padding should be added to nested elements":
-    var entities = [(positioned(0, 0), newSprite("img", width = 10, height = 20))]
+    var entities = [(positioned(0, 0), newDrawable("img", 10, 20))]
     let layouter = createLayouter(entities)
 
     let layout = spriteLayout(EntityId(0)).padLayout(2, 3, 4, 5)
@@ -183,7 +180,7 @@ suite "Layout Elem":
     check(layouter.minWidth(layout) == 15)
 
   test "Right aligned entity inside of padding":
-    var entities = [(positioned(0, 0), newSprite("img", 10, 20))]
+    var entities = [(positioned(0, 0), newDrawable("img", 10, 20))]
     let layouter = createLayouter(entities)
 
     let layout = spriteLayout(EntityId(0), AlignRight).padLayout(2, 3, 4, 5)
@@ -195,8 +192,8 @@ suite "Layout Elem":
 
   test "Right aligned entity inside of center columns":
     var entities = [
-      (positioned(0, 0), newSprite("img", 10, 20)),
-      (positioned(0, 0), newSprite("img", 30, 40)),
+      (positioned(0, 0), newDrawable("img", 10, 20)),
+      (positioned(0, 0), newDrawable("img", 30, 40)),
     ]
     let layouter = createLayouter(entities)
 

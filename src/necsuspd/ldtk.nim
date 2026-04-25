@@ -4,7 +4,7 @@ import
   vmath,
   std/[options, strutils, sequtils, json],
   import_playdate,
-  sprite,
+  drawable,
   positioned,
   util,
   assetBag,

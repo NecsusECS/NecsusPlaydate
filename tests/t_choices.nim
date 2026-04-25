@@ -1,7 +1,7 @@
 import
   std/[unittest, options],
   necsus,
-  necsuspd/[choices, util, sprite, anim],
+  necsuspd/[choices, util, anim],
   vmath,
   necsuspd/stubs/graphics,
   helpers
@@ -13,7 +13,7 @@ template runTest(name: string, body: untyped) =
     choices {.inject.}: Choices[Selection],
     create {.inject.}: FullSpawn[(Selection, Drawable, Anim, ChosenAnim)],
     createBare {.inject.}: FullSpawn[(Selection,)],
-    createOther {.inject.}: FullSpawn[(int, Animation, ChosenAnim)],
+    createOther {.inject.}: FullSpawn[(int, Drawable, Anim, ChosenAnim)],
     getAnim {.inject.}: Lookup[(Anim,)],
     events {.inject.}: Inbox[ChoseEvent[Selection]]
   ) -> void:
@@ -68,7 +68,8 @@ runTest "Marking an unrelated class shouldn't affect the choice":
 
   let anims: ChosenAnim = (newAnimationDef(5), newAnimationDef(6))
 
-  let other = createOther.with(1, newAnimation("baz", 10, 10, anims.inactive), anims)
+  let (otherDrawable, otherAnim) = newDrawableAnim("baz", 10, 10, anims.inactive)
+  let other = createOther.with(1, otherDrawable, otherAnim, anims)
 
   choices.choose(a)
   choices.choose(other)
