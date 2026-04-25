@@ -325,7 +325,5 @@ proc getBitmapTableInfo*(table: LCDBitmapTable): tuple[count: int, cellsWide: in
 proc getBitmap*(table: LCDBitmapTable, i: int): LCDBitmap =
   raiseAssert("Unsupported")
 
-proc drawBitmap*(
-    g: PlaydateGraphics, bmp: LCDBitmap, x, y: int, flip: LCDBitmapFlip
-) =
+proc drawBitmap*(g: PlaydateGraphics, bmp: LCDBitmap, x, y: int, flip: LCDBitmapFlip) =
   bmp.draw(x, y, flip)

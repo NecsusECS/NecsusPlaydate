@@ -1,4 +1,5 @@
-import std/[unittest, sets, options, strutils], necsuspd/zone_fill, necsuspd/fpvec, vmath
+import
+  std/[unittest, sets, options, strutils], necsuspd/zone_fill, necsuspd/fpvec, vmath
 
 # ---------------------------------------------------------------------------
 # Test helpers
@@ -16,101 +17,99 @@ proc parseMap(rows: openarray[string]): TestMap =
       if ch == '.':
         result.passable.incl(ivec2(x.int32, y.int32))
 
-proc `==`[W, H: static int32](m: ZoneMap[W, H], rows: openarray[string]): bool =
-  $m == rows.join("\n")
+proc parseLines(s: string): seq[string] =
+  for line in s.splitLines():
+    let stripped = line.strip()
+    if stripped.len > 0:
+      result.add(stripped)
+
+proc `==`[W, H: static int32](m: ZoneMap[W, H], s: string): bool =
+  $m == parseLines(s).join("\n")
 
 const W = 10'i32
 const H = 5'i32
 
-proc detect(rows: openarray[string]): ZoneMap[W, H] =
-  let input = parseMap(rows)
+proc detect(s: string): ZoneMap[W, H] =
+  let input = parseMap(parseLines(s))
   result.detectZones(input)
 
 # ---------------------------------------------------------------------------
 
 suite "Zone detection":
   test "Single passable tile creates one zone":
-    #!fmt: off
-    let m = detect([
-      "##########",
-      "##########",
-      "###.######",
-      "##########",
-      "##########",
-    ])
-    #!fmt: on
-    #!fmt: off
-    check m == [
-      "..........",
-      "..........",
-      "...a......",
-      "..........",
-      "..........",
-    ]
-    #!fmt: on
+    let m = detect(
+      """
+      ##########
+      ##########
+      ###.######
+      ##########
+      ##########
+    """
+    )
+    check m == """
+      ..........
+      ..........
+      ...a......
+      ..........
+      ..........
+    """
 
   test "Open rectangle becomes a single zone":
-    #!fmt: off
-    let m = detect([
-      "##########",
-      "#.......##",
-      "#.......##",
-      "#.......##",
-      "##########",
-    ])
-    #!fmt: on
-    #!fmt: off
-    check m == [
-      "..........",
-      ".aaaaaaa..",
-      ".aaaaaaa..",
-      ".aaaaaaa..",
-      "..........",
-    ]
-    #!fmt: on
+    let m = detect(
+      """
+      ##########
+      #.......##
+      #.......##
+      #.......##
+      ##########
+    """
+    )
+    check m == """
+      ..........
+      .aaaaaaa..
+      .aaaaaaa..
+      .aaaaaaa..
+      ..........
+    """
 
   test "Horizontal corridor stays a single zone":
-    #!fmt: off
-    let m = detect([
-      "##########",
-      "##########",
-      "..........",
-      "##########",
-      "##########",
-    ])
-    #!fmt: on
-    #!fmt: off
-    check m == [
-      "..........",
-      "..........",
-      "aaaaaaaaaa",
-      "..........",
-      "..........",
-    ]
-    #!fmt: on
+    let m = detect(
+      """
+      ##########
+      ##########
+      ..........
+      ##########
+      ##########
+    """
+    )
+    check m == """
+      ..........
+      ..........
+      aaaaaaaaaa
+      ..........
+      ..........
+    """
 
   test "L-shape creates three zones":
     # The kitty-corner check prevents zone 'a' from expanding into row 3:
     # col 4 transitions from passable (row 2) to impassable (row 3), so the
     # expansion is rejected. Row 3 becomes its own zone 'c'.
-    #!fmt: off
-    let m = detect([
-      "##########",
-      "#.........",
-      "#.........",
-      "#...######",
-      "##########",
-    ])
-    #!fmt: on
-    #!fmt: off
-    check m == [
-      "..........",
-      ".aaabbbbbb",
-      ".aaabbbbbb",
-      ".ccc......",
-      "..........",
-    ]
-    #!fmt: on
+    let m = detect(
+      """
+      ##########
+      #.........
+      #.........
+      #...######
+      ##########
+    """
+    )
+    check m == """
+      ..........
+      .aaabbbbbb
+      .aaabbbbbb
+      .ccc......
+      ..........
+    """
 
 # ---------------------------------------------------------------------------
 
@@ -130,15 +129,13 @@ suite "Predefined zones":
     let preId = m.addZone((1'i32, 1'i32, 3'i32, 3'i32))
     m.detectZones(input)
     check preId == ZoneId(0)
-    #!fmt: off
-    check m == [
-      "..........",
-      ".aaabbb...",
-      ".aaabbb...",
-      ".aaabbb...",
-      "..........",
-    ]
-    #!fmt: on
+    check m == """
+      ..........
+      .aaabbb...
+      .aaabbb...
+      .aaabbb...
+      ..........
+    """
 
   test "Predefined zone containing a wall raises ValueError":
     #!fmt: off
@@ -160,22 +157,22 @@ suite "Predefined zones":
 
 suite "Adjacency":
   test "Two natural zones from L-shape are adjacent":
-    #!fmt: off
-    let m = detect([
-      "##########",
-      "#.........",
-      "#.........",
-      "#...######",
-      "##########",
-    ])
-    check m == [
-      "..........",
-      ".aaabbbbbb",
-      ".aaabbbbbb",
-      ".ccc......",
-      "..........",
-    ]
-    #!fmt: on
+    let m = detect(
+      """
+      ##########
+      #.........
+      #.........
+      #...######
+      ##########
+    """
+    )
+    check m == """
+      ..........
+      .aaabbbbbb
+      .aaabbbbbb
+      .ccc......
+      ..........
+    """
     check ZoneId(1) in m[0].adjacent
     check ZoneId(0) in m[1].adjacent
 
@@ -190,22 +187,22 @@ suite "Adjacency":
     check ZoneId(0) in m[1].adjacent
 
   test "Zones that do not touch are not adjacent":
-    #!fmt: off
-    let m = detect([
-      ".####.....",
-      ".####.....",
-      ".####.....",
-      ".####.....",
-      ".####.....",
-    ])
-    check m == [
-      "a....bbbbb",
-      "a....bbbbb",
-      "a....bbbbb",
-      "a....bbbbb",
-      "a....bbbbb",
-    ]
-    #!fmt: on
+    let m = detect(
+      """
+      .####.....
+      .####.....
+      .####.....
+      .####.....
+      .####.....
+    """
+    )
+    check m == """
+      a....bbbbb
+      a....bbbbb
+      a....bbbbb
+      a....bbbbb
+      a....bbbbb
+    """
     check m[0].adjacent.len == 0
     check m[1].adjacent.len == 0
 
@@ -246,25 +243,23 @@ suite "Complex map":
     let input = parseMap(level4)
     var m: ZoneMap[25'i32, 15'i32]
     m.detectZones(input)
-    #!fmt: off
-    check m == [
-      ".........................",
-      ".......aaabbbbbccc.......",
-      ".......aaabbbbbccc.......",
-      ".......aaabbbbbccc.......",
-      ".......ddd.....eee.......",
-      ".ffff..dddgg.hhiij..kkkk.",
-      ".ffff..dddgg.hhiij..kkkk.",
-      ".ffff...lll...mmm...kkkk.",
-      ".ffff...lll...mmm...kkkk.",
-      "..nnno..pppq.rsss..tuuu..",
-      "..nnno..pppq.rsss..tuuu..",
-      "..nnnvwwxxx...yyyzz{uuu..",
-      "..nnnvwwxxx...yyyzz{uuu..",
-      ".........................",
-      ".........................",
-    ]
-    #!fmt: on
+    check m == """
+      .........................
+      .......aaabbbbbccc.......
+      .......aaabbbbbccc.......
+      .......aaabbbbbccc.......
+      .......ddd.....eee.......
+      .ffff..dddgg.hhiij..kkkk.
+      .ffff..dddgg.hhiij..kkkk.
+      .ffff...lll...mmm...kkkk.
+      .ffff...lll...mmm...kkkk.
+      ..nnno..pppq.rsss..tuuu..
+      ..nnno..pppq.rsss..tuuu..
+      ..nnnvwwxxx...yyyzz{uuu..
+      ..nnnvwwxxx...yyyzz{uuu..
+      .........................
+      .........................
+    """
 
 # ---------------------------------------------------------------------------
 

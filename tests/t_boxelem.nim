@@ -105,7 +105,9 @@ suite "Box Elem":
     checkGraphicActions()
 
   test "Drawing an image element":
-    img(newImage("foo", 10, 20, kColorWhite)).draw(newDrawable("testImg", 300, 100), font)
+    img(newImage("foo", 10, 20, kColorWhite)).draw(
+      newDrawable("testImg", 300, 100), font
+    )
     checkGraphicActions(
       "drawMode(testImg, drawMode: kDrawModeCopy)",
       "drawBitmap(testImg, name: foo, x: 0, y: 0)",

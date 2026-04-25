@@ -1,8 +1,4 @@
-import
-  unittest,
-  necsuspd/[drawable, anim],
-  necsuspd/stubs/[sprites, graphics],
-  vmath
+import unittest, necsuspd/[drawable, anim], necsuspd/stubs/[sprites, graphics], vmath
 
 type
   TestZIndex = enum

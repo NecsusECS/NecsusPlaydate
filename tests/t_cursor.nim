@@ -21,7 +21,8 @@ proc createStdCursorElems(create: auto): auto =
 template runTest(name: string, body: untyped) =
   runSystemOnce do(
     create {.inject.}: FullSpawn[(MyCursor, Positioned, Selectable)],
-    createWithDrawable {.inject.}: FullSpawn[(MyCursor, Positioned, Selectable, Drawable)],
+    createWithDrawable {.inject.}:
+      FullSpawn[(MyCursor, Positioned, Selectable, Drawable)],
     cursor {.inject.}: CursorControl[MyCursor]
   ) -> void:
     test name:

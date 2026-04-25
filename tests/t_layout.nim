@@ -22,7 +22,7 @@ template buildLookup(
 var noDrawables = newSeq[(Positioned, Drawable)]()
 
 template createLayouter(
-    drawables: var openarray[(Positioned, Drawable)] = noDrawables,
+    drawables: var openarray[(Positioned, Drawable)] = noDrawables
 ): Layouter =
   buildLookup(getDrawable, Drawable, drawables)
   Layouter(getDrawable: getDrawable)

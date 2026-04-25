@@ -31,14 +31,10 @@ type
 proc offsetFix*(img: LCDBitmap, anchor: Anchor): IVec2 =
   return
     anchor.offset +
-    anchor.lock.resolveFromCenter(
-      img.getSize.width.int32, img.getSize.height.int32
-    )
+    anchor.lock.resolveFromCenter(img.getSize.width.int32, img.getSize.height.int32)
 
 proc offsetFix*(img: HEBitmap, anchor: Anchor): IVec2 =
-  return
-    anchor.offset +
-    anchor.lock.resolveFromCenter(img.size.x, img.size.y)
+  return anchor.offset + anchor.lock.resolveFromCenter(img.size.x, img.size.y)
 
 proc offsetFix*(d: Drawable | ptr Drawable, anchor: Anchor): IVec2 =
   let w = d.drawItem.width.int32
@@ -96,8 +92,7 @@ proc markDirty*(d: Drawable | ptr Drawable) {.inline.} =
 
 proc setBitmapMask*(
     d: Drawable,
-    img: LCDBitmap =
-      playdate.graphics.newBitmap(d.width, d.height, kColorWhite),
+    img: LCDBitmap = playdate.graphics.newBitmap(d.width, d.height, kColorWhite),
 ) =
   discard d.getImage.setBitmapMask(img)
 
@@ -156,7 +151,7 @@ proc newBitmapDrawable*(
   result = Drawable(
     anchorOffset: offsetFix(img, anchor.toAnchor),
     absolutePos: absolutePos,
-    drawItem: newDrawItem(img, zIndex)
+    drawItem: newDrawItem(img, zIndex),
   )
   register(result.drawItem)
 
@@ -169,7 +164,7 @@ proc newHEDrawable*(
   result = Drawable(
     anchorOffset: offsetFix(img, anchor.toAnchor),
     absolutePos: absolutePos,
-    drawItem: newDrawItem(img, zIndex)
+    drawItem: newDrawItem(img, zIndex),
   )
   register(result.drawItem)
 
@@ -221,6 +216,5 @@ proc moveDrawables*(
   for (parent, pos) in drawables:
     for d in parent[].linked:
       let vpOff = if d.absolutePos: noViewport else: viewportOffset
-      let absolutePos =
-        pos.toIVec2 + d.anchorOffset + d.manualOffset - vpOff
+      let absolutePos = pos.toIVec2 + d.anchorOffset + d.manualOffset - vpOff
       d.drawItem.moveTo(absolutePos - d.drawItem.dimens div 2)

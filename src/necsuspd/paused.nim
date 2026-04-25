@@ -26,9 +26,7 @@ template updatePaused(T, currentState, entities: typed) =
 template definePausedStateSystems*(name: untyped, T: typed): untyped =
   ## Pauses animations when a specific game state is set
   proc evalPausedState(
-      _: EvaluatePausedState,
-      state: Shared[T],
-      anims: FullQuery[(PausedState, Anim)],
+      _: EvaluatePausedState, state: Shared[T], anims: FullQuery[(PausedState, Anim)]
   ) {.eventSys.} =
     updatePaused(T, state.get, anims)
 

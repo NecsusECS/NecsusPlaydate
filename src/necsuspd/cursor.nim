@@ -62,9 +62,7 @@ proc size(drawable: Option[Drawable]): FPVec2 =
     return fpvec2(it.width, it.height)
   return fpvec2(0, 0)
 
-proc centroid[A, B](
-    entity: (A, B, Positioned, Option[Drawable])
-): FPVec2 =
+proc centroid[A, B](entity: (A, B, Positioned, Option[Drawable])): FPVec2 =
   let (_, _, pos, drawable) = entity
   return pos.toFPVec2 + (size(drawable) / fpvec2(2, 2))
 

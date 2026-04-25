@@ -13,8 +13,9 @@ template createsSingletonSpawner*(
   proc `name`*(
       task: Bundle[LoadTasks],
       assets: Shared[assetBagType],
-      create:
-        Spawn[(typeof(entityTag), Drawable, Anim, Positioned, VisibleState, PausedState)],
+      create: Spawn[
+        (typeof(entityTag), Drawable, Anim, Positioned, VisibleState, PausedState)
+      ],
   ) {.active(loadingState).} =
     task.execTask($typeof(entityTag), typeof(entityTag), 0):
       let (sheet, sheetAnim) = assets.newSheet(initialAnimation, zIndex)

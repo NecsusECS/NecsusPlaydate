@@ -1,4 +1,5 @@
-import necsus, positioned, util, vmath, alignment, std/options, import_playdate, drawable
+import
+  necsus, positioned, util, vmath, alignment, std/options, import_playdate, drawable
 
 export alignment
 

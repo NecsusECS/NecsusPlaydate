@@ -17,4 +17,6 @@ proc newDrawableAnim*(
   newSheet(@[newImage(name, width, height, kColorBlack)], def, FirstLayer)
 
 proc newDrawable*(name: string, width, height: int): Drawable =
-  newBitmapDrawable(newImage(name, width, height, kColorBlack), FirstLayer, AnchorTopLeft)
+  newBitmapDrawable(
+    newImage(name, width, height, kColorBlack), FirstLayer, AnchorTopLeft
+  )

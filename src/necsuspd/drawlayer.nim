@@ -15,10 +15,16 @@ type
 
   DrawItem* = ref DrawItemObj
 
-proc newDrawItem*(lcd: LCDBitmap, zIndex: auto, visible: bool = true, pos: IVec2 = ivec2(0, 0)): DrawItem {.inline.} =
-  DrawItem(kind: dikLCD, lcd: lcd, zIndex: ord(zIndex).int16, visible: visible, pos: pos)
+proc newDrawItem*(
+    lcd: LCDBitmap, zIndex: auto, visible: bool = true, pos: IVec2 = ivec2(0, 0)
+): DrawItem {.inline.} =
+  DrawItem(
+    kind: dikLCD, lcd: lcd, zIndex: ord(zIndex).int16, visible: visible, pos: pos
+  )
 
-proc newDrawItem*(he: HEBitmap, zIndex: auto, visible: bool = true, pos: IVec2 = ivec2(0, 0)): DrawItem {.inline.} =
+proc newDrawItem*(
+    he: HEBitmap, zIndex: auto, visible: bool = true, pos: IVec2 = ivec2(0, 0)
+): DrawItem {.inline.} =
   DrawItem(kind: dikHE, he: he, zIndex: ord(zIndex).int16, visible: visible, pos: pos)
 
 proc moveTo*(d: DrawItem, pos: IVec2) {.inline.} =
@@ -31,16 +37,19 @@ proc zIndex*(d: DrawItem): auto {.inline.} =
   d.zIndex
 
 proc dimens*(item: DrawItem): IVec2 =
-  return case item.kind
+  return
+    case item.kind
     of dikLCD:
       let size = item.lcd.getSize
       ivec2(size.width.int32, size.height.int32)
     of dikHE:
       item.he.size
 
-proc width*(item: DrawItem): int32 {.inline.} = item.dimens[0]
+proc width*(item: DrawItem): int32 {.inline.} =
+  item.dimens[0]
 
-proc height*(item: DrawItem): int32 {.inline.} = item.dimens[1]
+proc height*(item: DrawItem): int32 {.inline.} =
+  item.dimens[1]
 
 proc `img=`*(d: DrawItem, img: LCDBitmap) {.inline.} =
   d.lcd = img
@@ -114,11 +123,8 @@ proc drawSprites*() =
           debugDraw do(img: LCDBitmap) -> void:
             playdate.graphics.pushContext(img)
             playdate.graphics.drawRect(
-              capturedItem.pos.x.int,
-              capturedItem.pos.y.int,
-              capturedItem.dimens.x.int,
-              capturedItem.dimens.y.int,
-              kColorWhite
+              capturedItem.pos.x.int, capturedItem.pos.y.int, capturedItem.dimens.x.int,
+              capturedItem.dimens.y.int, kColorWhite,
             )
             playdate.graphics.popContext()
 

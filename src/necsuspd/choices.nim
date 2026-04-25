@@ -29,7 +29,12 @@ proc chosen*[T](choices: Choices[T]): Option[T] =
   for (_, value, _, _, _) in choices.chosen:
     return some(value)
 
-template setAnimation(anim: Option[Anim], drawable: Option[Drawable], def: Option[ChosenAnim], body: untyped) =
+template setAnimation(
+    anim: Option[Anim],
+    drawable: Option[Drawable],
+    def: Option[ChosenAnim],
+    body: untyped,
+) =
   if anim.isSome and drawable.isSome and def.isSome:
     let it {.inject.} = def.unsafeGet
     change(anim.unsafeGet, drawable.unsafeGet, body)

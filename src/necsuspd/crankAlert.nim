@@ -23,7 +23,8 @@ proc buildCrankAlerter*[Assets; SheetId: enum, Active: enum](
     var currentState = playdate.system.isCrankDocked()
 
     let anim = animation(crankSheetId, 0.1, 0'i32 .. 17'i32, AnchorBottomRight)
-    var (sheet, sheetAnim) = newSheet[SheetId](assets, anim, zIndex = zindex, absolutePos = true)
+    var (sheet, sheetAnim) =
+      newSheet[SheetId](assets, anim, zIndex = zindex, absolutePos = true)
     sheet.visible = currentState
     spawn.with(CrankSprite(), positioned(LCD_COLUMNS, LCD_ROWS - 10), sheet, sheetAnim)
 
