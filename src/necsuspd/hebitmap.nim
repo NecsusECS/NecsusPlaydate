@@ -152,11 +152,18 @@ template writePixelWord(framePtr, data, len: untyped) =
   framePtr = advance(framePtr, 1)
   len -= 32
 
-template drawLoop(framePtr, dataPtr, maskPtr: untyped; hasMask: bool; body: untyped) =
+template drawLoop(
+    frameStartArg, dataStartArg, maskStartArg: untyped;
+    hasMask: bool;
+    body: untyped,
+) =
+  var frameStart = frameStartArg
+  var dataStart = dataStartArg
+  var maskStart = maskStartArg
   for _ in y1 ..< y2:
-    var framePtr = cast[ptr uint32](frameStart)
-    var dataPtr = cast[ptr uint32](dataStart)
-    var maskPtr =
+    var framePtr {.inject.} = cast[ptr uint32](frameStart)
+    var dataPtr {.inject.} = cast[ptr uint32](dataStart)
+    var maskPtr {.inject.} =
       if hasMask:
         cast[ptr uint32](maskStart)
       else:
@@ -174,10 +181,7 @@ proc drawRowsRightShift(
     rowbytes: int32,
     hasMask: bool,
 ) =
-  var frameStart = frameStartArg
-  var dataStart = dataStartArg
-  var maskStart = maskStartArg
-  drawLoop(framePtr, dataPtr, maskPtr, hasMask):
+  drawLoop(frameStartArg, dataStartArg, maskStartArg, hasMask):
     var dataLeft = bswap32(framePtr[])
     var maskLeft = 0'u32
     var shiftMask = not shr32(0xFFFFFFFF'u32, cast[uint32](x1 mod 32))
@@ -208,10 +212,7 @@ proc drawRowsLeftShift(
     rowbytes: int32,
     hasMask: bool,
 ) =
-  var frameStart = frameStartArg
-  var dataStart = dataStartArg
-  var maskStart = maskStartArg
-  drawLoop(framePtr, dataPtr, maskPtr, hasMask):
+  drawLoop(frameStartArg, dataStartArg, maskStartArg, hasMask):
     var dataLeft = shl32(bswap32(dataPtr[]), shift)
     var maskLeft =
       if hasMask:
