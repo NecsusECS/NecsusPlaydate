@@ -9,6 +9,7 @@ type
     visible: bool
     zIndex: int16
     pos: IVec2
+    flipY: bool
     case kind: DrawItemKind
     of dikHE: he: HEBitmap
     of dikLCD: lcd: LCDBitmap
@@ -16,16 +17,28 @@ type
   DrawItem* = ref DrawItemObj
 
 proc newDrawItem*(
-    lcd: LCDBitmap, zIndex: auto, visible: bool = true, pos: IVec2 = ivec2(0, 0)
+    lcd: LCDBitmap,
+    zIndex: auto,
+    visible: bool = true,
+    pos: IVec2 = ivec2(0, 0),
+    flipY: bool = false,
 ): DrawItem {.inline.} =
   DrawItem(
-    kind: dikLCD, lcd: lcd, zIndex: ord(zIndex).int16, visible: visible, pos: pos
+    kind: dikLCD, lcd: lcd, zIndex: ord(zIndex).int16, visible: visible, pos: pos,
+    flipY: flipY,
   )
 
 proc newDrawItem*(
-    he: HEBitmap, zIndex: auto, visible: bool = true, pos: IVec2 = ivec2(0, 0)
+    he: HEBitmap,
+    zIndex: auto,
+    visible: bool = true,
+    pos: IVec2 = ivec2(0, 0),
+    flipY: bool = false,
 ): DrawItem {.inline.} =
-  DrawItem(kind: dikHE, he: he, zIndex: ord(zIndex).int16, visible: visible, pos: pos)
+  DrawItem(
+    kind: dikHE, he: he, zIndex: ord(zIndex).int16, visible: visible, pos: pos,
+    flipY: flipY,
+  )
 
 proc moveTo*(d: DrawItem, pos: IVec2) {.inline.} =
   d.pos = pos
@@ -62,6 +75,12 @@ proc visible*(d: DrawItem): bool {.inline.} =
 
 proc `visible=`*(d: DrawItem, visible: bool) {.inline.} =
   d.visible = visible
+
+proc flipY*(d: DrawItem): bool {.inline.} =
+  d.flipY
+
+proc `flipY=`*(d: DrawItem, v: bool) {.inline.} =
+  d.flipY = v
 
 var gDrawLayer*: seq[seq[DrawItem]]
 
@@ -112,9 +131,10 @@ proc drawSprites*() =
       if item.visible:
         case item.kind
         of dikHE:
-          item.he.draw(item.pos)
+          item.he.draw(item.pos, item.flipY)
         of dikLCD:
-          item.lcd.draw(item.pos.x, item.pos.y, kBitmapUnflipped)
+          let flip = if item.flipY: kBitmapFlippedY else: kBitmapUnflipped
+          item.lcd.draw(item.pos.x, item.pos.y, flip)
         # log "RENDERING: (",  item.pos.x, ", ", item.pos.y, ") ",
         #   item.dimens.x, "x", item.dimens.y, " at ", bucketId
 

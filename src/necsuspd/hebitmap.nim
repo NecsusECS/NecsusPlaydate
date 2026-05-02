@@ -29,7 +29,7 @@ proc advance(p: ptr uint32, n: int32): ptr uint32 {.inline.} =
   cast[ptr uint32](cast[uint](p) + cast[uint](n * 4))
 
 proc advanceU8(p: ptr uint8, n: int32): ptr uint8 {.inline.} =
-  cast[ptr uint8](cast[uint](p) + cast[uint](n))
+  cast[ptr uint8](cast[int](p) + n.int)
 
 proc getBit(src: openArray[uint8], byteIdx, bitIdx: int32): bool {.inline.} =
   testBit(src[byteIdx], BitsRange[uint8](7 - bitIdx))
@@ -251,7 +251,7 @@ proc drawRowsLeftShift(
 
       writePixelWord(framePtr, data, len)
 
-proc draw*(bmp: HEBitmap, pos: IVec2) =
+proc draw*(bmp: HEBitmap, pos: IVec2, flipY: bool = false) =
   let drawPos = pos + bmp.boundsCoords
 
   let x1 = max(drawPos.x, 0'i32)
@@ -268,10 +268,14 @@ proc draw*(bmp: HEBitmap, pos: IVec2) =
   let frameStart = advanceU8(framebuf, y1 * LCD_ROWSIZE + (x1 div 32) * 4)
   let hasMask = bmp.mask.len > 0
 
+  let numRows = y2 - y1
+  let startRow = if flipY: offsetTop + numRows - 1 else: offsetTop
+  let rowStep = if flipY: -bmp.rowbytes else: bmp.rowbytes
+
   if (x1 div 32 * 32) <= drawPos.x:
     let shift = cast[uint32](drawPos.x mod 32)
     let ogShiftMask = not shr32(0xFFFFFFFF'u32, shift)
-    let dataOffset = offsetTop * bmp.rowbytes
+    let dataOffset = startRow * bmp.rowbytes
     let dataStart = cast[ptr uint8](unsafeAddr bmp.data[dataOffset])
     let maskStart =
       if hasMask:
@@ -280,7 +284,7 @@ proc draw*(bmp: HEBitmap, pos: IVec2) =
         nil
     drawRowsRightShift(
       frameStart, dataStart, maskStart, y1, y2, x1, x2, shift, ogShiftMask,
-      bmp.rowbytes, hasMask,
+      rowStep, hasMask,
     )
   else:
     var shift = cast[uint32](abs(drawPos.x) mod 32)
@@ -288,7 +292,7 @@ proc draw*(bmp: HEBitmap, pos: IVec2) =
       shift = 32'u32 - shift
     let shiftMaskBase = shl32(0xFFFFFFFF'u32, shift)
     let offset32 = x1 div 32 * 32 - drawPos.x
-    let dataOffset = offsetTop * bmp.rowbytes + (offset32 div 32) * 4
+    let dataOffset = startRow * bmp.rowbytes + (offset32 div 32) * 4
     let dataStart = cast[ptr uint8](unsafeAddr bmp.data[dataOffset])
     let maskStart =
       if hasMask:
@@ -297,7 +301,7 @@ proc draw*(bmp: HEBitmap, pos: IVec2) =
         nil
     drawRowsLeftShift(
       frameStart, dataStart, maskStart, y1, y2, x1, x2, shift, shiftMaskBase,
-      bmp.rowbytes, hasMask,
+      rowStep, hasMask,
     )
 
   playdate.graphics.markUpdatedRows(y1, y2 - 1)

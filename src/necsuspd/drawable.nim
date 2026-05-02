@@ -60,6 +60,12 @@ proc visible*(d: Drawable | ptr Drawable): bool {.inline.} =
 proc `visible=`*(d: Drawable | ptr Drawable, visible: bool) {.inline.} =
   d.drawItem.visible = visible
 
+proc flipY*(d: Drawable | ptr Drawable): bool {.inline.} =
+  d.drawItem.flipY
+
+proc `flipY=`*(d: Drawable | ptr Drawable, v: bool) {.inline.} =
+  d.drawItem.flipY = v
+
 proc zIndex*(d: Drawable | ptr Drawable): int16 {.inline.} =
   d.drawItem.zIndex
 
