@@ -145,6 +145,28 @@ proc fromLCDBitmap*(src: LCDBitmap): HEBitmap =
       result, toOpenArray(srcPtr, 0, srcLen - 1), int32(bitmapData.rowbytes), [], 0, false
     )
 
+template writePixelWord(framePtr, data, len: untyped) =
+  if len < 32:
+    data = clipRight(bswap32(framePtr[]), data, len)
+  framePtr[] = bswap32(data)
+  framePtr = advance(framePtr, 1)
+  len -= 32
+
+template drawLoop(framePtr, dataPtr, maskPtr: untyped; hasMask: bool; body: untyped) =
+  for _ in y1 ..< y2:
+    var framePtr = cast[ptr uint32](frameStart)
+    var dataPtr = cast[ptr uint32](dataStart)
+    var maskPtr =
+      if hasMask:
+        cast[ptr uint32](maskStart)
+      else:
+        nil
+    body
+    frameStart = advanceU8(frameStart, LCD_ROWSIZE)
+    dataStart = advanceU8(dataStart, rowbytes)
+    if hasMask:
+      maskStart = advanceU8(maskStart, rowbytes)
+
 proc drawRowsRightShift(
     frameStartArg, dataStartArg, maskStartArg: ptr uint8,
     y1, y2, x1, x2: int32,
@@ -155,15 +177,7 @@ proc drawRowsRightShift(
   var frameStart = frameStartArg
   var dataStart = dataStartArg
   var maskStart = maskStartArg
-  for _ in y1 ..< y2:
-    var framePtr = cast[ptr uint32](frameStart)
-    var dataPtr = cast[ptr uint32](dataStart)
-    var maskPtr =
-      if hasMask:
-        cast[ptr uint32](maskStart)
-      else:
-        nil
-
+  drawLoop(framePtr, dataPtr, maskPtr, hasMask):
     var dataLeft = bswap32(framePtr[])
     var maskLeft = 0'u32
     var shiftMask = not shr32(0xFFFFFFFF'u32, cast[uint32](x1 mod 32))
@@ -178,25 +192,14 @@ proc drawRowsRightShift(
         let mask = combineWords(maskLeft, maskRight, shiftMask)
         data = applyMask(bswap32(framePtr[]), data, mask)
 
-      if len < 32:
-        data = clipRight(bswap32(framePtr[]), data, len)
-
-      framePtr[] = bswap32(data)
-
       dataLeft = shl32(bswap32(dataPtr[]), 32'u32 - shift)
       if hasMask:
         maskLeft = shl32(bswap32(maskPtr[]), 32'u32 - shift)
         maskPtr = advance(maskPtr, 1)
 
       dataPtr = advance(dataPtr, 1)
-      framePtr = advance(framePtr, 1)
+      writePixelWord(framePtr, data, len)
       shiftMask = ogShiftMask
-      len -= 32
-
-    frameStart = advanceU8(frameStart, LCD_ROWSIZE)
-    dataStart = advanceU8(dataStart, rowbytes)
-    if hasMask:
-      maskStart = advanceU8(maskStart, rowbytes)
 
 proc drawRowsLeftShift(
     frameStartArg, dataStartArg, maskStartArg: ptr uint8,
@@ -208,15 +211,7 @@ proc drawRowsLeftShift(
   var frameStart = frameStartArg
   var dataStart = dataStartArg
   var maskStart = maskStartArg
-  for _ in y1 ..< y2:
-    var framePtr = cast[ptr uint32](frameStart)
-    var dataPtr = cast[ptr uint32](dataStart)
-    var maskPtr =
-      if hasMask:
-        cast[ptr uint32](maskStart)
-      else:
-        nil
-
+  drawLoop(framePtr, dataPtr, maskPtr, hasMask):
     var dataLeft = shl32(bswap32(dataPtr[]), shift)
     var maskLeft =
       if hasMask:
@@ -250,22 +245,11 @@ proc drawRowsLeftShift(
         data = (bswap32(framePtr[]) and clipLeftMask) or (data and not clipLeftMask)
         clipLeftMask = 0'u32
 
-      if len < 32:
-        data = clipRight(bswap32(framePtr[]), data, len)
-
-      framePtr[] = bswap32(data)
-      framePtr = advance(framePtr, 1)
-
       dataLeft = shl32(bswap32(dataPtr[]), shift)
       if hasMask:
         maskLeft = shl32(bswap32(maskPtr[]), shift)
 
-      len -= 32
-
-    frameStart = advanceU8(frameStart, LCD_ROWSIZE)
-    dataStart = advanceU8(dataStart, rowbytes)
-    if hasMask:
-      maskStart = advanceU8(maskStart, rowbytes)
+      writePixelWord(framePtr, data, len)
 
 proc draw*(bmp: HEBitmap, pos: IVec2) =
   let drawPos = pos + bmp.boundsCoords
