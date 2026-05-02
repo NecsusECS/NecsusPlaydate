@@ -154,7 +154,7 @@ template writePixelWord(framePtr, data, len: untyped) =
 
 template drawLoop(
     frameStartArg, dataStartArg, maskStartArg: untyped;
-    hasMask: bool;
+    hasMask: static bool;
     body: untyped,
 ) =
   var frameStart = frameStartArg
@@ -163,15 +163,15 @@ template drawLoop(
   for _ in y1 ..< y2:
     var framePtr {.inject.} = cast[ptr uint32](frameStart)
     var dataPtr {.inject.} = cast[ptr uint32](dataStart)
-    var maskPtr {.inject.} =
-      if hasMask:
+    var maskPtr {.inject.}: ptr uint32 =
+      when hasMask:
         cast[ptr uint32](maskStart)
       else:
         nil
     body
     frameStart = advanceU8(frameStart, LCD_ROWSIZE)
     dataStart = advanceU8(dataStart, rowbytes)
-    if hasMask:
+    when hasMask:
       maskStart = advanceU8(maskStart, rowbytes)
 
 proc drawRowsRightShift(
@@ -179,7 +179,7 @@ proc drawRowsRightShift(
     y1, y2, x1, x2: int32,
     shift, ogShiftMask: uint32,
     rowbytes: int32,
-    hasMask: bool,
+    hasMask: static bool,
 ) =
   drawLoop(frameStartArg, dataStartArg, maskStartArg, hasMask):
     var dataLeft = bswap32(framePtr[])
@@ -191,13 +191,13 @@ proc drawRowsRightShift(
       let dataRight = shr32(bswap32(dataPtr[]), shift)
       var data = combineWords(dataLeft, dataRight, shiftMask)
 
-      if hasMask:
+      when hasMask:
         let maskRight = shr32(bswap32(maskPtr[]), shift)
         let mask = combineWords(maskLeft, maskRight, shiftMask)
         data = applyMask(bswap32(framePtr[]), data, mask)
 
       dataLeft = shl32(bswap32(dataPtr[]), 32'u32 - shift)
-      if hasMask:
+      when hasMask:
         maskLeft = shl32(bswap32(maskPtr[]), 32'u32 - shift)
         maskPtr = advance(maskPtr, 1)
 
@@ -210,12 +210,12 @@ proc drawRowsLeftShift(
     y1, y2, x1, x2: int32,
     shift, shiftMaskBase: uint32,
     rowbytes: int32,
-    hasMask: bool,
+    hasMask: static bool,
 ) =
   drawLoop(frameStartArg, dataStartArg, maskStartArg, hasMask):
     var dataLeft = shl32(bswap32(dataPtr[]), shift)
     var maskLeft =
-      if hasMask:
+      when hasMask:
         shl32(bswap32(maskPtr[]), shift)
       else:
         0'u32
@@ -232,7 +232,7 @@ proc drawRowsLeftShift(
 
       var data = combineWords(dataLeft, dataRight, shiftMaskBase)
 
-      if hasMask:
+      when hasMask:
         let maskRight: uint32 =
           if (len + cast[int32](shift)) > 32:
             maskPtr = advance(maskPtr, 1)
@@ -247,7 +247,7 @@ proc drawRowsLeftShift(
         clipLeftMask = 0'u32
 
       dataLeft = shl32(bswap32(dataPtr[]), shift)
-      if hasMask:
+      when hasMask:
         maskLeft = shl32(bswap32(maskPtr[]), shift)
 
       writePixelWord(framePtr, data, len)
@@ -278,15 +278,18 @@ proc draw*(bmp: HEBitmap, pos: IVec2, flipY: bool = false) =
     let ogShiftMask = not shr32(0xFFFFFFFF'u32, shift)
     let dataOffset = startRow * bmp.rowbytes
     let dataStart = cast[ptr uint8](unsafeAddr bmp.data[dataOffset])
-    let maskStart =
-      if hasMask:
-        cast[ptr uint8](unsafeAddr bmp.mask[dataOffset])
-      else:
-        nil
-    drawRowsRightShift(
-      frameStart, dataStart, maskStart, y1, y2, x1, x2, shift, ogShiftMask,
-      rowStep, hasMask,
-    )
+    if hasMask:
+      drawRowsRightShift(
+        frameStart, dataStart, cast[ptr uint8](unsafeAddr bmp.mask[dataOffset]),
+        y1, y2, x1, x2, shift, ogShiftMask,
+        rowStep, true,
+      )
+    else:
+      drawRowsRightShift(
+        frameStart, dataStart, nil,
+        y1, y2, x1, x2, shift, ogShiftMask,
+        rowStep, false,
+      )
   else:
     var shift = cast[uint32](abs(drawPos.x) mod 32)
     if drawPos.x >= 0 and shift > 0:
@@ -295,14 +298,16 @@ proc draw*(bmp: HEBitmap, pos: IVec2, flipY: bool = false) =
     let offset32 = x1 div 32 * 32 - drawPos.x
     let dataOffset = startRow * bmp.rowbytes + (offset32 div 32) * 4
     let dataStart = cast[ptr uint8](unsafeAddr bmp.data[dataOffset])
-    let maskStart =
-      if hasMask:
-        cast[ptr uint8](unsafeAddr bmp.mask[dataOffset])
-      else:
-        nil
-    drawRowsLeftShift(
-      frameStart, dataStart, maskStart, y1, y2, x1, x2, shift, shiftMaskBase,
-      rowStep, hasMask,
-    )
+    if hasMask:
+      drawRowsLeftShift(
+        frameStart, dataStart,  cast[ptr uint8](unsafeAddr bmp.mask[dataOffset]),
+        y1, y2, x1, x2, shift, shiftMaskBase,
+        rowStep, true,
+      )
+    else:
+      drawRowsLeftShift(
+        frameStart, dataStart, nil, y1, y2, x1, x2, shift, shiftMaskBase,
+        rowStep, false,
+      )
 
   playdate.graphics.markUpdatedRows(y1, y2 - 1)
