@@ -1,6 +1,6 @@
 import import_playdate, std/bitops, std/importutils, vmath
 
-const LCD_ROWSIZE* = 52
+const LCD_ROWSIZE* = 52'i32
 
 type HEBitmap* = object
   data, mask: seq[uint8]
@@ -106,7 +106,7 @@ proc buildHEBitmap(
     result.boundsCoords = ivec2(0, 0)
     result.boundsSize = result.size
   result.rowbytes = ((result.boundsSize.x + 31) div 32) * 4
-  let dataSize = int(result.rowbytes * result.boundsSize.y)
+  let dataSize: int32 = result.rowbytes * result.boundsSize.y
   result.data = newSeq[uint8](dataSize)
   bufferAlign8_32(
     result.data, result.rowbytes, srcPixels, srcRowbytes, result.boundsCoords,
@@ -125,12 +125,12 @@ proc fromLCDBitmap*(src: LCDBitmap): HEBitmap =
   result.size.y = int32(src.height)
   privateAccess(PlaydateGraphics)
   var bitmapData = src.getDataObj()
-  let srcLen = bitmapData.rowbytes * bitmapData.height
+  let srcLen = int32(bitmapData.rowbytes) * int32(bitmapData.height)
   let srcPtr = cast[ptr UncheckedArray[uint8]](bitmapData.data)
   let maskBmp = src.getBitmapMask()
   if not maskBmp.isNil:
     var maskData = maskBmp.getDataObj()
-    let maskLen = maskData.rowbytes * maskData.height
+    let maskLen = int32(maskData.rowbytes) * int32(maskData.height)
     let maskPtr = cast[ptr UncheckedArray[uint8]](maskData.data)
     buildHEBitmap(
       result,
@@ -142,7 +142,7 @@ proc fromLCDBitmap*(src: LCDBitmap): HEBitmap =
     )
   else:
     buildHEBitmap(
-      result, toOpenArray(srcPtr, 0, srcLen - 1), int32(bitmapData.rowbytes), [], 0, false
+      result, toOpenArray(srcPtr, 0, srcLen - 1), int32(bitmapData.rowbytes), [], 0'i32, false
     )
 
 template writePixelWord(framePtr, data, len: untyped) =
