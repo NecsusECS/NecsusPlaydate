@@ -28,7 +28,7 @@ type
     ## `anims` is a table of generated animations for each game object
     ## `tables` is the base sprite sheets for each game object
     anims: array[ROTATIONS, array[Anims, AnimationDef]]
-    table: seq[HEBitmap]
+    table: ref seq[HEBitmap]
 
 proc `=copy`[SheetId, Anims, Keyframes](
   a: var RotAnimDef[SheetId, Anims, Keyframes], b: RotAnimDef[SheetId, Anims, Keyframes]
@@ -97,7 +97,8 @@ proc defineRotAnims[SheetId, Anims, Keyframes](
     source: LCDBitmapTable,
 ): RotAnims[Anims] =
   let frames = source.getBitmapTableInfo.count.int32
-  result = RotAnims[Anims](table: newSeq[HEBitmap](frames * ROTATIONS))
+  result = RotAnims[Anims](table: new(seq[HEBitmap]))
+  result.table[] = newSeq[HEBitmap](frames * ROTATIONS)
   for rotation in 0'i32 ..< ROTATIONS:
     let mutation: RotationMutation = (rotation, frames, rotation * frames)
     result.fillTable(sheet, obj, source, mutation)
@@ -106,13 +107,8 @@ proc fillTablePreRotated[SheetId, Anims, Keyframes](
     target: var RotAnims[Anims],
     spriteSheet: SpriteSheet,
     obj: RotAnimDef[SheetId, Anims, Keyframes],
-    source: LCDBitmapTable,
     mutate: RotationMutation,
 ) =
-  for frame in 0 ..< mutate.sourceFrameCount:
-    target.table[mutate.baseCellIdx + frame] =
-      fromLCDBitmap(source.getBitmap(mutate.baseCellIdx + frame))
-
   let baseAnims = animationTable[Anims, Keyframes](
     spriteSheet,
     obj.sheetId,
@@ -128,19 +124,20 @@ proc fillTablePreRotated[SheetId, Anims, Keyframes](
 proc definePreRotAnims[SheetId, Anims, Keyframes](
     obj: RotAnimDef[SheetId, Anims, Keyframes],
     sheet: SpriteSheet,
-    source: LCDBitmapTable,
+    frames: ref seq[HEBitmap],
 ): RotAnims[Anims] =
-  let totalFrames = source.getBitmapTableInfo.count.int32
+  let totalFrames = frames[].len.int32
   let expected = sheet.frames.len.int32 * ROTATIONS
   assert(
     totalFrames == expected,
-    fmt"Pre-rotated bitmap table frame count mismatch: got {totalFrames}, expected {expected}"
+    fmt"Pre-rotated bitmap table frame count mismatch: got {totalFrames}, expected {expected}",
   )
-  let frames = totalFrames div ROTATIONS
-  result = RotAnims[Anims](table: newSeq[HEBitmap](totalFrames))
+  let framesPerRotation = totalFrames div ROTATIONS
+  result = RotAnims[Anims](table: frames)
   for rotation in 0'i32 ..< ROTATIONS:
-    let mutation: RotationMutation = (rotation, frames, rotation * frames)
-    result.fillTablePreRotated(sheet, obj, source, mutation)
+    let mutation: RotationMutation =
+      (rotation, framesPerRotation, rotation * framesPerRotation)
+    result.fillTablePreRotated(sheet, obj, mutation)
 
 proc calculateRotAnims*[K, SheetId, Anims, Keyframes](
     target: var array[K, RotAnims[Anims]],
@@ -164,10 +161,11 @@ proc calculatePreRotAnims*[K, SheetId, Anims, Keyframes](
 ) =
   ## Reads pre-rotated sprite sheets for all game objects; all 64 rotations must
   ## already be present in the sheet (ROTATIONS * framesPerAnim total frames).
+  ## The sheet is released from the AssetBag after extraction to free memory.
   for key in K:
     task.execTask(fmt"{key} sheet", K, key):
       target[key] =
-        definePreRotAnims(defs[key], sheets[key], assets.sheet(defs[key].sheetId))
+        definePreRotAnims(defs[key], sheets[key], assets.heSheet(defs[key].sheetId))
 
 proc chooseAngleBucket(angle: FixedPoint): int32 =
   ## Given an angle, chooses the rotation bucket to use

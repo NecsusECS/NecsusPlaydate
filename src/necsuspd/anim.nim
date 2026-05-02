@@ -42,6 +42,7 @@ type
 
   SheetTable*[S] = concept table
     table.sheet(S) is LCDBitmapTable
+    table.heSheet(S) is ref seq[HEBitmap]
 
   Unpausable* {.accessory.} = object
 
@@ -53,7 +54,7 @@ type
     loops: uint32
     case kind: DrawItemKind
     of dikLCD: lcdFrameCache: seq[LCDBitmap]
-    of dikHE: heFrameCache: seq[HEBitmap]
+    of dikHE: heFrameCache: ref seq[HEBitmap]
 
   Anim* = ref AnimObj
 
@@ -199,7 +200,7 @@ proc newAnim*(frames: seq[LCDBitmap], def: AnimationDef, drawable: Drawable): An
   result = Anim(kind: dikLCD, def: def, lcdFrameCache: frames)
   change(result, drawable, def)
 
-proc newAnim*(frames: seq[HEBitmap], def: AnimationDef, drawable: Drawable): Anim =
+proc newAnim*(frames: ref seq[HEBitmap], def: AnimationDef, drawable: Drawable): Anim =
   result = Anim(kind: dikHE, def: def, heFrameCache: frames)
   change(result, drawable, def)
 
@@ -220,12 +221,19 @@ proc newSheet*(
   return (d, a)
 
 proc newHESheet*(
-    frames: seq[HEBitmap],
+    frames: ref seq[HEBitmap],
     def: AnimationDef,
     zIndex: ZIndexValue,
     absolutePos: bool = false,
 ): (Drawable, Anim) =
-  assert(frames.len > 0)
+  assert(frames[].len > 0)
+  when compileOption("assertions"):
+    for f in def.frames:
+      let cellId = f.cellId
+      assert(
+        cellId >= 0 and cellId < frames[].len,
+        fmt"AnimationDef cellId {cellId} out of bounds [0, {frames[].len})",
+      )
   result[0] = newHEDrawable(frames[0], zIndex, def.anchor.toAnchor, absolutePos)
   result[1] = newAnim(frames, def, result[0])
 
@@ -235,12 +243,8 @@ proc newSheet*[S: enum](
     zIndex: ZIndexValue,
     absolutePos: bool = false,
 ): (Drawable, Anim) =
-  let table = assets.extract.sheet(def.sheet.assertAs(S))
-  let frameCount = table.getBitmapTableInfo.count
-  var frames = newSeq[HEBitmap](frameCount)
-  for i in 0 ..< frameCount:
-    frames[i] = fromLCDBitmap(table.getBitmap(i))
-  return newHESheet(frames, def, zIndex, absolutePos)
+  return
+    newHESheet(assets.extract.heSheet(def.sheet.assertAs(S)), def, zIndex, absolutePos)
 
 proc newAnimSheet*(drawable: Drawable, anim: Anim): AnimSheet =
   AnimSheet(drawable: drawable, anim: anim)

@@ -1,5 +1,10 @@
 import
-  necsus, std/[options, strformat, typetraits, strutils], util, loading, import_playdate
+  necsus,
+  std/[options, strformat, typetraits, strutils],
+  util,
+  loading,
+  import_playdate,
+  hebitmap
 
 type
   AssetBagDef[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId] = ref object
@@ -31,6 +36,7 @@ type
     state: AssetLoadState
     images: array[ImgId, LCDBitmap]
     sheets: array[SheetId, LCDBitmapTable]
+    heSheets: array[SheetId, ref seq[HEBitmap]]
     fonts: array[FontId, LCDFont]
     nineSlices: array[NineSliceId, NineSlice]
     midis: array[MidiId, SoundSequence]
@@ -52,6 +58,24 @@ proc sheet*[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId](
     assets: AssetBag[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId], key: SheetId
 ): LCDBitmapTable =
   return read(assets, sheets, key, playdate.graphics.newBitmapTable)
+
+proc heSheet*[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId](
+    assets: AssetBag[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId], key: SheetId
+): ref seq[HEBitmap] =
+  if assets.heSheets[key].isNil:
+    log "Loading HE sheet: ", assets.def.sheets[key]
+    let table = playdate.graphics.newBitmapTable(assets.def.sheets[key])
+    let frameCount = table.getBitmapTableInfo.count
+    new(assets.heSheets[key])
+    assets.heSheets[key][] = newSeq[HEBitmap](frameCount)
+    for i in 0 ..< frameCount:
+      let bmp = table.getBitmap(i)
+      assert(
+        not bmp.isNil,
+        fmt"heSheet: getBitmap({i}) returned nil for {assets.def.sheets[key]}",
+      )
+      assets.heSheets[key][i] = fromLCDBitmap(bmp)
+  assets.heSheets[key]
 
 proc font*[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId](
     assets: SharedOrT[AssetBag[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId]],

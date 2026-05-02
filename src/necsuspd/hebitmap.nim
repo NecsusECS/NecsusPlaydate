@@ -140,6 +140,7 @@ proc buildHEBitmap(
     )
 
 proc fromLCDBitmap*(src: LCDBitmap): HEBitmap =
+  assert(not src.isNil, "fromLCDBitmap called with nil LCDBitmap")
   result.size.x = int32(src.width)
   result.size.y = int32(src.height)
 
