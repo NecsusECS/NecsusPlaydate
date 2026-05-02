@@ -1,7 +1,4 @@
-import import_playdate, std/bitops, vmath
-
-when LIVE_COMPILE:
-  import std/importutils, playdate/graphics as pdgfx, playdate/lcdbitmap {.all.}
+import import_playdate, std/bitops, std/importutils, vmath
 
 const LCD_ROWSIZE* = 52
 
@@ -93,23 +90,6 @@ proc bufferAlign8_32*(
       else:
         clearBit(dst, dstByteIdx, dstBitIdx)
 
-when not LIVE_COMPILE:
-  proc packBools(
-      pixels: seq[seq[bool]], width, height: int, invert: bool
-  ): (seq[uint8], int) =
-    let rowbytes = (width + 7) div 8
-    var data = newSeq[uint8](rowbytes * height)
-    for y in 0 ..< height:
-      for x in 0 ..< width:
-        let bit =
-          if invert:
-            not pixels[y][x]
-          else:
-            pixels[y][x]
-        if bit:
-          setBit(data, int32(y * rowbytes + x div 8), int32(x mod 8))
-    (data, rowbytes)
-
 proc buildHEBitmap(
     result: var HEBitmap,
     srcPixels: openArray[uint8],
@@ -143,46 +123,27 @@ proc fromLCDBitmap*(src: LCDBitmap): HEBitmap =
   assert(not src.isNil, "fromLCDBitmap called with nil LCDBitmap")
   result.size.x = int32(src.width)
   result.size.y = int32(src.height)
-
-  when LIVE_COMPILE:
-    privateAccess(PlaydateGraphics)
-    let bitmapData = src.getDataObj()
-    let srcLen = bitmapData.rowbytes * bitmapData.height
-    let srcPtr = cast[ptr UncheckedArray[uint8]](bitmapData.data)
-    let maskBmp = src.getBitmapMask()
-    let hasMask = not maskBmp.isNil
-    if hasMask:
-      let maskData = maskBmp.getDataObj()
-      let maskLen = maskData.rowbytes * maskData.height
-      let maskPtr = cast[ptr UncheckedArray[uint8]](maskData.data)
-      buildHEBitmap(
-        result,
-        toOpenArray(srcPtr, 0, srcLen - 1),
-        int32(bitmapData.rowbytes),
-        toOpenArray(maskPtr, 0, maskLen - 1),
-        int32(maskData.rowbytes),
-        true,
-      )
-    else:
-      buildHEBitmap(
-        result,
-        toOpenArray(srcPtr, 0, srcLen - 1),
-        int32(bitmapData.rowbytes),
-        [],
-        0,
-        false,
-      )
+  privateAccess(PlaydateGraphics)
+  var bitmapData = src.getDataObj()
+  let srcLen = bitmapData.rowbytes * bitmapData.height
+  let srcPtr = cast[ptr UncheckedArray[uint8]](bitmapData.data)
+  let maskBmp = src.getBitmapMask()
+  if not maskBmp.isNil:
+    var maskData = maskBmp.getDataObj()
+    let maskLen = maskData.rowbytes * maskData.height
+    let maskPtr = cast[ptr UncheckedArray[uint8]](maskData.data)
+    buildHEBitmap(
+      result,
+      toOpenArray(srcPtr, 0, srcLen - 1),
+      int32(bitmapData.rowbytes),
+      toOpenArray(maskPtr, 0, maskLen - 1),
+      int32(maskData.rowbytes),
+      true,
+    )
   else:
-    let (srcPixels, srcRowbytes) =
-      packBools(src.getPixels(), src.width, src.height, true)
-    if src.hasMask():
-      let (maskPixels, maskRowbytes) =
-        packBools(src.getMaskPixels(), src.width, src.height, true)
-      buildHEBitmap(
-        result, srcPixels, int32(srcRowbytes), maskPixels, int32(maskRowbytes), true
-      )
-    else:
-      buildHEBitmap(result, srcPixels, int32(srcRowbytes), [], 0, false)
+    buildHEBitmap(
+      result, toOpenArray(srcPtr, 0, srcLen - 1), int32(bitmapData.rowbytes), [], 0, false
+    )
 
 proc drawRowsRightShift(
     frameStartArg, dataStartArg, maskStartArg: ptr uint8,
@@ -318,10 +279,7 @@ proc draw*(bmp: HEBitmap, pos: IVec2) =
   if x1 >= x2 or y1 >= y2:
     return
 
-  when LIVE_COMPILE:
-    let framebuf = cast[ptr uint8](playdate.graphics.getFrame())
-  else:
-    let framebuf = playdate.graphics.getFrame()
+  let framebuf = cast[ptr uint8](playdate.graphics.getFrame())
 
   let frameStart = advanceU8(framebuf, y1 * LCD_ROWSIZE + (x1 div 32) * 4)
   let hasMask = bmp.mask.len > 0

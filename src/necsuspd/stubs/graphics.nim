@@ -30,6 +30,8 @@ type
     pixels: seq[seq[bool]]
     width*: int
     height*: int
+    dataCache: seq[uint8]
+    rowbytes*: int
 
   BitmapData* = ref BitmapDataObj
 
@@ -162,7 +164,6 @@ proc getSize*(this: LCDBitmap): auto =
   (width: this.width, height: this.height)
 
 proc getBitmapMask*(image: LCDBitmap): LCDBitmap =
-  assert(image.mask != nil)
   image.mask
 
 proc setBitmapMask*(
@@ -239,8 +240,21 @@ proc clear*(this: Image, color: Color) =
     for x in 0 ..< this.width:
       this.data.pixels[y][x] = color.asBool
 
+proc packBools(pixels: seq[seq[bool]], width, height: int, invert: bool): seq[uint8] =
+  let rowbytes = (width + 7) div 8
+  var data = newSeq[uint8](rowbytes * height)
+  for y in 0 ..< height:
+    for x in 0 ..< width:
+      let bit = if invert: not pixels[y][x] else: pixels[y][x]
+      if bit:
+        let byteIdx = y * rowbytes + x div 8
+        data[byteIdx] = data[byteIdx] or (1'u8 shl uint8(7 - x mod 8))
+  data
+
 proc getDataObj*(this: LCDBitmap): BitmapDataObj =
-  this.data
+  result = this.data
+  result.rowbytes = (this.data.width + 7) div 8
+  result.dataCache = packBools(this.data.pixels, this.data.width, this.data.height, true)
 
 proc getPixels*(bmp: LCDBitmap): seq[seq[bool]] =
   bmp.data.pixels
@@ -302,11 +316,8 @@ proc drawLine*(g: PlaydateGraphics, x1, y1, x2, y2, w: int, c: LCDSolidColor) =
 
   go(x1, y1, dx - dy)
 
-proc data*(this: BitmapDataObj): ptr UncheckedArray[uint8] =
-  raiseAssert("Unimplemented")
-
-proc rowbytes*(this: BitmapDataObj): int =
-  raiseAssert("Unimplemented")
+proc data*(this: BitmapDataObj): ptr UncheckedArray[uint8] {.inline.} =
+  cast[ptr UncheckedArray[uint8]](addr this.dataCache[0])
 
 proc makeLCDPattern*(
     r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, ra, rb, rc, rd, re, rf: uint8
