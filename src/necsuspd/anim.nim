@@ -37,6 +37,7 @@ type
     frames*: seq[Frame]
     anchor*: Anchor
     loop*: LoopMode
+    flipY*: bool
 
   AnimationDef* = ref AnimationDefObj
 
@@ -124,12 +125,16 @@ proc animation*[S: enum](
   return animation(sheet, frameSeq, anchor, loop.asLoopMode)
 
 proc modify*(
-    def: AnimationDef, cellOffset: int32 = 0, anchor: Anchor = def.anchor
+    def: AnimationDef,
+    cellOffset: int32 = 0,
+    anchor: Anchor = def.anchor,
+    flipY: bool = false,
 ): AnimationDef =
   result = new(AnimationDef)
   result[] = def[]
   result.frames = def.frames.mapIt(it.offsetCellId(cellOffset))
   result.anchor = anchor
+  result.flipY = flipY
 
 proc def*(a: Anim | ptr Anim): AnimationDef =
   a.def
@@ -161,6 +166,7 @@ proc change*(
   anim.frame = 0
   anim.nextFrameTime = 0
   drawable.anchorOffset = drawable.offsetFix(def.anchor.toAnchor)
+  drawable.flipY = def.flipY
   anim.loops = 0
 
 proc softChange*(
@@ -170,6 +176,7 @@ proc softChange*(
   anim.def = def
   anim.frame = anim.frame.clamp(0'i32, def.frames.len.int32 - 1)
   drawable.anchorOffset = drawable.offsetFix(def.anchor.toAnchor)
+  drawable.flipY = def.flipY
   anim.loops = 0
 
 proc reset*(anim: Anim, drawable: Drawable) =
