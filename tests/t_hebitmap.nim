@@ -204,3 +204,40 @@ suite "draw":
     check row[0 ..< 16] == "XXXXXXXXXXXXXXXX"
     check row[16 ..< 48] == "................................"
     check row[48] == 'X'
+
+suite "toBytes/fromBytes":
+  privateAccess(HEBitmap)
+
+  test "round-trips an opaque bitmap":
+    let img = newImage("test", 8, 4, kColorWhite)
+    let original = fromLCDBitmap(img)
+    let restored = fromBytes(original.toBytes())
+    check restored.size == original.size
+    check restored.boundsCoords == original.boundsCoords
+    check restored.boundsSize == original.boundsSize
+    check restored.rowbytes == original.rowbytes
+    check restored.data == original.data
+    check restored.mask == original.mask
+
+  test "round-trips a masked bitmap":
+    let img = newImage("img", 8, 4, kColorWhite)
+    let mask = newImage("mask", 8, 4, kColorBlack)
+    mask.set(2, 1, kColorWhite)
+    img.setBitmapMask(mask)
+    let original = fromLCDBitmap(img)
+    let restored = fromBytes(original.toBytes())
+    check restored.size == original.size
+    check restored.boundsCoords == original.boundsCoords
+    check restored.boundsSize == original.boundsSize
+    check restored.rowbytes == original.rowbytes
+    check restored.data == original.data
+    check restored.mask == original.mask
+
+  test "fromBytes raises ValueError on invalid magic":
+    var bytes = newSeq[byte](40)
+    expect ValueError:
+      discard fromBytes(bytes)
+
+  test "fromBytes raises ValueError on empty buffer":
+    expect ValueError:
+      discard fromBytes(newSeq[byte](0))

@@ -345,3 +345,57 @@ proc draw*(bmp: HEBitmap, pos: IVec2, flipY: bool = false) =
       )
 
   playdate.graphics.markUpdatedRows(y1, y2 - 1)
+
+const HEBitmapMagic = 0x48454249'i32 # "HEBI"
+const HEBitmapHeaderSize = 40
+
+proc toBytes*(bmp: HEBitmap): seq[byte] =
+  let dataLen = int32(bmp.data.len)
+  let maskLen = int32(bmp.mask.len)
+  result = newSeq[byte](HEBitmapHeaderSize + dataLen + maskLen)
+  var magic = HEBitmapMagic
+  copyMem(addr result[0],  addr magic,                     4)
+  copyMem(addr result[4],  unsafeAddr bmp.size.x,          4)
+  copyMem(addr result[8],  unsafeAddr bmp.size.y,          4)
+  copyMem(addr result[12], unsafeAddr bmp.boundsCoords.x,  4)
+  copyMem(addr result[16], unsafeAddr bmp.boundsCoords.y,  4)
+  copyMem(addr result[20], unsafeAddr bmp.boundsSize.x,    4)
+  copyMem(addr result[24], unsafeAddr bmp.boundsSize.y,    4)
+  copyMem(addr result[28], unsafeAddr bmp.rowbytes,        4)
+  copyMem(addr result[32], unsafeAddr dataLen,             4)
+  copyMem(addr result[36], unsafeAddr maskLen,             4)
+  if dataLen > 0:
+    copyMem(addr result[HEBitmapHeaderSize], unsafeAddr bmp.data[0], dataLen)
+  if maskLen > 0:
+    copyMem(addr result[HEBitmapHeaderSize + dataLen], unsafeAddr bmp.mask[0], maskLen)
+
+proc fromBytes*(bytes: openArray[byte]): HEBitmap {.raises: [ValueError].} =
+  if bytes.len < HEBitmapHeaderSize:
+    raise newException(ValueError, "buffer too small for HEBitmap header")
+  var magic, sizeX, sizeY, bcX, bcY, bsX, bsY, rowbytes, dataLen, maskLen: int32
+  copyMem(addr magic,    unsafeAddr bytes[0],  4)
+  copyMem(addr sizeX,    unsafeAddr bytes[4],  4)
+  copyMem(addr sizeY,    unsafeAddr bytes[8],  4)
+  copyMem(addr bcX,      unsafeAddr bytes[12], 4)
+  copyMem(addr bcY,      unsafeAddr bytes[16], 4)
+  copyMem(addr bsX,      unsafeAddr bytes[20], 4)
+  copyMem(addr bsY,      unsafeAddr bytes[24], 4)
+  copyMem(addr rowbytes, unsafeAddr bytes[28], 4)
+  copyMem(addr dataLen,  unsafeAddr bytes[32], 4)
+  copyMem(addr maskLen,  unsafeAddr bytes[36], 4)
+  if magic != HEBitmapMagic:
+    raise newException(ValueError, "invalid HEBitmap magic")
+  if dataLen < 0 or maskLen < 0:
+    raise newException(ValueError, "invalid HEBitmap data lengths")
+  if bytes.len < HEBitmapHeaderSize + dataLen + maskLen:
+    raise newException(ValueError, "buffer too small for HEBitmap data")
+  result.size = ivec2(sizeX, sizeY)
+  result.boundsCoords = ivec2(bcX, bcY)
+  result.boundsSize = ivec2(bsX, bsY)
+  result.rowbytes = rowbytes
+  result.data = newSeq[uint8](dataLen)
+  if dataLen > 0:
+    copyMem(addr result.data[0], unsafeAddr bytes[HEBitmapHeaderSize], dataLen)
+  result.mask = newSeq[uint8](maskLen)
+  if maskLen > 0:
+    copyMem(addr result.mask[0], unsafeAddr bytes[HEBitmapHeaderSize + dataLen], maskLen)
