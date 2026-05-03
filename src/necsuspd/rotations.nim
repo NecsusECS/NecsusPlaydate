@@ -98,13 +98,18 @@ proc defineRotAnims[SheetId, Anims, Keyframes](
 ): RotAnims[Anims] =
   let frames = source.getBitmapTableInfo.count.int32
   let halfRots = ROTATIONS div 2
+  let quarter = ROTATIONS div 4
   result = RotAnims[Anims](table: new(seq[HEBitmap]))
   result.table[] = newSeq[HEBitmap](frames * (halfRots + 1))
-  for rotation in 0'i32 ..< halfRots + 1:
-    let mutation: RotationMutation = (rotation, frames, rotation * frames)
+  for rotation in 0'i32 ..< quarter + 1:
+    let mutation: RotationMutation = (rotation, frames, (rotation + quarter) * frames)
     result.fillTable(sheet, obj, source, mutation)
-  for rotation in (halfRots + 1) ..< ROTATIONS:
-    let mirrorCellIdx = (ROTATIONS - rotation) * frames
+  for rotation in ROTATIONS - quarter ..< ROTATIONS:
+    let mutation: RotationMutation =
+      (rotation, frames, (rotation - (ROTATIONS - quarter)) * frames)
+    result.fillTable(sheet, obj, source, mutation)
+  for rotation in quarter + 1 ..< ROTATIONS - quarter:
+    let mirrorCellIdx = (ROTATIONS * 3 div 4 - rotation) * frames
     let mutation: RotationMutation = (rotation, frames, mirrorCellIdx)
     result.fillTablePreRotated(sheet, obj, mutation, flipY = true)
 
@@ -139,16 +144,24 @@ proc definePreRotAnims[SheetId, Anims, Keyframes](
     totalFrames == expected,
     fmt"Pre-rotated bitmap table frame count mismatch: got {totalFrames}, expected {expected}",
   )
+  let quarter = ROTATIONS div 4
   let framesPerRotation = totalFrames div (halfRots + 1)
   result = RotAnims[Anims](table: frames)
-  for rotation in 0'i32 ..< halfRots + 1:
+  for rotation in 0'i32 ..< quarter + 1:
     let mutation: RotationMutation =
-      (rotation, framesPerRotation, rotation * framesPerRotation)
+      (rotation, framesPerRotation, (rotation + quarter) * framesPerRotation)
     result.fillTablePreRotated(sheet, obj, mutation)
-  for rotation in (halfRots + 1) ..< ROTATIONS:
-    let mirrorCellIdx = (ROTATIONS - rotation) * framesPerRotation
+  for rotation in quarter + 1 ..< ROTATIONS - quarter:
+    let mirrorCellIdx = (ROTATIONS * 3 div 4 - rotation) * framesPerRotation
     let mutation: RotationMutation = (rotation, framesPerRotation, mirrorCellIdx)
     result.fillTablePreRotated(sheet, obj, mutation, flipY = true)
+  for rotation in ROTATIONS - quarter ..< ROTATIONS:
+    let mutation: RotationMutation = (
+      rotation,
+      framesPerRotation,
+      (rotation - (ROTATIONS - quarter)) * framesPerRotation,
+    )
+    result.fillTablePreRotated(sheet, obj, mutation)
 
 proc calculateRotAnims*[K, SheetId, Anims, Keyframes](
     target: var array[K, RotAnims[Anims]],
