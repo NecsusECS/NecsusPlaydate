@@ -223,8 +223,9 @@ proc drawRowsLeftShift(
     var len = x2 - x1 div 32 * 32
 
     while len > 0:
+      let fetchNext = (len + cast[int32](shift)) > 32
       let dataRight: uint32 =
-        if (len + cast[int32](shift)) > 32:
+        if fetchNext:
           dataPtr = advance(dataPtr, 1)
           shr32(bswap32(dataPtr[]), 32'u32 - shift)
         else:
@@ -234,7 +235,7 @@ proc drawRowsLeftShift(
 
       when hasMask:
         let maskRight: uint32 =
-          if (len + cast[int32](shift)) > 32:
+          if fetchNext:
             maskPtr = advance(maskPtr, 1)
             shr32(bswap32(maskPtr[]), 32'u32 - shift)
           else:
