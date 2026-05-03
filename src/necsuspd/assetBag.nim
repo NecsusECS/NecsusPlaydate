@@ -35,6 +35,7 @@ type
     def: AssetBagDef[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId]
     state: AssetLoadState
     images: array[ImgId, LCDBitmap]
+    heImages: array[ImgId, ref HEBitmap]
     sheets: array[SheetId, LCDBitmapTable]
     heSheets: array[SheetId, ref seq[HEBitmap]]
     fonts: array[FontId, LCDFont]
@@ -53,6 +54,17 @@ proc asset*[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId](
     key: ImgId,
 ): LCDBitmap =
   return read(assets.unwrap, images, key, playdate.graphics.newBitmap)
+
+proc heAsset*[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId](
+    assets: SharedOrT[AssetBag[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId]],
+    key: ImgId,
+): HEBitmap =
+  let bag = assets.unwrap
+  if bag.heImages[key].isNil:
+    log "Loading HE asset: ", bag.def.images[key]
+    new(bag.heImages[key])
+    bag.heImages[key][] = playdate.graphics.newBitmap(bag.def.images[key]).fromLCDBitmap
+  bag.heImages[key][]
 
 proc sheet*[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId](
     assets: AssetBag[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId], key: SheetId
