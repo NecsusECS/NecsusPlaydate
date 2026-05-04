@@ -141,13 +141,21 @@ template createLoaders(task, bag, input, output, kind: untyped) =
       execTask(task, $key & " " & bag.def.input[key], kind, key):
         discard bag.output(key)
 
+template createHELoaders(task, bag, input, output, kind: untyped) =
+  for key in kind:
+    if bag.def.input[key].len > 0:
+      execTask(task, "he " & $key & " " & bag.def.input[key], kind, key):
+        discard bag.output(key)
+
 proc buildAssetLoader*[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId](
     bag: AssetBag[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId]
 ): auto =
   ## Defines a system that registers loading tasks for all assets
   return proc(task: Bundle[LoadTasks]) =
     task.createLoaders(bag, images, asset, ImgId)
+    task.createHELoaders(bag, images, heAsset, ImgId)
     task.createLoaders(bag, sheets, sheet, SheetId)
+    task.createHELoaders(bag, sheets, heSheet, SheetId)
     task.createLoaders(bag, fonts, font, FontId)
     task.createLoaders(bag, nineSlices, nineSlice, NineSliceId)
     task.createLoaders(bag, midis, midi, MidiId)
