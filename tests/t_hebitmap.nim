@@ -241,3 +241,46 @@ suite "toBytes/fromBytes":
   test "fromBytes raises ValueError on empty buffer":
     expect ValueError:
       discard fromBytes(newSeq[byte](0))
+
+suite "toBytes/seqFromBytes":
+  privateAccess(HEBitmap)
+
+  test "round-trips an empty seq":
+    let original = new(seq[HEBitmap])
+    original[] = @[]
+    let restored = seqFromBytes(original.toBytes())
+    check restored[].len == 0
+
+  test "round-trips a seq of opaque bitmaps":
+    let original = new(seq[HEBitmap])
+    original[] = @[
+      fromLCDBitmap(newImage("a", 8, 4, kColorWhite)),
+      fromLCDBitmap(newImage("b", 16, 2, kColorBlack)),
+    ]
+    let restored = seqFromBytes(original.toBytes())
+    check restored[].len == 2
+    for i in 0 ..< 2:
+      check restored[i].size == original[i].size
+      check restored[i].boundsCoords == original[i].boundsCoords
+      check restored[i].boundsSize == original[i].boundsSize
+      check restored[i].rowbytes == original[i].rowbytes
+      check restored[i].data == original[i].data
+      check restored[i].mask == original[i].mask
+
+  test "round-trips a seq containing a masked bitmap":
+    let img = newImage("img", 8, 4, kColorWhite)
+    let mask = newImage("mask", 8, 4, kColorBlack)
+    mask.set(2, 1, kColorWhite)
+    img.setBitmapMask(mask)
+    let original = new(seq[HEBitmap])
+    original[] = @[fromLCDBitmap(img)]
+    let restored = seqFromBytes(original.toBytes())
+    check restored[0].mask == original[0].mask
+
+  test "seqFromBytes raises ValueError on invalid magic":
+    expect ValueError:
+      discard seqFromBytes(newSeq[byte](8))
+
+  test "seqFromBytes raises ValueError on empty buffer":
+    expect ValueError:
+      discard seqFromBytes(newSeq[byte](0))

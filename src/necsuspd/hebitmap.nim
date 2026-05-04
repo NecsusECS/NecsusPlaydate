@@ -399,3 +399,50 @@ proc fromBytes*(bytes: openArray[byte]): HEBitmap {.raises: [ValueError].} =
   result.mask = newSeq[uint8](maskLen)
   if maskLen > 0:
     copyMem(addr result.mask[0], unsafeAddr bytes[HEBitmapHeaderSize + dataLen], maskLen)
+
+const HEBitmapSeqMagic = 0x48454253'i32 # "HEBS"
+const HEBitmapSeqHeaderSize = 8 # magic + count
+
+proc toBytes*(bitmaps: ref seq[HEBitmap]): seq[byte] =
+  let count = int32(bitmaps[].len)
+  var chunks = newSeq[seq[byte]](count)
+  var totalLen = HEBitmapSeqHeaderSize + count.int * 4
+  for i in 0 ..< count:
+    chunks[i] = bitmaps[i].toBytes()
+    totalLen += chunks[i].len
+  result = newSeq[byte](totalLen)
+  var magic = HEBitmapSeqMagic
+  copyMem(addr result[0], addr magic, 4)
+  copyMem(addr result[4], addr count, 4)
+  var pos = HEBitmapSeqHeaderSize
+  for chunk in chunks:
+    var chunkLen = int32(chunk.len)
+    copyMem(addr result[pos], addr chunkLen, 4)
+    pos += 4
+    if chunkLen > 0:
+      copyMem(addr result[pos], unsafeAddr chunk[0], chunkLen)
+      pos += chunkLen
+
+proc seqFromBytes*(bytes: openArray[byte]): ref seq[HEBitmap] {.raises: [ValueError].} =
+  if bytes.len < HEBitmapSeqHeaderSize:
+    raise newException(ValueError, "buffer too small for HEBitmap seq header")
+  var magic, count: int32
+  copyMem(addr magic, unsafeAddr bytes[0], 4)
+  copyMem(addr count, unsafeAddr bytes[4], 4)
+  if magic != HEBitmapSeqMagic:
+    raise newException(ValueError, "invalid HEBitmap seq magic")
+  if count < 0:
+    raise newException(ValueError, "invalid HEBitmap seq count")
+  result = new(seq[HEBitmap])
+  result[] = newSeq[HEBitmap](count)
+  var pos = HEBitmapSeqHeaderSize
+  for i in 0 ..< count:
+    if pos + 4 > bytes.len:
+      raise newException(ValueError, "buffer truncated reading HEBitmap seq entry")
+    var chunkLen: int32
+    copyMem(addr chunkLen, unsafeAddr bytes[pos], 4)
+    pos += 4
+    if chunkLen < 0 or pos + chunkLen > bytes.len:
+      raise newException(ValueError, "invalid HEBitmap seq entry length")
+    result[i] = fromBytes(toOpenArray(bytes, pos, pos + chunkLen - 1))
+    pos += chunkLen
