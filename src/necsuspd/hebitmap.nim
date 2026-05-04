@@ -118,6 +118,17 @@ proc buildHEBitmap(
       result.boundsSize,
     )
 
+proc newHEBitmap*(
+    width, height: int32,
+    srcPixels: openArray[uint8],
+    srcRowbytes: int32,
+    maskPixels: openArray[uint8],
+    maskRowbytes: int32,
+    hasMask: bool,
+): HEBitmap =
+  result.size = ivec2(width, height)
+  buildHEBitmap(result, srcPixels, srcRowbytes, maskPixels, maskRowbytes, hasMask)
+
 proc fromLCDBitmap*(src: LCDBitmap): HEBitmap =
   assert(not src.isNil, "fromLCDBitmap called with nil LCDBitmap")
   result.size.x = int32(src.width)

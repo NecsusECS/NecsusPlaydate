@@ -7,3 +7,6 @@ tests/t_*
 nimble.develop
 nimble.paths
 nimbledeps
+
+bin/*
+!bin/*.nim
