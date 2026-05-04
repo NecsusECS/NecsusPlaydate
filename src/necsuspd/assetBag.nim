@@ -1,10 +1,5 @@
 import
-  necsus,
-  std/[options, typetraits, strutils],
-  util,
-  loading,
-  import_playdate,
-  hebitmap
+  necsus, std/[options, typetraits, strutils], util, loading, import_playdate, hebitmap
 
 type
   AssetBagDef[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId] = ref object
@@ -30,14 +25,23 @@ type
     nextTarget: LoadTarget
     nextTargetId: int32
 
+  EitherState = enum
+    EitherNone
+    EitherA
+    EitherB
+
+  Either[A, B] = object
+    case state: EitherState
+    of EitherNone: discard
+    of EitherA: a: A
+    of EitherB: b: B
+
   AssetBag*[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId] = ref object
     ## Loaded container of assets
     def: AssetBagDef[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId]
     state: AssetLoadState
-    images: array[ImgId, LCDBitmap]
-    heImages: array[ImgId, ref HEBitmap]
-    sheets: array[SheetId, LCDBitmapTable]
-    heSheets: array[SheetId, ref seq[HEBitmap]]
+    images: array[ImgId, Either[LCDBitmap, ref HEBitmap]]
+    sheets: array[SheetId, Either[LCDBitmapTable, ref seq[HEBitmap]]]
     fonts: array[FontId, LCDFont]
     nineSlices: array[NineSliceId, NineSlice]
     midis: array[MidiId, SoundSequence]
@@ -49,37 +53,108 @@ template read(bag, bucket, key, callback: untyped): untyped =
     bag.`bucket`[key] = callback(bag.def.`bucket`[key])
   bag.`bucket`[key]
 
+template loadEitherA(slot, path, loader: untyped): untyped =
+  if slot.state != EitherA:
+    log "Loading: ", path
+    slot = typeof(slot)(state: EitherA, a: loader(path))
+  slot.a
+
+template loadEitherB(slot, path, suffix, fileBody, lcdBody: untyped): untyped =
+  if slot.state != EitherB:
+    let hePath {.inject.} = path & suffix
+    if playdate.file.exists(hePath):
+      log "Loading HE: ", hePath
+      slot = typeof(slot)(state: EitherB, b: fileBody)
+    else:
+      log "Loading HE from LCD: ", path
+      slot = typeof(slot)(state: EitherB, b: lcdBody)
+  slot.b
+
+template preloadEither(slot, path, suffix, heBody, lcdLoader: untyped) =
+  if slot.state == EitherNone:
+    let hePath {.inject.} = path & suffix
+    if playdate.file.exists(hePath):
+      log "Loading HE: ", hePath
+      slot = typeof(slot)(state: EitherB, b: heBody)
+    else:
+      discard lcdLoader
+
+proc loadHEBitmapFromFile(path: string): ref HEBitmap =
+  new(result)
+  result[] = fromBytes(playdate.file.open(path, kFileRead).read())
+
+proc loadHESheetFromFile(path: string): ref seq[HEBitmap] =
+  seqFromBytes(playdate.file.open(path, kFileRead).read())
+
+proc loadImage[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId](
+    bag: AssetBag[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId], key: ImgId
+): LCDBitmap =
+  loadEitherA(bag.images[key], bag.def.images[key], playdate.graphics.newBitmap)
+
+proc loadSheet[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId](
+    assets: AssetBag[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId], key: SheetId
+): LCDBitmapTable =
+  loadEitherA(
+    assets.sheets[key], assets.def.sheets[key], playdate.graphics.newBitmapTable
+  )
+
+proc preloadImage[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId](
+    bag: AssetBag[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId], key: ImgId
+) =
+  preloadEither(
+    bag.images[key],
+    bag.def.images[key],
+    ".hebi",
+    loadHEBitmapFromFile(hePath),
+    bag.loadImage(key),
+  )
+
+proc preloadSheet[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId](
+    assets: AssetBag[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId], key: SheetId
+) =
+  preloadEither(
+    assets.sheets[key],
+    assets.def.sheets[key],
+    ".hebs",
+    loadHESheetFromFile(hePath),
+    assets.loadSheet(key),
+  )
+
 proc asset*[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId](
     assets: SharedOrT[AssetBag[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId]],
     key: ImgId,
 ): LCDBitmap =
-  return read(assets.unwrap, images, key, playdate.graphics.newBitmap)
+  assets.unwrap.loadImage(key)
 
 proc heAsset*[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId](
-    assets: SharedOrT[AssetBag[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId]],
-    key: ImgId,
-): HEBitmap =
-  let bag = assets.unwrap
-  if bag.heImages[key].isNil:
-    let path = bag.def.images[key] & ".hebi"
-    log "Loading HE asset: ", path
-    new(bag.heImages[key])
-    bag.heImages[key][] = fromBytes(playdate.file.open(path, kFileRead).read())
-  bag.heImages[key][]
+    assets: AssetBag[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId], key: ImgId
+): ref HEBitmap =
+  loadEitherB(assets.images[key], assets.def.images[key], ".hebi"):
+    loadHEBitmapFromFile(hePath)
+  do:
+    var he: ref HEBitmap
+    new(he)
+    he[] = assets.loadImage(key).fromLCDBitmap()
+    he
 
 proc sheet*[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId](
     assets: AssetBag[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId], key: SheetId
 ): LCDBitmapTable =
-  return read(assets, sheets, key, playdate.graphics.newBitmapTable)
+  assets.loadSheet(key)
 
 proc heSheet*[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId](
     assets: AssetBag[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId], key: SheetId
 ): ref seq[HEBitmap] =
-  if assets.heSheets[key].isNil:
-    let path = assets.def.sheets[key] & ".hebs"
-    log "Loading HE sheet: ", path
-    assets.heSheets[key] = seqFromBytes(playdate.file.open(path, kFileRead).read())
-  assets.heSheets[key]
+  loadEitherB(assets.sheets[key], assets.def.sheets[key], ".hebs"):
+    loadHESheetFromFile(hePath)
+  do:
+    let table = assets.loadSheet(key)
+    let count = table.getBitmapTableInfo().count
+    var s = new(seq[HEBitmap])
+    s[] = newSeq[HEBitmap](count)
+    for i in 0 ..< count:
+      s[][i] = table.getBitmap(i).fromLCDBitmap()
+    s
 
 proc font*[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId](
     assets: SharedOrT[AssetBag[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId]],
@@ -139,23 +214,21 @@ template createLoaders(task, bag, input, output, kind: untyped) =
   for key in kind:
     if bag.def.input[key].len > 0:
       execTask(task, $key & " " & bag.def.input[key], kind, key):
-        discard bag.output(key)
-
-template createHELoaders(task, bag, input, output, kind: untyped) =
-  for key in kind:
-    if bag.def.input[key].len > 0:
-      execTask(task, "he " & $key & " " & bag.def.input[key], kind, key):
-        discard bag.output(key)
+        when compiles(
+          block:
+            discard bag.output(key)
+        ):
+          discard bag.output(key)
+        else:
+          bag.output(key)
 
 proc buildAssetLoader*[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId](
     bag: AssetBag[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId]
 ): auto =
   ## Defines a system that registers loading tasks for all assets
   return proc(task: Bundle[LoadTasks]) =
-    task.createLoaders(bag, images, asset, ImgId)
-    task.createHELoaders(bag, images, heAsset, ImgId)
-    task.createLoaders(bag, sheets, sheet, SheetId)
-    task.createHELoaders(bag, sheets, heSheet, SheetId)
+    task.createLoaders(bag, images, preloadImage, ImgId)
+    task.createLoaders(bag, sheets, preloadSheet, SheetId)
     task.createLoaders(bag, fonts, font, FontId)
     task.createLoaders(bag, nineSlices, nineSlice, NineSliceId)
     task.createLoaders(bag, midis, midi, MidiId)

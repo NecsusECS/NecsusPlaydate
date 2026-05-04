@@ -24,7 +24,11 @@ proc newDrawItem*(
     flipY: bool = false,
 ): DrawItem {.inline.} =
   DrawItem(
-    kind: dikLCD, lcd: lcd, zIndex: ord(zIndex).int16, visible: visible, pos: pos,
+    kind: dikLCD,
+    lcd: lcd,
+    zIndex: ord(zIndex).int16,
+    visible: visible,
+    pos: pos,
     flipY: flipY,
   )
 
@@ -36,7 +40,11 @@ proc newDrawItem*(
     flipY: bool = false,
 ): DrawItem {.inline.} =
   DrawItem(
-    kind: dikHE, he: he, zIndex: ord(zIndex).int16, visible: visible, pos: pos,
+    kind: dikHE,
+    he: he,
+    zIndex: ord(zIndex).int16,
+    visible: visible,
+    pos: pos,
     flipY: flipY,
   )
 
