@@ -298,12 +298,12 @@ proc draw*(bmp: HEBitmap, pos: IVec2, flipY: bool = false) =
     let shift = cast[uint32](drawPos.x mod 32)
     let ogShiftMask = not shr32(0xFFFFFFFF'u32, shift)
     let dataOffset = startRow * bmp.rowbytes
-    let dataStart = cast[ptr uint8](unsafeAddr bmp.data[dataOffset])
+    let dataStart = cast[ptr uint8](addr bmp.data[dataOffset])
     if hasMask:
       drawRowsRightShift(
         frameStart,
         dataStart,
-        cast[ptr uint8](unsafeAddr bmp.mask[dataOffset]),
+        cast[ptr uint8](addr bmp.mask[dataOffset]),
         y1,
         y2,
         x1,
@@ -324,12 +324,12 @@ proc draw*(bmp: HEBitmap, pos: IVec2, flipY: bool = false) =
     let shiftMaskBase = shl32(0xFFFFFFFF'u32, shift)
     let offset32 = x1 div 32 * 32 - drawPos.x
     let dataOffset = startRow * bmp.rowbytes + (offset32 div 32) * 4
-    let dataStart = cast[ptr uint8](unsafeAddr bmp.data[dataOffset])
+    let dataStart = cast[ptr uint8](addr bmp.data[dataOffset])
     if hasMask:
       drawRowsLeftShift(
         frameStart,
         dataStart,
-        cast[ptr uint8](unsafeAddr bmp.mask[dataOffset]),
+        cast[ptr uint8](addr bmp.mask[dataOffset]),
         y1,
         y2,
         x1,
@@ -354,35 +354,35 @@ proc toBytes*(bmp: HEBitmap): seq[byte] =
   let maskLen = int32(bmp.mask.len)
   result = newSeq[byte](HEBitmapHeaderSize + dataLen + maskLen)
   var magic = HEBitmapMagic
-  copyMem(addr result[0],  addr magic,                     4)
-  copyMem(addr result[4],  unsafeAddr bmp.size.x,          4)
-  copyMem(addr result[8],  unsafeAddr bmp.size.y,          4)
-  copyMem(addr result[12], unsafeAddr bmp.boundsCoords.x,  4)
-  copyMem(addr result[16], unsafeAddr bmp.boundsCoords.y,  4)
-  copyMem(addr result[20], unsafeAddr bmp.boundsSize.x,    4)
-  copyMem(addr result[24], unsafeAddr bmp.boundsSize.y,    4)
-  copyMem(addr result[28], unsafeAddr bmp.rowbytes,        4)
-  copyMem(addr result[32], unsafeAddr dataLen,             4)
-  copyMem(addr result[36], unsafeAddr maskLen,             4)
+  copyMem(addr result[0],  addr magic,               4)
+  copyMem(addr result[4],  addr bmp.size.x,          4)
+  copyMem(addr result[8],  addr bmp.size.y,          4)
+  copyMem(addr result[12], addr bmp.boundsCoords.x,  4)
+  copyMem(addr result[16], addr bmp.boundsCoords.y,  4)
+  copyMem(addr result[20], addr bmp.boundsSize.x,    4)
+  copyMem(addr result[24], addr bmp.boundsSize.y,    4)
+  copyMem(addr result[28], addr bmp.rowbytes,        4)
+  copyMem(addr result[32], addr dataLen,             4)
+  copyMem(addr result[36], addr maskLen,             4)
   if dataLen > 0:
-    copyMem(addr result[HEBitmapHeaderSize], unsafeAddr bmp.data[0], dataLen)
+    copyMem(addr result[HEBitmapHeaderSize], addr bmp.data[0], dataLen)
   if maskLen > 0:
-    copyMem(addr result[HEBitmapHeaderSize + dataLen], unsafeAddr bmp.mask[0], maskLen)
+    copyMem(addr result[HEBitmapHeaderSize + dataLen], addr bmp.mask[0], maskLen)
 
 proc fromBytes*(bytes: openArray[byte]): HEBitmap {.raises: [ValueError].} =
   if bytes.len < HEBitmapHeaderSize:
     raise newException(ValueError, "buffer too small for HEBitmap header")
   var magic, sizeX, sizeY, bcX, bcY, bsX, bsY, rowbytes, dataLen, maskLen: int32
-  copyMem(addr magic,    unsafeAddr bytes[0],  4)
-  copyMem(addr sizeX,    unsafeAddr bytes[4],  4)
-  copyMem(addr sizeY,    unsafeAddr bytes[8],  4)
-  copyMem(addr bcX,      unsafeAddr bytes[12], 4)
-  copyMem(addr bcY,      unsafeAddr bytes[16], 4)
-  copyMem(addr bsX,      unsafeAddr bytes[20], 4)
-  copyMem(addr bsY,      unsafeAddr bytes[24], 4)
-  copyMem(addr rowbytes, unsafeAddr bytes[28], 4)
-  copyMem(addr dataLen,  unsafeAddr bytes[32], 4)
-  copyMem(addr maskLen,  unsafeAddr bytes[36], 4)
+  copyMem(addr magic,    addr bytes[0],  4)
+  copyMem(addr sizeX,    addr bytes[4],  4)
+  copyMem(addr sizeY,    addr bytes[8],  4)
+  copyMem(addr bcX,      addr bytes[12], 4)
+  copyMem(addr bcY,      addr bytes[16], 4)
+  copyMem(addr bsX,      addr bytes[20], 4)
+  copyMem(addr bsY,      addr bytes[24], 4)
+  copyMem(addr rowbytes, addr bytes[28], 4)
+  copyMem(addr dataLen,  addr bytes[32], 4)
+  copyMem(addr maskLen,  addr bytes[36], 4)
   if magic != HEBitmapMagic:
     raise newException(ValueError, "invalid HEBitmap magic")
   if dataLen < 0 or maskLen < 0:
@@ -395,10 +395,10 @@ proc fromBytes*(bytes: openArray[byte]): HEBitmap {.raises: [ValueError].} =
   result.rowbytes = rowbytes
   result.data = newSeq[uint8](dataLen)
   if dataLen > 0:
-    copyMem(addr result.data[0], unsafeAddr bytes[HEBitmapHeaderSize], dataLen)
+    copyMem(addr result.data[0], addr bytes[HEBitmapHeaderSize], dataLen)
   result.mask = newSeq[uint8](maskLen)
   if maskLen > 0:
-    copyMem(addr result.mask[0], unsafeAddr bytes[HEBitmapHeaderSize + dataLen], maskLen)
+    copyMem(addr result.mask[0], addr bytes[HEBitmapHeaderSize + dataLen], maskLen)
 
 const HEBitmapSeqMagic = 0x48454253'i32 # "HEBS"
 const HEBitmapSeqHeaderSize = 8 # magic + count
@@ -420,15 +420,15 @@ proc toBytes*(bitmaps: ref seq[HEBitmap]): seq[byte] =
     copyMem(addr result[pos], addr chunkLen, 4)
     pos += 4
     if chunkLen > 0:
-      copyMem(addr result[pos], unsafeAddr chunk[0], chunkLen)
+      copyMem(addr result[pos], addr chunk[0], chunkLen)
       pos += chunkLen
 
 proc seqFromBytes*(bytes: openArray[byte]): ref seq[HEBitmap] {.raises: [ValueError].} =
   if bytes.len < HEBitmapSeqHeaderSize:
     raise newException(ValueError, "buffer too small for HEBitmap seq header")
   var magic, count: int32
-  copyMem(addr magic, unsafeAddr bytes[0], 4)
-  copyMem(addr count, unsafeAddr bytes[4], 4)
+  copyMem(addr magic, addr bytes[0], 4)
+  copyMem(addr count, addr bytes[4], 4)
   if magic != HEBitmapSeqMagic:
     raise newException(ValueError, "invalid HEBitmap seq magic")
   if count < 0:
@@ -440,7 +440,7 @@ proc seqFromBytes*(bytes: openArray[byte]): ref seq[HEBitmap] {.raises: [ValueEr
     if pos + 4 > bytes.len:
       raise newException(ValueError, "buffer truncated reading HEBitmap seq entry")
     var chunkLen: int32
-    copyMem(addr chunkLen, unsafeAddr bytes[pos], 4)
+    copyMem(addr chunkLen, addr bytes[pos], 4)
     pos += 4
     if chunkLen < 0 or pos + chunkLen > bytes.len:
       raise newException(ValueError, "invalid HEBitmap seq entry length")
