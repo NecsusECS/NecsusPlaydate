@@ -18,7 +18,7 @@ type
 
   AssetTable*[A] = concept table
     table.asset(A) is LCDBitmap
-    table.heAsset(A) is ref HEBitmap
+    table.heAsset(A) is HEBitmap
 
   DrawableObj* = object
     anchorOffset*: IVec2
@@ -183,7 +183,7 @@ proc newAssetDrawable*[A](
     absolutePos: bool = false,
 ): Drawable =
   newHEDrawable(
-    assets.unwrap.heAsset(asset)[],
+    assets.unwrap.heAsset(asset),
     anchor = anchor,
     zIndex = zIndex,
     absolutePos = absolutePos,

@@ -43,7 +43,7 @@ type
 
   SheetTable*[S] = concept table
     table.sheet(S) is LCDBitmapTable
-    table.heSheet(S) is ref seq[HEBitmap]
+    table.heSheet(S) is HEBitmaps
 
   Unpausable* {.accessory.} = object
 

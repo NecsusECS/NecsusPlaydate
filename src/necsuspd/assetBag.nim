@@ -40,8 +40,8 @@ type
     ## Loaded container of assets
     def: AssetBagDef[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId]
     state: AssetLoadState
-    images: array[ImgId, Either[LCDBitmap, ref HEBitmap]]
-    sheets: array[SheetId, Either[LCDBitmapTable, ref seq[HEBitmap]]]
+    images: array[ImgId, Either[LCDBitmap, HEBitmap]]
+    sheets: array[SheetId, Either[LCDBitmapTable, HEBitmaps]]
     fonts: array[FontId, LCDFont]
     nineSlices: array[NineSliceId, NineSlice]
     midis: array[MidiId, SoundSequence]
@@ -79,11 +79,10 @@ template preloadEither(slot, path, suffix, heBody, lcdLoader: untyped) =
     else:
       discard lcdLoader
 
-proc loadHEBitmapFromFile(path: string): ref HEBitmap =
-  new(result)
-  result[] = fromBytes(playdate.file.open(path, kFileRead).read())
+proc loadHEBitmapFromFile(path: string): HEBitmap =
+  fromBytes(playdate.file.open(path, kFileRead).read())
 
-proc loadHESheetFromFile(path: string): ref seq[HEBitmap] =
+proc loadHESheetFromFile(path: string): HEBitmaps =
   seqFromBytes(playdate.file.open(path, kFileRead).read())
 
 proc loadImage[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId](
@@ -91,16 +90,12 @@ proc loadImage[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId](
 ): LCDBitmap =
   loadEitherA(bag.images[key], bag.def.images[key], playdate.graphics.newBitmap)
 
-proc loadSheet[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId](
-    assets: AssetBag[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId], key: SheetId
-): LCDBitmapTable =
+proc loadSheet(assets: auto, key: enum): LCDBitmapTable =
   loadEitherA(
     assets.sheets[key], assets.def.sheets[key], playdate.graphics.newBitmapTable
   )
 
-proc preloadImage[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId](
-    bag: AssetBag[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId], key: ImgId
-) =
+proc preloadImage(bag: auto, key: enum) =
   preloadEither(
     bag.images[key],
     bag.def.images[key],
@@ -128,14 +123,11 @@ proc asset*[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId](
 
 proc heAsset*[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId](
     assets: AssetBag[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId], key: ImgId
-): ref HEBitmap =
+): HEBitmap =
   loadEitherB(assets.images[key], assets.def.images[key], ".hebi"):
     loadHEBitmapFromFile(hePath)
   do:
-    var he: ref HEBitmap
-    new(he)
-    he[] = assets.loadImage(key).fromLCDBitmap()
-    he
+    assets.loadImage(key).fromLCDBitmap()
 
 proc sheet*[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId](
     assets: AssetBag[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId], key: SheetId
@@ -144,13 +136,13 @@ proc sheet*[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId](
 
 proc heSheet*[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId](
     assets: AssetBag[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId], key: SheetId
-): ref seq[HEBitmap] =
+): HEBitmaps =
   loadEitherB(assets.sheets[key], assets.def.sheets[key], ".hebs"):
     loadHESheetFromFile(hePath)
   do:
     let table = assets.loadSheet(key)
     let count = table.getBitmapTableInfo().count
-    var s = new(seq[HEBitmap])
+    var s = new seq[HEBitmap]
     s[] = newSeq[HEBitmap](count)
     for i in 0 ..< count:
       s[][i] = table.getBitmap(i).fromLCDBitmap()
@@ -216,11 +208,11 @@ template createLoaders(task, bag, input, output, kind: untyped) =
       execTask(task, $key & " " & bag.def.input[key], kind, key):
         when compiles(
           block:
-            discard bag.output(key)
+            discard output(bag, key)
         ):
-          discard bag.output(key)
+          discard output(bag, key)
         else:
-          bag.output(key)
+          output(bag, key)
 
 proc buildAssetLoader*[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId](
     bag: AssetBag[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId]

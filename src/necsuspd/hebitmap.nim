@@ -2,12 +2,19 @@ import import_playdate, std/bitops, std/importutils, vmath
 
 const LCD_ROWSIZE* = 52'i32
 
-type HEBitmap* = object
-  data, mask: seq[uint8]
-  rowbytes: int32
-  boundsCoords, boundsSize, size: IVec2
+type
+  HEBitmapObj* = object
+    data, mask: seq[uint8]
+    rowbytes: int32
+    boundsCoords, boundsSize, size: IVec2
 
-proc size*(he: HEBitmap): IVec2 {.inline.} =
+  HEBitmap* = ref HEBitmapObj
+
+  HEBitmaps* = ref seq[HEBitmap]
+
+  AnyHEBitmap* = HEBitmap | HEBitmapObj
+
+proc size*(he: AnyHEBitmap): IVec2 {.inline.} =
   he.size
 
 proc bswap32*(n: uint32): uint32 {.importc: "__builtin_bswap32", nodecl, noSideEffect.}
@@ -90,7 +97,7 @@ proc bufferAlign8_32*(
         clearBit(dst, dstByteIdx, dstBitIdx)
 
 proc buildHEBitmap(
-    result: var HEBitmap,
+    result: HEBitmap,
     srcPixels: openArray[uint8],
     srcRowbytes: int32,
     maskPixels: openArray[uint8],
@@ -126,14 +133,14 @@ proc newHEBitmap*(
     maskRowbytes: int32,
     hasMask: bool,
 ): HEBitmap =
-  result.size = ivec2(width, height)
-  buildHEBitmap(result, srcPixels, srcRowbytes, maskPixels, maskRowbytes, hasMask)
+  result = HEBitmap(size: ivec2(width, height))
+  result.buildHEBitmap(srcPixels, srcRowbytes, maskPixels, maskRowbytes, hasMask)
 
 proc fromLCDBitmap*(src: LCDBitmap): HEBitmap =
-  assert(not src.isNil, "fromLCDBitmap called with nil LCDBitmap")
-  result.size.x = int32(src.width)
-  result.size.y = int32(src.height)
   privateAccess(PlaydateGraphics)
+  privateAccess(BitmapDataObj)
+  assert(not src.isNil, "fromLCDBitmap called with nil LCDBitmap")
+  result = HEBitmap(size: ivec2(src.width.int32, src.height.int32))
   var bitmapData = src.getDataObj()
   let srcLen = int32(bitmapData.rowbytes) * int32(bitmapData.height)
   let srcPtr = cast[ptr UncheckedArray[uint8]](bitmapData.data)
@@ -142,22 +149,16 @@ proc fromLCDBitmap*(src: LCDBitmap): HEBitmap =
     var maskData = maskBmp.getDataObj()
     let maskLen = int32(maskData.rowbytes) * int32(maskData.height)
     let maskPtr = cast[ptr UncheckedArray[uint8]](maskData.data)
-    buildHEBitmap(
-      result,
-      toOpenArray(srcPtr, 0, srcLen - 1),
-      int32(bitmapData.rowbytes),
-      toOpenArray(maskPtr, 0, maskLen - 1),
-      int32(maskData.rowbytes),
+    result.buildHEBitmap(
+      srcPtr.toOpenArray(0, srcLen - 1),
+      bitmapData.rowbytes.int32,
+      maskPtr.toOpenArray(0, maskLen - 1),
+      maskData.rowbytes.int32,
       true,
     )
   else:
-    buildHEBitmap(
-      result,
-      toOpenArray(srcPtr, 0, srcLen - 1),
-      int32(bitmapData.rowbytes),
-      [],
-      0'i32,
-      false,
+    result.buildHEBitmap(
+      srcPtr.toOpenArray(0, srcLen - 1), bitmapData.rowbytes.int32, [], 0'i32, false
     )
 
 template writePixelWord(framePtr, data, len: untyped) =
@@ -365,35 +366,37 @@ proc toBytes*(bmp: HEBitmap): seq[byte] =
   let maskLen = int32(bmp.mask.len)
   result = newSeq[byte](HEBitmapHeaderSize + dataLen + maskLen)
   var magic = HEBitmapMagic
-  copyMem(addr result[0],  addr magic,               4)
-  copyMem(addr result[4],  addr bmp.size.x,          4)
-  copyMem(addr result[8],  addr bmp.size.y,          4)
-  copyMem(addr result[12], addr bmp.boundsCoords.x,  4)
-  copyMem(addr result[16], addr bmp.boundsCoords.y,  4)
-  copyMem(addr result[20], addr bmp.boundsSize.x,    4)
-  copyMem(addr result[24], addr bmp.boundsSize.y,    4)
-  copyMem(addr result[28], addr bmp.rowbytes,        4)
-  copyMem(addr result[32], addr dataLen,             4)
-  copyMem(addr result[36], addr maskLen,             4)
+  copyMem(addr result[0], addr magic, 4)
+  copyMem(addr result[4], addr bmp.size.x, 4)
+  copyMem(addr result[8], addr bmp.size.y, 4)
+  copyMem(addr result[12], addr bmp.boundsCoords.x, 4)
+  copyMem(addr result[16], addr bmp.boundsCoords.y, 4)
+  copyMem(addr result[20], addr bmp.boundsSize.x, 4)
+  copyMem(addr result[24], addr bmp.boundsSize.y, 4)
+  copyMem(addr result[28], addr bmp.rowbytes, 4)
+  copyMem(addr result[32], addr dataLen, 4)
+  copyMem(addr result[36], addr maskLen, 4)
   if dataLen > 0:
     copyMem(addr result[HEBitmapHeaderSize], addr bmp.data[0], dataLen)
   if maskLen > 0:
     copyMem(addr result[HEBitmapHeaderSize + dataLen], addr bmp.mask[0], maskLen)
 
-proc fromBytes*(bytes: openArray[byte]): HEBitmap {.raises: [ValueError].} =
+proc fromBytes*(
+    result: var HEBitmapObj, bytes: openArray[byte]
+) {.raises: [ValueError].} =
   if bytes.len < HEBitmapHeaderSize:
     raise newException(ValueError, "buffer too small for HEBitmap header")
   var magic, sizeX, sizeY, bcX, bcY, bsX, bsY, rowbytes, dataLen, maskLen: int32
-  copyMem(addr magic,    addr bytes[0],  4)
-  copyMem(addr sizeX,    addr bytes[4],  4)
-  copyMem(addr sizeY,    addr bytes[8],  4)
-  copyMem(addr bcX,      addr bytes[12], 4)
-  copyMem(addr bcY,      addr bytes[16], 4)
-  copyMem(addr bsX,      addr bytes[20], 4)
-  copyMem(addr bsY,      addr bytes[24], 4)
+  copyMem(addr magic, addr bytes[0], 4)
+  copyMem(addr sizeX, addr bytes[4], 4)
+  copyMem(addr sizeY, addr bytes[8], 4)
+  copyMem(addr bcX, addr bytes[12], 4)
+  copyMem(addr bcY, addr bytes[16], 4)
+  copyMem(addr bsX, addr bytes[20], 4)
+  copyMem(addr bsY, addr bytes[24], 4)
   copyMem(addr rowbytes, addr bytes[28], 4)
-  copyMem(addr dataLen,  addr bytes[32], 4)
-  copyMem(addr maskLen,  addr bytes[36], 4)
+  copyMem(addr dataLen, addr bytes[32], 4)
+  copyMem(addr maskLen, addr bytes[36], 4)
   if magic != HEBitmapMagic:
     raise newException(ValueError, "invalid HEBitmap magic")
   if dataLen < 0 or maskLen < 0:
@@ -434,7 +437,11 @@ proc toBytes*(bitmaps: ref seq[HEBitmap]): seq[byte] =
       copyMem(addr result[pos], addr chunk[0], chunkLen)
       pos += chunkLen
 
-proc seqFromBytes*(bytes: openArray[byte]): ref seq[HEBitmap] {.raises: [ValueError].} =
+proc fromBytes*(bytes: openArray[byte]): HEBitmap {.raises: [ValueError].} =
+  result.new
+  result[].fromBytes(bytes)
+
+proc seqFromBytes*(bytes: openArray[byte]): HEBitmaps {.raises: [ValueError].} =
   if bytes.len < HEBitmapSeqHeaderSize:
     raise newException(ValueError, "buffer too small for HEBitmap seq header")
   var magic, count: int32
@@ -444,7 +451,7 @@ proc seqFromBytes*(bytes: openArray[byte]): ref seq[HEBitmap] {.raises: [ValueEr
     raise newException(ValueError, "invalid HEBitmap seq magic")
   if count < 0:
     raise newException(ValueError, "invalid HEBitmap seq count")
-  result = new(seq[HEBitmap])
+  new(result)
   result[] = newSeq[HEBitmap](count)
   var pos = HEBitmapSeqHeaderSize
   for i in 0 ..< count:
