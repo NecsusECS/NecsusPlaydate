@@ -58,8 +58,9 @@ proc prepareApis(
 proc setPooledReturnType(poolingProc, objType: NimNode) =
   poolingProc.params[0] = nnkBracketExpr.newTree(bindSym("Pooled"), objType)
 
-proc logPooledAction*[T](value: T, action, name: string) =
-  log(fmt"{action} pooled {name} {$T} " & value.address)
+proc logPooledAction*[T](value: T, action, name: string) {.inline.} =
+  when defined(poolLogging):
+    log(fmt"{action} pooled {name} {$T} " & value.address)
 
 proc readFromPool(name, storage, objType, initialSize, callBuilder: NimNode): NimNode =
   let size = when defined(noPoolInit): 1.newLit else: initialSize
