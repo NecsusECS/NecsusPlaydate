@@ -1,6 +1,6 @@
 import
   necsuspd/[
-    achievements, alignment, anchor, anim, aseprite, assetBag, autoalign, awards,
+    achievements, alignment, anchor, anim, aseprite, assetBag, autoalign, awards, either,
     boxelem, c, carousel, circle, crankAlert, crankData, cursor, data_bundle, debounce,
     debug, djikstra, draw, drawable, easing, fade, files, findDir, flowfield, fpvec,
     glow, init, inputs, layout, lightning, loading, moveTo, multistep, obfuscate,
@@ -36,6 +36,7 @@ export draw
 export drawable
 export drawlayer
 export easing
+export either
 export fade
 export files
 export findDir
