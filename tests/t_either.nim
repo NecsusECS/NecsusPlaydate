@@ -72,6 +72,14 @@ suite "Either":
       let result = right[string, int](123).apply("value: " & $it)
       check result == "value: 123"
 
+  test "== compares two Either values":
+    check left[string, int]("err") == left[string, int]("err")
+    check right[string, int](42) == right[string, int](42)
+    check left[string, int]("err") != left[string, int]("other")
+    check right[string, int](42) != right[string, int](99)
+    check left[string, int]("err") != right[string, int](42)
+    check right[string, int](42) != left[string, int]("err")
+
   test "toOption returns none for Left":
     let e = left[string, int]("err")
     check e.toOption == none(int)

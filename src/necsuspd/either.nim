@@ -68,6 +68,14 @@ template apply*[L, R](either: Either[L, R], body: untyped): untyped =
   ## Applies the same body, but with the left or right value
   apply(either, body, body)
 
+func `==`*[L, R](a, b: Either[L, R]): bool =
+  if a.isLeft != b.isLeft:
+    false
+  elif a.isLeft:
+    a.leftVal == b.leftVal
+  else:
+    a.rightVal == b.rightVal
+
 func toOption*[L, R](either: Either[L, R]): Option[R] =
   if either.isRight:
     some(either.rightVal)
