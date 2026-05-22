@@ -190,6 +190,13 @@ suite "Layout Elem":
     check(dimens == (width: 40, height: 29))
     check(layouter.minWidth(layout) == 15)
 
+  test "A blank layout should return its fixed dimensions":
+    let layouter = createLayouter()
+    let layout = blankLayout(10, 20)
+    let dimens = layout.layout(layouter, x = 5, y = 7, width = 100)
+    check(dimens == (width: 10, height: 20))
+    check(layouter.minWidth(layout) == 10)
+
   test "Right aligned entity inside of center columns":
     var entities = [
       (positioned(0, 0), newDrawable("img", 10, 20)),

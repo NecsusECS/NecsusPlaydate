@@ -12,6 +12,7 @@ type
     RowLayout
     PadLayout
     HorizLayout
+    BlankLayout
 
   LayoutElem* = ref object
     case kind: LayoutKind
@@ -30,6 +31,8 @@ type
     of PadLayout:
       padnested: LayoutElem
       padding: tuple[left, right, top, bottom: int32]
+    of BlankLayout:
+      blankWidth, blankHeight: int32
 
   LayoutArea = tuple[left, right, top: int32]
 
@@ -103,6 +106,10 @@ proc padLayout*(
   ## Aligns layout elements in a row
   padLayout(sublayout, left, right, top, bottom)
 
+proc blankLayout*(width, height: int32): LayoutElem =
+  ## A fixed-size invisible placeholder element
+  LayoutElem(kind: BlankLayout, blankWidth: width, blankHeight: height)
+
 proc minWidth*[T](control: T, elem: LayoutElem): int32 =
   ## Calculates the minimum width for a view
   case elem.kind
@@ -131,6 +138,8 @@ proc minWidth*[T](control: T, elem: LayoutElem): int32 =
       result += minWidth(control, child)
   of PadLayout:
     result = minWidth(control, elem.padnested) + elem.padding.left + elem.padding.right
+  of BlankLayout:
+    result = elem.blankWidth
 
 proc update[T](
   enact: static bool, debug: static bool, control: T, elem: LayoutElem, area: LayoutArea
@@ -280,6 +289,8 @@ proc update[T](
     result = updateRow(enact, debug, control, elem, area)
   of PadLayout:
     result = updatePad(enact, debug, control, elem, area)
+  of BlankLayout:
+    result = (elem.blankWidth, elem.blankHeight)
   when debug:
     log "  -> (w:", result.width, " h:", result.height, ")"
 
