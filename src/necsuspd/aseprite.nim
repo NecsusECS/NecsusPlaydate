@@ -387,3 +387,21 @@ proc basicAnimationTable*[A: enum](
   ## Creates a table of animation data based on a sprite sheet
   when LIVE_COMPILE:
     result = animationTable[A, NoKeyframes](sheet, sheetId, ignore, {DummyKeyframe})
+
+proc stateAnimationTable*[A, B: enum](
+    sheet: SpriteSheet, sheetId: enum, prefix = "", suffix = ""
+): array[A, array[B, AnimationDef]] =
+  ## Builds a 2D animation table keyed by category (A) and state (B).
+  ## Tags are located by stripping prefix/suffix from the A variant name.
+  ## B's ordinal value is the frame offset within the tag (0 = first state, 1 = second, …).
+  when LIVE_COMPILE:
+    for category in A:
+      let tagName = ($category).removePrefix(prefix).removeSuffix(suffix)
+      let tag = sheet.findTag(tagName).orElse:
+        sheet.error(fmt"Missing tag '{tagName}'")
+        return
+      for state in B:
+        let frameId = tag.from + ord(state).int32
+        let dur = sheet.frames[frameId].duration.float32 / 1000'f32
+        result[category][state] =
+          animation(sheetId, @[frame(frameId, dur)], sheet.spriteAnchor, tag.loop())

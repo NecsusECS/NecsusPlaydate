@@ -174,6 +174,11 @@ macro arrayConcat*(arrays: varargs[typed]): untyped =
     for i in 0 ..< (entry.getType.arrayLen):
       result.add(nnkBracketExpr.newTree(entry, i.newLit))
 
+func removePrefix*(input, prefix: string): string =
+  ## Removes a prefix from a string
+  result = input
+  result.removePrefix(prefix)
+
 func removeSuffix*(input, suffix: string): string =
   ## Removes a suffix from a string
   result = input
