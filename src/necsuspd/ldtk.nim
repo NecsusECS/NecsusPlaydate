@@ -90,7 +90,8 @@ proc drawLevel*(
   result.drawContext:
     playdate.graphics.setDrawMode(kDrawModeCopy)
     findBackgroundImage(level, assets, images).draw(0, 0, level.backgroundFlip)
-    for layer in level.layers:
+    for i in countdown(level.layerInstances.high, 0):
+      let layer {.cursor.} = level.layerInstances[i]
       if source from findSourceImage(data, assets, sheets, layer):
         log "Drawing layer: ", layer.identifier
         for tile in layer.allTiles:
