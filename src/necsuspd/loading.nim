@@ -58,6 +58,12 @@ proc shouldRunTask(control: Bundle[LoadTasks], taskId: TaskKey): bool =
 
   # Register this task if it hasn't been seen before
   if not control.allTasks.getOrRaise.contains(taskId):
+    # "Late" means registered on a different tick than the first task — same-tick
+    # registrations are fine; they just ran later in the same frame's execution order.
+    if control.lastTick.isSome() and control.lastTick != control.getTick():
+      log "LATE TASK REGISTRION: ", taskId
+    else:
+      log "Registering task: ", taskId
     control.allTasks.getOrRaise.incl(taskId)
     control.remainingTasks.getOrRaise.incl(taskId)
 
