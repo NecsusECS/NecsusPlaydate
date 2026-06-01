@@ -1,6 +1,6 @@
 import
   necsus, positioned, vmath, easing, inputs, findDir, util, time, vec_tools, options,
-  fpvec, import_playdate
+  fpvec, import_playdate, drawable
 
 type
   CarouselData[T] = ref object
@@ -18,7 +18,7 @@ type
   CarouselChanged*[T] = object ## Event sent when a carousel gets a new value
 
   Carousel*[T] = object
-    elements: FullQuery[(T, ptr Positioned)]
+    elements: FullQuery[(T, ptr Drawable, ptr Positioned)]
     findElem: Lookup[(T, ptr Positioned)]
     onPress: Outbox[T]
     buttons: Inbox[ButtonPushed]
@@ -27,20 +27,20 @@ type
     changed: Outbox[CarouselChanged[T]]
 
 proc firstElement[T](bundle: Bundle[Carousel[T]]): auto =
-  ## Return the first element in the carousel
-  for eid, (_, positioned) in bundle.elements:
-    return some((eid, positioned))
+  ## Return the first visible element in the carousel
+  for eid, (_, drawable, positioned) in bundle.elements:
+    if drawable.visible:
+      return some((eid, positioned))
   return none((EntityId, ptr Positioned))
 
 proc lastElement[T](bundle: Bundle[Carousel[T]]): auto =
-  ## Return the last element in the carousel
-  var last = none((EntityId, ptr Positioned))
-  for eid, (_, positioned) in bundle.elements:
-    last = some((eid, positioned))
-  return last
+  ## Return the last visible element in the carousel
+  for eid, (_, drawable, positioned) in bundle.elements:
+    if drawable.visible:
+      result = some((eid, positioned))
 
 proc moveAllBy[T](bundle: Bundle[Carousel[T]], delta: IVec2) =
-  for (_, pos) in bundle.elements:
+  for (_, _, pos) in bundle.elements:
     pos.pos = pos.toIVec2 + delta
 
 proc reset*[T](
@@ -81,8 +81,8 @@ proc resetToLast*[T](
 
 iterator eligibleCards[T](bundle: Bundle[Carousel[T]]): (FPVec2, EntityId) =
   ## An iterator that returns the cards available when choosing a new carousel value
-  for eid, (_, pos) in bundle.elements:
-    if bundle.data.get.selected != eid:
+  for eid, (_, drawable, pos) in bundle.elements:
+    if bundle.data.get.selected != eid and drawable.visible:
       yield (pos.toFPVec2, eid)
 
 proc determineSelection[T](bundle: Bundle[Carousel[T]]): Option[EntityId] =
