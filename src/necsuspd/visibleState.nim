@@ -1,22 +1,26 @@
 import necsus, drawable, import_playdate, util, util/stateflips, types
 
 type
-  VisibleState* = distinct StateFlip
+  VisibleStateMode* = enum
+    ShowAndHide
+    OnlyHide
+    OnlyShow
+
+  VisibleState* = object
+    mode*: VisibleStateMode
+    states*: StateFlip
 
   EvaluateVisibleState* = object
 
-proc visibility*[T: enum](states: set[T]): VisibleState =
-  ## Creates a VisibleState instance
-  VisibleState(stateFlip(states))
+proc visibility*[T: enum](states: set[T], mode = ShowAndHide): VisibleState =
+  VisibleState(mode: mode, states: stateFlip(states))
 
 proc visibility*[T: enum](states: varargs[T]): VisibleState =
-  ## Creates a VisibleState instance
-  VisibleState(stateFlip(states))
+  VisibleState(mode: ShowAndHide, states: stateFlip(states))
 
 proc isVisible*[T](visibility: VisibleState, state: Shared[T]): bool =
-  let flip = StateFlip(visibility)
-  assert(flip.typeId == getTypeId(T))
-  return matchesState(flip.states, state.get)
+  assert(visibility.states.typeId == getTypeId(T))
+  return matchesState(visibility.states.states, state.get)
 
 template defineVisibleStateSystems*(name: untyped, T: typed): untyped =
   ## Shows sprites only when a specific game state is set
@@ -27,13 +31,18 @@ template defineVisibleStateSystems*(name: untyped, T: typed): untyped =
   ) {.eventSys.} =
     let visibleState = state.get
     for eid, (visibility, drawable) in drawables:
-      let flip = StateFlip(visibility)
-      if flip.typeId == getTypeId(T):
-        let expect = matchesState(flip.states, visibleState)
-        if expect != drawable.visible:
-          log "Changing visibility for ",
-            eid, " to ", expect, " for state ", visibleState
-          drawable.visible = expect
+      if visibility.states.typeId != getTypeId(T):
+        continue
+      let expect = matchesState(visibility.states.states, visibleState)
+      let newVisible =
+        case visibility.mode
+        of ShowAndHide: expect
+        of OnlyHide: expect and drawable.visible
+        of OnlyShow: expect or drawable.visible
+      if newVisible != drawable.visible:
+        log "Changing visibility for ",
+          eid, " to ", newVisible, " for state ", visibleState
+        drawable.visible = newVisible
 
   proc name(
       state: Shared[T], previous: Local[T], trigger: Outbox[EvaluateVisibleState]
