@@ -13,6 +13,22 @@ import
 # Pulled from https://ldtk.io/docs/game-dev/json-overview/json-schema/
 importJsonSchema("./ldtk-schema.json", "Ldtk")
 
+type
+  LdtkTileDraw* = object
+    tileId: int32
+    x, y: int16
+    flip: LCDBitmapFlip
+
+  LdtkLayerDraw*[Sheets] = object
+    sheet: Sheets
+    tiles: seq[LdtkTileDraw]
+
+  LdtkLevelDraw*[Sheets, Images] = object
+    width, height: int32
+    bgImage: Images
+    bgFlip: LCDBitmapFlip
+    layers: seq[LdtkLayerDraw[Sheets]]
+
 template getLevel*(data: LdtkJsonRoot, levelIdx: int32): LdtkLevel =
   data.levels[levelIdx]
 
@@ -33,13 +49,15 @@ proc findSourceImage(
 
   raiseAssert "Could not find source image for layer"
 
-proc findBackgroundImage(
-    level: LdtkLevel, assets: SharedOrT[AssetBag], images: typedesc[enum]
-): LCDBitmap =
-  ## Returns the base background bitmap to use for a level
+proc findBgImageKey[Images: enum](level: LdtkLevel, images: typedesc[Images]): Images =
   let bgPath = level.bgRelPath.orElse:
     raiseAssert "Could not find 'bgRelPath' key for level: " & level.identifier
-  let key = bgPath.findAssetBagKey(images)
+  bgPath.findAssetBagKey(images)
+
+proc findBackgroundImage[Images: enum](
+    level: LdtkLevel, assets: SharedOrT[AssetBag], images: typedesc[Images]
+): LCDBitmap =
+  let key = findBgImageKey(level, images)
   log "Loading level background from ", key, " based on ", level.bgRelPath
   return assets.unwrap.asset(key)
 
@@ -101,6 +119,14 @@ proc drawLevel*(
       else:
         log "Skipping layer without a source image: ", layer.identifier
 
+iterator tileCoverage*(entity: LdtkEntityInstance, gridSize: int32): IVec2 =
+  ## Yields all tile positions covered by an entity (handles resizable entities)
+  let tileW = max(1'i32, entity.width.int32 div gridSize)
+  let tileH = max(1'i32, entity.height.int32 div gridSize)
+  for dy in 0'i32 ..< tileH:
+    for dx in 0'i32 ..< tileW:
+      yield ivec2(entity.grid[0].int32 + dx, entity.grid[1].int32 + dy)
+
 iterator entities*(level {.byref.}: LdtkLevel): lent LdtkEntityInstance =
   ## Yields all entities in a level
   for layer in level.layers:
@@ -136,3 +162,54 @@ proc tileset*(root: LdtkJsonRoot, entity: LdtkEntityInstance): Option[LdtkTilese
   ## Returns the tileset for an entity
   entity.tile.withValue(tile):
     return tileset(root, tile)
+
+proc findSourceSheetKey[Sheets: enum](
+    data: LdtkJsonRoot, layer: LdtkLayerInstance, sheets: typedesc[Sheets]
+): Option[Sheets] =
+  let layerTilesetUid = layer.tilesetDefUid.orElse:
+    return none(Sheets)
+  for it in data.defs.tilesets:
+    if it.uid == layerTilesetUid:
+      return some(parseEnum[Sheets](it.identifier))
+  raiseAssert "Could not find source image for layer"
+
+proc extractDrawInstructions*(
+    level: LdtkLevel,
+    data: LdtkJsonRoot,
+    sheets: typedesc[enum],
+    images: typedesc[enum],
+): LdtkLevelDraw[sheets, images] =
+  result = LdtkLevelDraw[sheets, images](
+    width: level.pxWid.int32,
+    height: level.pxHei.int32,
+    bgImage: findBgImageKey(level, images),
+    bgFlip: level.backgroundFlip
+  )
+  for i in countdown(level.layerInstances.high, 0):
+    let layer {.cursor.} = level.layerInstances[i]
+    findSourceSheetKey(data, layer, sheets).withValue(sheetKey):
+      var layerDraw = LdtkLayerDraw[sheets](sheet: sheetKey)
+      for tile in layer.allTiles:
+        layerDraw.tiles.add(
+          LdtkTileDraw(
+            tileId: tile.t.int32,
+            x: tile.px[0].int16,
+            y: tile.px[1].int16,
+            flip: tile.flipState,
+          )
+        )
+      result.layers.add(layerDraw)
+
+proc drawLevel*[Sheets, Images: enum](
+    instructions: LdtkLevelDraw[Sheets, Images], assets: SharedOrT[AssetBag]
+): LCDBitmap =
+  result = playdate.graphics.newBitmap(
+    instructions.width.int, instructions.height.int, kColorBlack
+  )
+  result.drawContext:
+    playdate.graphics.setDrawMode(kDrawModeCopy)
+    assets.unwrap.asset(instructions.bgImage).draw(0, 0, instructions.bgFlip)
+    for layer in instructions.layers:
+      let sheet = assets.unwrap.sheet(layer.sheet)
+      for tile in layer.tiles:
+        sheet.getBitmap(tile.tileId.int).draw(tile.x.int, tile.y.int, tile.flip)
