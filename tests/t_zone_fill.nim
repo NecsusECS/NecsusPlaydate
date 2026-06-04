@@ -31,6 +31,7 @@ const H = 5'i32
 
 proc detect(s: string): ZoneMap[W, H] =
   let input = parseMap(parseLines(s))
+  result = ZoneMap[W, H]()
   result.detectZones(input)
 
 # ---------------------------------------------------------------------------
@@ -125,7 +126,7 @@ suite "Predefined zones":
     ]
     #!fmt: on
     let input = parseMap(rows)
-    var m: ZoneMap[W, H]
+    let m = ZoneMap[W, H]()
     let preId = m.addZone((1'i32, 1'i32, 3'i32, 3'i32))
     m.detectZones(input)
     check preId == ZoneId(0)
@@ -148,7 +149,7 @@ suite "Predefined zones":
     ]
     #!fmt: on
     let input = parseMap(rows)
-    var m: ZoneMap[W, H]
+    let m = ZoneMap[W, H]()
     discard m.addZone((0'i32, 0'i32, 5'i32, 4'i32)) # includes wall tiles
     expect(AssertionDefect):
       m.detectZones(input)
@@ -179,7 +180,7 @@ suite "Adjacency":
   test "Predefined zones sharing a vertical edge are adjacent":
     let input =
       parseMap(["..........", "..........", "..........", "..........", ".........."])
-    var m: ZoneMap[W, H]
+    let m = ZoneMap[W, H]()
     discard m.addZone((0'i32, 0'i32, 4'i32, 4'i32))
     discard m.addZone((5'i32, 0'i32, 9'i32, 4'i32))
     m.detectZones(input)
@@ -231,7 +232,7 @@ suite "Complex map":
 
   test "Every floor tile is assigned a zone":
     let input = parseMap(level4)
-    var m: ZoneMap[25'i32, 15'i32]
+    let m = ZoneMap[25'i32, 15'i32]()
     m.detectZones(input)
     for y in 0'i32 ..< 15:
       for x in 0'i32 ..< 25:
@@ -241,7 +242,7 @@ suite "Complex map":
 
   test "Zone map matches expected layout":
     let input = parseMap(level4)
-    var m: ZoneMap[25'i32, 15'i32]
+    let m = ZoneMap[25'i32, 15'i32]()
     m.detectZones(input)
     check m == """
       .........................

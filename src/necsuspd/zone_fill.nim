@@ -35,7 +35,7 @@ type
     bounds: ZoneRect
     adjacent: seq[ZoneId]
 
-  ZoneMap*[W, H: static int32] = object
+  ZoneMap*[W, H: static int32] = ref object
     zones: seq[Zone]
     tileToZone: array[H, array[W, Option[ZoneId]]]
 
@@ -66,7 +66,7 @@ proc `$`*(id: ZoneId): string =
   ## Renders a ZoneId as its underlying integer value.
   $int32(id)
 
-proc addZone*[W, H: static int32](map: var ZoneMap[W, H], bounds: ZoneRect): ZoneId =
+proc addZone*[W, H: static int32](map: ZoneMap[W, H], bounds: ZoneRect): ZoneId =
   ## Registers a zone, seeds its tiles in tileToZone, and returns its assigned id.
   ## Call before detectZones to register predefined zones (spawn points, targets, etc.).
   result = ZoneId(map.zones.len)
@@ -232,7 +232,7 @@ proc floodZone[W, H: static int32](
       result.maxRow += 1
       changed = true
 
-proc buildAdjacency[W, H: static int32](map: var ZoneMap[W, H]) =
+proc buildAdjacency[W, H: static int32](map: ZoneMap[W, H]) =
   ## Registers adjacency between every pair of zones whose bounds share an edge.
   for i in 0 ..< map.zones.len:
     for j in i + 1 ..< map.zones.len:
@@ -255,10 +255,11 @@ proc `$`*[W, H: static int32](map: ZoneMap[W, H]): string =
     lines.add(line)
   return lines.join("\n")
 
-proc detectZones*[W, H: static int32](map: var ZoneMap[W, H], input: ZoneFillInput) =
+proc detectZones*[W, H: static int32](map: ZoneMap[W, H], input: ZoneFillInput) =
   ## Decomposes the map into convex rectangular zones and builds an adjacency graph.
   ## Predefined zones registered with addZone are validated and seeded first;
   ## the flood fill then covers all remaining passable tiles.
+  assert map != nil, "ZoneMap must be initialized before use"
   for zone in map.zones:
     assert zone.isValid(input),
       "Predefined zone " & $zone.id & " contains non-passable tiles"
