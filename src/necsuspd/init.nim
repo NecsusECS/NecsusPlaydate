@@ -18,7 +18,7 @@ template reportError(body: untyped) =
 template initNecsusPlaydate*(
     appTyp: typedesc, initNecsusApp: untyped, handle: untyped
 ) =
-  var appInst {.inject.}: appTyp
+  var appInst {.inject.}: ref appTyp
 
   proc update(): int {.raises: [].} =
     reportError:
@@ -41,19 +41,19 @@ template initNecsusPlaydate*(
 
       reportError:
         log "Beginning app initialization"
-        initNecsusApp
+        appInst = initNecsusApp
         handle
       log "Initialization done"
     of kEventTerminate:
       log "Shutting down"
       reportError:
         handle
-        `=destroy`(appInst)
+        `=destroy`(appInst[])
       log "Shutdown complete"
     of kEventKeyPressed:
-      when compiles(sendDebugKey(appInst, DebugKey(keycode.char))):
+      when compiles(appInst.sendDebugKey(DebugKey(keycode.char))):
         reportError:
-          sendDebugKey(appInst, DebugKey(keycode.char))
+          appInst.sendDebugKey(DebugKey(keycode.char))
       reportError:
         handle
     else:
