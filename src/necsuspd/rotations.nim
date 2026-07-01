@@ -11,7 +11,11 @@ import
   fpvec,
   assetBag
 
-const ROTATIONS = 64'i32 ## The number of rotations for game objects to generate
+const
+  ROTATIONS = 64'i32 ## The number of rotations for game objects to generate
+
+  HISTORY_SIZE* = 5'i32
+    ## How many recently-abandoned rotation buckets are remembered to avoid flip-flopping
 
 type
   RotAnimDef*[SheetId, Anims, Keyframes] = object
@@ -29,6 +33,12 @@ type
     ## `tables` is the base sprite sheets for each game object
     anims: array[ROTATIONS, array[Anims, AnimationDef]]
     table: ref seq[HEBitmap]
+
+  BucketHistory* = object
+    ## Tracks the historic values of rotations for an object to prevent flickering
+    ## back and forth across a boundary
+    nextIdx, used: int32
+    entries: array[HISTORY_SIZE, int32]
 
 proc `=copy`[SheetId, Anims, Keyframes](
   a: var RotAnimDef[SheetId, Anims, Keyframes], b: RotAnimDef[SheetId, Anims, Keyframes]
@@ -198,11 +208,38 @@ proc chooseAngleBucket(angle: FixedPoint): int32 =
   let fixedAngle = (angle + halfAnglesPerBucket).fixAngleDegrees
   result = toInt(fixedAngle div anglesPerBucket)
 
+proc stickyAngleBucket*(angle: FixedPoint, history: var BucketHistory): int32 =
+  ## Chooses the rotation bucket to use for `angle`, refusing to flip back to a
+  ## recently-abandoned bucket. This prevents flickering across a bucket boundary.
+  ## Always recording the outcome (even when unchanged) lets an old bucket age
+  ## out of history, so a genuine switch back is still allowed eventually.
+  result = angle.chooseAngleBucket()
+  for i in 0 ..< history.used:
+    if history.entries[i] == result:
+      result = history.entries[(history.nextIdx + HISTORY_SIZE - 1) mod HISTORY_SIZE]
+      break
+
+  history.entries[history.nextIdx] = result
+  history.nextIdx = (history.nextIdx + 1) mod HISTORY_SIZE
+  history.used = min(HISTORY_SIZE, history.used + 1)
+
 proc animationDef*[Anims](
     obj: RotAnims[Anims], anim: Anims, angle: FixedPoint
 ): AnimationDef =
   ## Returns the animation definition for a game object the given angle
   let bucket = angle.chooseAngleBucket()
+  assert(
+    bucket in (0 ..< obj.anims.len), fmt"Invalid bucket {bucket} for angle {angle}"
+  )
+  assert(obj.anims[bucket][anim] != nil, fmt"Animation not found for angle {angle}")
+  return obj.anims[bucket][anim]
+
+proc animationDef*[Anims](
+    obj: RotAnims[Anims], anim: Anims, angle: FixedPoint, history: var BucketHistory
+): AnimationDef =
+  ## Returns the animation definition for a game object at the given angle, using
+  ## `stickyAngleBucket` to resist flicker at the mirrored-sprite seam
+  let bucket = angle.stickyAngleBucket(history)
   assert(
     bucket in (0 ..< obj.anims.len), fmt"Invalid bucket {bucket} for angle {angle}"
   )
