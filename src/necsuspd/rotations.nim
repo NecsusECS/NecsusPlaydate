@@ -201,11 +201,19 @@ proc calculatePreRotAnims*[K, SheetId, Anims, Keyframes](
       target[key] =
         definePreRotAnims(defs[key], sheets[key], assets.heSheet(defs[key].sheetId))
 
+proc wrapDegrees(angle: FixedPoint): FixedPoint =
+  ## Normalizes an angle to be within 0 ..< 360 degrees
+  result = angle
+  while result >= 360.fp:
+    result -= 360.fp
+  while result < fp(0):
+    result += 360.fp
+
 proc chooseAngleBucket(angle: FixedPoint): int32 =
   ## Given an angle, chooses the rotation bucket to use
   const anglesPerBucket = 360.fp / ROTATIONS
   const halfAnglesPerBucket = anglesPerBucket / 2
-  let fixedAngle = (angle + halfAnglesPerBucket).fixAngleDegrees
+  let fixedAngle = (angle + halfAnglesPerBucket).wrapDegrees
   result = toInt(fixedAngle div anglesPerBucket)
 
 proc stickyAngleBucket*(angle: FixedPoint, history: var BucketHistory): int32 =
