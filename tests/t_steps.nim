@@ -39,7 +39,8 @@ suite "steps":
       advanced = true
     step.advance(Second)
     advanced = false
-    step.advance(First, fakeEventSystem(handler, Ev)): discard
+    step.advance(First, fakeEventSystem(handler, Ev)):
+      discard
     handler(Ev())
     check not advanced
 
@@ -84,9 +85,12 @@ suite "steps":
     var tickSystem: DynamicSystem
     let step = newStep(Phase) do(_: Phase) -> void:
       inc advanceCalls
-    step.advance(First, fakeEventSystem(handlerA, EvA)): discard
-    step.advance(Second, fakeEventSystem(handlerB, EvB)): discard
-    step.advanceViaTick(Third, fakeTickSystem(tickSystem)): true
+    step.advance(First, fakeEventSystem(handlerA, EvA)):
+      discard
+    step.advance(Second, fakeEventSystem(handlerB, EvB)):
+      discard
+    step.advanceViaTick(Third, fakeTickSystem(tickSystem)):
+      true
     handlerA(EvA())
     handlerB(EvB())
     tickSystem()

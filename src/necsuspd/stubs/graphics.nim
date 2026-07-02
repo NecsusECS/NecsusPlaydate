@@ -245,7 +245,11 @@ proc packBools(pixels: seq[seq[bool]], width, height: int, invert: bool): seq[ui
   var data = newSeq[uint8](rowbytes * height)
   for y in 0 ..< height:
     for x in 0 ..< width:
-      let bit = if invert: not pixels[y][x] else: pixels[y][x]
+      let bit =
+        if invert:
+          not pixels[y][x]
+        else:
+          pixels[y][x]
       if bit:
         let byteIdx = y * rowbytes + x div 8
         data[byteIdx] = data[byteIdx] or (1'u8 shl uint8(7 - x mod 8))
@@ -254,7 +258,8 @@ proc packBools(pixels: seq[seq[bool]], width, height: int, invert: bool): seq[ui
 proc getDataObj*(this: LCDBitmap): BitmapDataObj =
   result = this.data
   result.rowbytes = (this.data.width + 7) div 8
-  result.dataCache = packBools(this.data.pixels, this.data.width, this.data.height, true)
+  result.dataCache =
+    packBools(this.data.pixels, this.data.width, this.data.height, true)
 
 proc getPixels*(bmp: LCDBitmap): seq[seq[bool]] =
   bmp.data.pixels

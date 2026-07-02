@@ -43,14 +43,18 @@ suite "Either":
 
   test "applyLeft executes body only for Left":
     var seen: seq[string]
-    left[string, int]("err").applyLeft: seen.add(it)
-    right[string, int](42).applyLeft: seen.add(it)
+    left[string, int]("err").applyLeft:
+      seen.add(it)
+    right[string, int](42).applyLeft:
+      seen.add(it)
     check seen == @["err"]
 
   test "applyRight executes body only for Right":
     var seen: seq[int]
-    right[string, int](42).applyRight: seen.add(it)
-    left[string, int]("err").applyRight: seen.add(it)
+    right[string, int](42).applyRight:
+      seen.add(it)
+    left[string, int]("err").applyRight:
+      seen.add(it)
     check seen == @[42]
 
   test "apply returns left branch for Left":

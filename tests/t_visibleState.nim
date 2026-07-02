@@ -67,27 +67,31 @@ proc runner(
     check getDrawable(e).get()[0].visible
 
   test "OnlyHide does not show drawable when state matches":
-    let e = spawnDrawable.with(visibility({Idle}, OnlyHide), newDrawable("test6", 10, 10))
+    let e =
+      spawnDrawable.with(visibility({Idle}, OnlyHide), newDrawable("test6", 10, 10))
     getDrawable(e).get()[0].visible = false
     state := Idle
     tick()
     check not getDrawable(e).get()[0].visible
 
   test "OnlyHide hides drawable when state does not match":
-    let e = spawnDrawable.with(visibility({Idle}, OnlyHide), newDrawable("test7", 10, 10))
+    let e =
+      spawnDrawable.with(visibility({Idle}, OnlyHide), newDrawable("test7", 10, 10))
     getDrawable(e).get()[0].visible = true
     state := Running
     tick()
     check not getDrawable(e).get()[0].visible
 
   test "OnlyShow shows drawable when state matches":
-    let e = spawnDrawable.with(visibility({Idle}, OnlyShow), newDrawable("test8", 10, 10))
+    let e =
+      spawnDrawable.with(visibility({Idle}, OnlyShow), newDrawable("test8", 10, 10))
     state := Idle
     tick()
     check getDrawable(e).get()[0].visible
 
   test "OnlyShow does not hide drawable when state does not match":
-    let e = spawnDrawable.with(visibility({Idle}, OnlyShow), newDrawable("test9", 10, 10))
+    let e =
+      spawnDrawable.with(visibility({Idle}, OnlyShow), newDrawable("test9", 10, 10))
     getDrawable(e).get()[0].visible = true
     state := Running
     tick()

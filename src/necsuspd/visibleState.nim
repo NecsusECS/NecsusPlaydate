@@ -36,9 +36,12 @@ template defineVisibleStateSystems*(name: untyped, T: typed): untyped =
       let expect = matchesState(visibility.states.states, visibleState)
       let newVisible =
         case visibility.mode
-        of ShowAndHide: expect
-        of OnlyHide: expect and drawable.visible
-        of OnlyShow: expect or drawable.visible
+        of ShowAndHide:
+          expect
+        of OnlyHide:
+          expect and drawable.visible
+        of OnlyShow:
+          expect or drawable.visible
       if newVisible != drawable.visible:
         log "Changing visibility for ",
           eid, " to ", newVisible, " for state ", visibleState

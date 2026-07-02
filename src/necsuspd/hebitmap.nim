@@ -72,7 +72,11 @@ proc getBounds*(
   var maxY: int32 = 0
   let fullBytes = width div 8
   let tailBits = width mod 8
-  let tailMask = if tailBits > 0: 0xFF'u8 shl uint8(8 - tailBits) else: 0'u8
+  let tailMask =
+    if tailBits > 0:
+      0xFF'u8 shl uint8(8 - tailBits)
+    else:
+      0'u8
   for y in 0 ..< height:
     let rowStart = y * rowbytes
     var rowMinX = width
@@ -139,9 +143,12 @@ proc copyRowShifted(
     prevByte = nextByte
   if tailBits > 0:
     let lo = safeByte(src, srcByteBase + fullBytes + 1)
-    dst[dstRowStart + fullBytes] = ((prevByte shl shift) or (lo shr invShift)) and tailMask
+    dst[dstRowStart + fullBytes] =
+      ((prevByte shl shift) or (lo shr invShift)) and tailMask
 
-proc zeroPadRow(dst: var seq[uint8], dstRowStart, usedBytes, dstRowbytes: int32) {.inline.} =
+proc zeroPadRow(
+    dst: var seq[uint8], dstRowStart, usedBytes, dstRowbytes: int32
+) {.inline.} =
   for byteIdx in usedBytes ..< dstRowbytes:
     dst[dstRowStart + byteIdx] = 0'u8
 
@@ -160,7 +167,11 @@ proc bufferAlign8_32*(
   let usedBytes = fullBytes + (if tailBits > 0: 1 else: 0)
   let shift = uint8(origin.x mod 8)
   let invShift = 8'u8 - shift
-  let tailMask = if tailBits > 0: 0xFF'u8 shl uint8(8 - tailBits) else: 0'u8
+  let tailMask =
+    if tailBits > 0:
+      0xFF'u8 shl uint8(8 - tailBits)
+    else:
+      0'u8
   for dstY in 0 ..< size.y:
     let dstRowStart = dstY * dstRowbytes
     let srcRowStart = (origin.y + dstY) * srcRowbytes
@@ -170,7 +181,8 @@ proc bufferAlign8_32*(
       copyRowAligned(dst, dstRowStart, src, srcByteBase, fullBytes, tailBits, tailMask)
     else:
       copyRowShifted(
-        dst, dstRowStart, src, srcByteBase, fullBytes, tailBits, shift, invShift, tailMask
+        dst, dstRowStart, src, srcByteBase, fullBytes, tailBits, shift, invShift,
+        tailMask,
       )
 
     zeroPadRow(dst, dstRowStart, usedBytes, dstRowbytes)
