@@ -1,6 +1,6 @@
 import
   json_schema_import,
-  std/[options, json, strutils, macros, setutils],
+  std/[options, json, strutils, macros, setutils, streams],
   fungus,
   util,
   files,
@@ -190,9 +190,8 @@ proc load*[T: enum](def: AppAchievementDef[T]): Achievements[T] =
   ## Fetches the achievement data from disk for the application
   let filePath = path(def)
   if playdate.file.exists(filePath):
-    let data = playdate.file.open(filePath, kFileRead).readString().parseJson().jsonTo(
-        PDAchievementData
-      )
+    let data =
+      PDAchievementData.fromStream(playdate.file.open(filePath, kFileRead).toStream(), filePath)
 
     for achievement in data.achievements:
       try:
@@ -251,10 +250,10 @@ proc write*[T: enum](def: AppAchievementDef[T], states: array[T, AnyAchievementS
   for id, state in states:
     achievements.add(def.achievements[id].asPDAchievements(state))
 
-  let json = toJson(def.asPDAchievementData(achievements)).pretty
-
   def.rootDir().mkdirs()
-  playdate.file.open(def.path(), kFileWrite).write(json)
+  def.asPDAchievementData(achievements).toStream(
+    playdate.file.open(def.path(), kFileWrite).toStream()
+  )
 
 proc isAdvancement*(newState, oldState: AchievementState): bool =
   ## Returns whether a new achievement should replace an existing achievement
