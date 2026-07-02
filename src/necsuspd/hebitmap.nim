@@ -96,6 +96,55 @@ proc getBounds*(
     return (ivec2(0, 0), ivec2(0, 0))
   return (ivec2(minX, minY), ivec2(maxX - minX, maxY - minY))
 
+proc copyRowAligned(
+    dst: var seq[uint8],
+    dstRowStart: int32,
+    src: openArray[uint8],
+    srcByteBase: int32,
+    fullBytes, tailBits: int32,
+    tailMask: uint8,
+) {.inline.} =
+  ## Copies one row when `origin.x` is byte-aligned: a straight `copyMem` plus
+  ## a masked partial tail byte.
+  if fullBytes > 0:
+    copyMem(addr dst[dstRowStart], unsafeAddr src[srcByteBase], fullBytes)
+  if tailBits > 0:
+    dst[dstRowStart + fullBytes] = src[srcByteBase + fullBytes] and tailMask
+
+proc copyRowShifted(
+    dst: var seq[uint8],
+    dstRowStart: int32,
+    src: openArray[uint8],
+    srcByteBase: int32,
+    fullBytes, tailBits: int32,
+    shift, invShift, tailMask: uint8,
+) {.inline.} =
+  ## Copies one row when `origin.x` isn't byte-aligned: adjacent source bytes
+  ## are merged with a sub-byte shift to produce each destination byte. Each
+  ## source byte is read once and carried forward as `prevByte` rather than
+  ## being re-read as both `lo` in one iteration and `hi` in the next. Only the
+  ## very last lookahead of the row can run past the end of the whole source
+  ## buffer (every earlier lookahead stays within this row), so `safeByte`'s
+  ## bounds check is only needed there.
+  if fullBytes == 0 and tailBits == 0:
+    return
+  var prevByte = src[srcByteBase]
+  for byteIdx in 0 ..< fullBytes:
+    let nextByte =
+      if byteIdx == fullBytes - 1 and tailBits == 0:
+        safeByte(src, srcByteBase + byteIdx + 1)
+      else:
+        src[srcByteBase + byteIdx + 1]
+    dst[dstRowStart + byteIdx] = (prevByte shl shift) or (nextByte shr invShift)
+    prevByte = nextByte
+  if tailBits > 0:
+    let lo = safeByte(src, srcByteBase + fullBytes + 1)
+    dst[dstRowStart + fullBytes] = ((prevByte shl shift) or (lo shr invShift)) and tailMask
+
+proc zeroPadRow(dst: var seq[uint8], dstRowStart, usedBytes, dstRowbytes: int32) {.inline.} =
+  for byteIdx in usedBytes ..< dstRowbytes:
+    dst[dstRowStart + byteIdx] = 0'u8
+
 proc bufferAlign8_32*(
     dst: var seq[uint8],
     dstRowbytes: int32,
@@ -104,8 +153,8 @@ proc bufferAlign8_32*(
     origin, size: IVec2,
 ) =
   ## Copies byte-at-a-time rather than bit-at-a-time. When `origin.x` is
-  ## byte-aligned this is a straight `copyMem`; otherwise adjacent source bytes
-  ## are merged with a sub-byte shift to produce each destination byte.
+  ## byte-aligned each row is a straight `copyMem`; otherwise adjacent source
+  ## bytes are merged with a sub-byte shift to produce each destination byte.
   let fullBytes = size.x div 8
   let tailBits = size.x mod 8
   let usedBytes = fullBytes + (if tailBits > 0: 1 else: 0)
@@ -118,31 +167,13 @@ proc bufferAlign8_32*(
     let srcByteBase = srcRowStart + origin.x div 8
 
     if shift == 0:
-      if fullBytes > 0:
-        copyMem(addr dst[dstRowStart], unsafeAddr src[srcByteBase], fullBytes)
-      if tailBits > 0:
-        dst[dstRowStart + fullBytes] = src[srcByteBase + fullBytes] and tailMask
-    elif fullBytes > 0 or tailBits > 0:
-      # Each source byte is read once and carried forward as `prevByte` rather
-      # than being re-read as both `lo` in one iteration and `hi` in the next.
-      # Only the very last lookahead of the row can run past the end of the
-      # whole source buffer (every earlier lookahead stays within this row),
-      # so `safeByte`'s bounds check is only needed there.
-      var prevByte = src[srcByteBase]
-      for byteIdx in 0 ..< fullBytes:
-        let nextByte =
-          if byteIdx == fullBytes - 1 and tailBits == 0:
-            safeByte(src, srcByteBase + byteIdx + 1)
-          else:
-            src[srcByteBase + byteIdx + 1]
-        dst[dstRowStart + byteIdx] = (prevByte shl shift) or (nextByte shr invShift)
-        prevByte = nextByte
-      if tailBits > 0:
-        let lo = safeByte(src, srcByteBase + fullBytes + 1)
-        dst[dstRowStart + fullBytes] = ((prevByte shl shift) or (lo shr invShift)) and tailMask
+      copyRowAligned(dst, dstRowStart, src, srcByteBase, fullBytes, tailBits, tailMask)
+    else:
+      copyRowShifted(
+        dst, dstRowStart, src, srcByteBase, fullBytes, tailBits, shift, invShift, tailMask
+      )
 
-    for byteIdx in usedBytes ..< dstRowbytes:
-      dst[dstRowStart + byteIdx] = 0'u8
+    zeroPadRow(dst, dstRowStart, usedBytes, dstRowbytes)
 
 proc buildHEBitmap(
     result: HEBitmap,
