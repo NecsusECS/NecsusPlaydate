@@ -23,3 +23,10 @@ suite "Utilities":
 
   test "Enum length":
     check(len(TestEnum) == 3)
+
+  test "strToEnum":
+    check(strToEnum[TestEnum]("A") == A)
+    check(strToEnum[TestEnum]("B") == B)
+    check(strToEnum[TestEnum]("C") == C)
+    check(strToEnum[TestEnum]("D") == A)
+    check(strToEnum[TestEnum]("D", B) == B)

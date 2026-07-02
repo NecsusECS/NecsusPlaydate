@@ -301,3 +301,18 @@ template mapIt*(kind: typedesc[enum], body: untyped): untyped =
   for it {.inject.} in kind:
     output[it] = body
   output
+
+macro enumCase(typ: typedesc, value: typed, otherwise: typed) =
+  result = nnkCaseStmt.newTree(value)
+
+  let impl = typ.getTypeInst[1].getTypeImpl
+  impl.expectKind(nnkEnumTy)
+  for child in impl:
+    if child.kind != nnkEmpty:
+      result.add(nnkOfBranch.newTree(child.strVal.newLit, nnkReturnStmt.newTree(child)))
+
+  result.add(nnkElse.newTree(nnkReturnStmt.newTree(otherwise)))
+
+proc strToEnum*[T: enum](value: string, otherwise: T = default(T)): T =
+  ## Same as parseEnum, but more efficient
+  enumCase(T, value, otherwise)

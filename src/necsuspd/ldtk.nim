@@ -45,7 +45,7 @@ proc findSourceImage(
 
   for it in data.defs.tilesets:
     if it.uid == layerTilesetUid:
-      return some(assets.unwrap.sheet(parseEnum[sheets](it.identifier)))
+      return some(assets.unwrap.sheet(strToEnum[sheets](it.identifier)))
 
   raiseAssert "Could not find source image for layer"
 
@@ -91,7 +91,7 @@ proc backgroundFlip(level: LdtkLevel): LCDBitmapFlip =
       var value = field.value.getStr("k")
       if value.len > 0:
         value[0] = value[0].toLowerAscii()
-        return parseEnum[LCDBitmapFlip](value)
+        return strToEnum[LCDBitmapFlip](value)
 
 proc flipState(tile: LdtkTile): LCDBitmapFlip =
   const mapping = [kBitmapUnflipped, kBitmapFlippedX, kBitmapFlippedY, kBitmapFlippedXY]
@@ -170,20 +170,17 @@ proc findSourceSheetKey[Sheets: enum](
     return none(Sheets)
   for it in data.defs.tilesets:
     if it.uid == layerTilesetUid:
-      return some(parseEnum[Sheets](it.identifier))
+      return some(strToEnum[Sheets](it.identifier))
   raiseAssert "Could not find source image for layer"
 
 proc extractDrawInstructions*(
-    level: LdtkLevel,
-    data: LdtkJsonRoot,
-    sheets: typedesc[enum],
-    images: typedesc[enum],
+    level: LdtkLevel, data: LdtkJsonRoot, sheets: typedesc[enum], images: typedesc[enum]
 ): LdtkLevelDraw[sheets, images] =
   result = LdtkLevelDraw[sheets, images](
     width: level.pxWid.int32,
     height: level.pxHei.int32,
     bgImage: findBgImageKey(level, images),
-    bgFlip: level.backgroundFlip
+    bgFlip: level.backgroundFlip,
   )
   for i in countdown(level.layerInstances.high, 0):
     let layer {.cursor.} = level.layerInstances[i]

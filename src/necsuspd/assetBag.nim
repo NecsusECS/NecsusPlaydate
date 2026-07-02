@@ -238,4 +238,4 @@ proc findAssetBagKey*(path: string, typ: typedesc[enum], suffix: string = ""): t
       break
     else:
       key.add(part.capitalizeAscii())
-  return parseEnum[typ](key & suffix)
+  return strToEnum[typ](key & suffix)

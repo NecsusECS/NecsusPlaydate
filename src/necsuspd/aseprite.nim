@@ -194,7 +194,7 @@ proc anchorLock(data: string, defaultAnchor: AnchorLock): AnchorLock =
   ## Given the 'userdata' field, extract the anchor lock information
   for item in data.splitWhitespace():
     if item.startsWith("Anchor"):
-      return parseEnum[AnchorLock](item)
+      return strToEnum[AnchorLock](item)
   return defaultAnchor
 
 proc slicePointFromTopLeft*(
@@ -262,7 +262,7 @@ proc findKeyframes[K: enum](sheet: SpriteSheet, ignore: set[K]): KeyframeTable[K
   for layer in sheet.meta.layers:
     for cel in layer.cels:
       try:
-        let parsed = parseEnum[K](cel.data)
+        let parsed = strToEnum[K](cel.data)
         usedKeyframes.incl(parsed)
         result[cel.frame] = parsed
       except:

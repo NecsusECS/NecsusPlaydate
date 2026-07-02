@@ -196,7 +196,7 @@ proc load*[T: enum](def: AppAchievementDef[T]): Achievements[T] =
 
     for achievement in data.achievements:
       try:
-        let id = parseEnum[T](achievement.id)
+        let id = strToEnum[T](achievement.id)
         result[id] =
           if achievement.grantedAt.isSome:
             AchievementGranted.init(achievement.grantedAt.get().int).AchievementState
