@@ -37,14 +37,13 @@ proc advance(p: ptr uint32, n: int32): ptr uint32 {.inline.} =
 proc advanceU8(p: ptr uint8, n: int32): ptr uint8 {.inline.} =
   cast[ptr uint8](cast[int](p) + n.int)
 
-proc getBit(src: openArray[uint8], byteIdx, bitIdx: int32): bool {.inline.} =
-  testBit(src[byteIdx], BitsRange[uint8](7 - bitIdx))
-
-proc setBit(dst: var seq[uint8], byteIdx, bitIdx: int32) {.inline.} =
-  setBit(dst[byteIdx], BitsRange[uint8](7 - bitIdx))
-
-proc clearBit(dst: var seq[uint8], byteIdx, bitIdx: int32) {.inline.} =
-  clearBit(dst[byteIdx], BitsRange[uint8](7 - bitIdx))
+proc safeByte(arr: openArray[uint8], idx: int32): uint8 {.inline.} =
+  ## Reads a byte, treating any index past the end of `arr` as zero. Used for
+  ## the one-byte lookahead needed to merge bit-shifted bytes near a row's edge.
+  if idx < arr.len.int32:
+    arr[idx]
+  else:
+    0'u8
 
 proc combineWords(left, right, shiftMask: uint32): uint32 {.inline.} =
   (left and shiftMask) or (right and not shiftMask)
@@ -56,20 +55,43 @@ proc clipRight(frame, data: uint32, len: int32): uint32 {.inline.} =
   let clip = shl32(0xFFFFFFFF'u32, cast[uint32](32 - len))
   (data and clip) or (frame and not clip)
 
+proc scanSetBits(b: uint8, xBase: int32, rowMinX, rowMaxX: var int32) {.inline.} =
+  ## Updates the row's min/max set-column tracking from a single non-zero byte.
+  rowMinX = min(rowMinX, xBase + countLeadingZeroBits(b).int32)
+  rowMaxX = max(rowMaxX, xBase + 8 - countTrailingZeroBits(b).int32)
+
 proc getBounds*(
     mask: openArray[uint8], rowbytes, width, height: int32
 ): tuple[coords, size: IVec2] =
+  ## Scans byte-at-a-time (skipping all-zero bytes outright, and using bit-scan
+  ## instructions to locate the first/last set bit within a non-zero byte)
+  ## rather than testing every bit individually.
   var minX = width
   var minY = height
   var maxX: int32 = 0
   var maxY: int32 = 0
+  let fullBytes = width div 8
+  let tailBits = width mod 8
+  let tailMask = if tailBits > 0: 0xFF'u8 shl uint8(8 - tailBits) else: 0'u8
   for y in 0 ..< height:
-    for x in 0 ..< width:
-      if getBit(mask, y * rowbytes + x div 8, x mod 8):
-        minX = min(minX, x)
-        minY = min(minY, y)
-        maxX = max(maxX, x + 1)
-        maxY = max(maxY, y + 1)
+    let rowStart = y * rowbytes
+    var rowMinX = width
+    var rowMaxX: int32 = 0
+    for byteIdx in 0 ..< fullBytes:
+      let b = mask[rowStart + byteIdx]
+      if b != 0:
+        scanSetBits(b, byteIdx * 8, rowMinX, rowMaxX)
+    if tailBits > 0:
+      let b = mask[rowStart + fullBytes] and tailMask
+      if b != 0:
+        # tailMask already zeroes the low 8-tailBits bits, so the scanned
+        # rowMaxX can never exceed width; no separate clamp is needed.
+        scanSetBits(b, fullBytes * 8, rowMinX, rowMaxX)
+    if rowMaxX > rowMinX:
+      minX = min(minX, rowMinX)
+      maxX = max(maxX, rowMaxX)
+      minY = min(minY, y)
+      maxY = y + 1
   if maxX == 0 and maxY == 0:
     return (ivec2(0, 0), ivec2(0, 0))
   return (ivec2(minX, minY), ivec2(maxX - minX, maxY - minY))
@@ -81,20 +103,46 @@ proc bufferAlign8_32*(
     srcRowbytes: int32,
     origin, size: IVec2,
 ) =
-  let alignedWidth = dstRowbytes * 8
+  ## Copies byte-at-a-time rather than bit-at-a-time. When `origin.x` is
+  ## byte-aligned this is a straight `copyMem`; otherwise adjacent source bytes
+  ## are merged with a sub-byte shift to produce each destination byte.
+  let fullBytes = size.x div 8
+  let tailBits = size.x mod 8
+  let usedBytes = fullBytes + (if tailBits > 0: 1 else: 0)
+  let shift = uint8(origin.x mod 8)
+  let invShift = 8'u8 - shift
+  let tailMask = if tailBits > 0: 0xFF'u8 shl uint8(8 - tailBits) else: 0'u8
   for dstY in 0 ..< size.y:
-    for dstX in 0 ..< alignedWidth:
-      let dstByteIdx = dstY * dstRowbytes + dstX div 8
-      let dstBitIdx = dstX mod 8
-      if dstX < size.x:
-        let srcX = origin.x + dstX
-        let srcY = origin.y + dstY
-        if getBit(src, srcY * srcRowbytes + srcX div 8, srcX mod 8):
-          setBit(dst, dstByteIdx, dstBitIdx)
-        else:
-          clearBit(dst, dstByteIdx, dstBitIdx)
-      else:
-        clearBit(dst, dstByteIdx, dstBitIdx)
+    let dstRowStart = dstY * dstRowbytes
+    let srcRowStart = (origin.y + dstY) * srcRowbytes
+    let srcByteBase = srcRowStart + origin.x div 8
+
+    if shift == 0:
+      if fullBytes > 0:
+        copyMem(addr dst[dstRowStart], unsafeAddr src[srcByteBase], fullBytes)
+      if tailBits > 0:
+        dst[dstRowStart + fullBytes] = src[srcByteBase + fullBytes] and tailMask
+    elif fullBytes > 0 or tailBits > 0:
+      # Each source byte is read once and carried forward as `prevByte` rather
+      # than being re-read as both `lo` in one iteration and `hi` in the next.
+      # Only the very last lookahead of the row can run past the end of the
+      # whole source buffer (every earlier lookahead stays within this row),
+      # so `safeByte`'s bounds check is only needed there.
+      var prevByte = src[srcByteBase]
+      for byteIdx in 0 ..< fullBytes:
+        let nextByte =
+          if byteIdx == fullBytes - 1 and tailBits == 0:
+            safeByte(src, srcByteBase + byteIdx + 1)
+          else:
+            src[srcByteBase + byteIdx + 1]
+        dst[dstRowStart + byteIdx] = (prevByte shl shift) or (nextByte shr invShift)
+        prevByte = nextByte
+      if tailBits > 0:
+        let lo = safeByte(src, srcByteBase + fullBytes + 1)
+        dst[dstRowStart + fullBytes] = ((prevByte shl shift) or (lo shr invShift)) and tailMask
+
+    for byteIdx in usedBytes ..< dstRowbytes:
+      dst[dstRowStart + byteIdx] = 0'u8
 
 proc buildHEBitmap(
     result: HEBitmap,

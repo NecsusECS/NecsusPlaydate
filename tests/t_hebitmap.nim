@@ -77,6 +77,27 @@ suite "bufferAlign8_32":
     # only 4 pixels copied, next 4 bits should be zero
     check dst[0] == 0xF0
 
+  test "shifted copy spanning multiple bytes (origin.x not byte-aligned)":
+    # 16-wide, 1-row src; columns 3..15 (13 px) copied with a 3-bit shift.
+    var src: seq[uint8] = @[0xB4'u8, 0xC8'u8]
+    var dst = newSeq[uint8](4)
+    bufferAlign8_32(dst, 4, src, 2, ivec2(3, 0), ivec2(13, 1))
+    check dst[0] == 0xA6
+    check dst[1] == 0x40
+    check dst[2] == 0x00
+    check dst[3] == 0x00
+
+  test "shifted copy touching the exact right edge of a tightly-packed row":
+    # bounds extend all the way to the last bit of src (no rowbyte padding
+    # beyond width) with a non-byte-aligned origin, exercising the one-byte
+    # lookahead past the end of the source row.
+    var src: seq[uint8] = @[0xB4'u8, 0xC8'u8]
+    var dst = newSeq[uint8](4)
+    bufferAlign8_32(dst, 4, src, 2, ivec2(9, 0), ivec2(7, 1))
+    # bytes are 10110100 11001000; columns 9..15 = 1,0,0,1,0,0,0
+    check dst[0] == 0b10010000'u8
+    check dst[1] == 0x00
+
 suite "fromLCDBitmap":
   privateAccess(HEBitmap)
   test "all-white opaque 8x4 bitmap":
