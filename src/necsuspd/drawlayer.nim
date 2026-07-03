@@ -10,11 +10,21 @@ type
     zIndex: int16
     pos: IVec2
     flipY: bool
+    size: IVec2
+      ## Cached bitmap dimensions; querying an LCDBitmap's size goes through
+      ## the Playdate C API, which is too slow to do per sprite per frame
     case kind: DrawItemKind
     of dikHE: he: HEBitmap
     of dikLCD: lcd: LCDBitmap
 
   DrawItem* = ref DrawItemObj
+
+proc calcSize(lcd: LCDBitmap): IVec2 =
+  let size = lcd.getSize
+  return ivec2(size.width.int32, size.height.int32)
+
+proc calcSize(he: HEBitmap): IVec2 {.inline.} =
+  he.size
 
 proc newDrawItem*(
     lcd: LCDBitmap,
@@ -30,6 +40,7 @@ proc newDrawItem*(
     visible: visible,
     pos: pos,
     flipY: flipY,
+    size: lcd.calcSize,
   )
 
 proc newDrawItem*(
@@ -46,6 +57,7 @@ proc newDrawItem*(
     visible: visible,
     pos: pos,
     flipY: flipY,
+    size: he.calcSize,
   )
 
 proc moveTo*(d: DrawItem, pos: IVec2) {.inline.} =
@@ -57,14 +69,8 @@ proc pos*(d: DrawItem): IVec2 {.inline.} =
 proc zIndex*(d: DrawItem): auto {.inline.} =
   d.zIndex
 
-proc dimens*(item: DrawItem): IVec2 =
-  return
-    case item.kind
-    of dikLCD:
-      let size = item.lcd.getSize
-      ivec2(size.width.int32, size.height.int32)
-    of dikHE:
-      item.he.size
+proc dimens*(item: DrawItem): IVec2 {.inline.} =
+  item.size
 
 proc width*(item: DrawItem): int32 {.inline.} =
   item.dimens[0]
@@ -74,6 +80,7 @@ proc height*(item: DrawItem): int32 {.inline.} =
 
 proc `img=`*(d: DrawItem, img: LCDBitmap) {.inline.} =
   d.lcd = img
+  d.size = img.calcSize
 
 proc img*(d: DrawItem): var LCDBitmap {.inline.} =
   d.lcd
@@ -125,16 +132,20 @@ proc getImage*(item: DrawItem): var LCDBitmap {.inline.} =
 
 proc setImage*(item: DrawItem, img: LCDBitmap) {.inline.} =
   item.lcd = img
+  item.size = img.calcSize
 
 proc setImage*(item: DrawItem, img: HEBitmap) {.inline.} =
   item.he = img
+  item.size = img.calcSize
 
 proc drawSprites*() =
   playdate.graphics.clear(kColorWhite)
   playdate.sprite.addDirtyRect(LCD_SCREEN_RECT)
   playdate.graphics.setDrawMode(kDrawModeCopy)
   # log "START"
-  for bucketId, bucket in gDrawLayer:
+  # Iterating with `items` instead of `pairs` matters here: `pairs` yields a
+  # tuple, which copies the inner seq (and increfs every DrawItem) per bucket
+  for bucket in gDrawLayer.items:
     for item in bucket:
       if item.visible:
         case item.kind

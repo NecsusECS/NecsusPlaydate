@@ -221,7 +221,8 @@ proc moveDrawables*(
   let viewportOffset = ivec2(vp.x, vp.y)
   let noViewport = ivec2(0, 0)
   for (parent, pos) in drawables:
+    let posIVec = pos.toIVec2
     for d in parent[].linked:
       let vpOff = if d.absolutePos: noViewport else: viewportOffset
-      let absolutePos = pos.toIVec2 + d.anchorOffset + d.manualOffset - vpOff
+      let absolutePos = posIVec + d.anchorOffset + d.manualOffset - vpOff
       d.drawItem.moveTo(absolutePos - d.drawItem.dimens div 2)
