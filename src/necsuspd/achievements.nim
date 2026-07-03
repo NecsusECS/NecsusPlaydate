@@ -190,8 +190,9 @@ proc load*[T: enum](def: AppAchievementDef[T]): Achievements[T] =
   ## Fetches the achievement data from disk for the application
   let filePath = path(def)
   if playdate.file.exists(filePath):
-    let data =
-      PDAchievementData.fromStream(playdate.file.open(filePath, kFileRead).toStream(), filePath)
+    let data = PDAchievementData.fromStream(
+      playdate.file.open(filePath, kFileRead).toStream(), filePath
+    )
 
     for achievement in data.achievements:
       try:
