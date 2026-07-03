@@ -26,10 +26,7 @@ proc shl32(n: uint32, s: uint32): uint32 {.inline.} =
     n shl s
 
 proc shr32(n: uint32, s: uint32): uint32 {.inline.} =
-  if s >= 32:
-    0'u32
-  else:
-    n shr s
+  (n shr (s and 31'u32)) * uint32(s < 32)
 
 proc advance(p: ptr uint32, n: int32): ptr uint32 {.inline.} =
   cast[ptr uint32](cast[uint](p) + cast[uint](n * 4))
@@ -281,6 +278,30 @@ template drawLoop(
     when hasMask:
       maskStart = advanceU8(maskStart, rowbytes)
 
+proc drawRowsAligned(
+    frameStartArg, dataStartArg, maskStartArg: ptr uint8,
+    y1, y2, x1, x2: int32,
+    rowbytes: int32,
+    hasMask: static bool,
+) =
+  ## Fast path for x1 mod 32 == 0: source and destination words are already
+  ## bit-aligned, so each full word is a straight copy (or direct mask-apply)
+  ## with no bit-shifting/word-combining needed. Used heavily by full-screen,
+  ## always-at-(0,0) draws like the level background.
+  drawLoop(frameStartArg, dataStartArg, maskStartArg, hasMask):
+    var len = x2 - x1 div 32 * 32
+
+    while len > 0:
+      var data = bswap32(dataPtr[])
+
+      when hasMask:
+        let mask = bswap32(maskPtr[])
+        data = applyMask(bswap32(framePtr[]), data, mask)
+        maskPtr = advance(maskPtr, 1)
+
+      dataPtr = advance(dataPtr, 1)
+      writePixelWord(framePtr, data, len)
+
 proc drawRowsRightShift(
     frameStartArg, dataStartArg, maskStartArg: ptr uint8,
     y1, y2, x1, x2: int32,
@@ -399,27 +420,43 @@ proc draw*(bmp: HEBitmap, pos: IVec2, flipY: bool = false) =
 
   if (x1 div 32 * 32) <= drawPos.x:
     let shift = cast[uint32](drawPos.x mod 32)
-    let ogShiftMask = not shr32(0xFFFFFFFF'u32, shift)
     let dataOffset = startRow * bmp.rowbytes
     let dataStart = cast[ptr uint8](addr bmp.data[dataOffset])
-    if hasMask:
-      drawRowsRightShift(
-        frameStart,
-        dataStart,
-        cast[ptr uint8](addr bmp.mask[dataOffset]),
-        y1,
-        y2,
-        x1,
-        x2,
-        shift,
-        ogShiftMask,
-        rowStep,
-        true,
-      )
+    if shift == 0:
+      if hasMask:
+        drawRowsAligned(
+          frameStart,
+          dataStart,
+          cast[ptr uint8](addr bmp.mask[dataOffset]),
+          y1,
+          y2,
+          x1,
+          x2,
+          rowStep,
+          true,
+        )
+      else:
+        drawRowsAligned(frameStart, dataStart, nil, y1, y2, x1, x2, rowStep, false)
     else:
-      drawRowsRightShift(
-        frameStart, dataStart, nil, y1, y2, x1, x2, shift, ogShiftMask, rowStep, false
-      )
+      let ogShiftMask = not shr32(0xFFFFFFFF'u32, shift)
+      if hasMask:
+        drawRowsRightShift(
+          frameStart,
+          dataStart,
+          cast[ptr uint8](addr bmp.mask[dataOffset]),
+          y1,
+          y2,
+          x1,
+          x2,
+          shift,
+          ogShiftMask,
+          rowStep,
+          true,
+        )
+      else:
+        drawRowsRightShift(
+          frameStart, dataStart, nil, y1, y2, x1, x2, shift, ogShiftMask, rowStep, false
+        )
   else:
     var shift = cast[uint32](abs(drawPos.x) mod 32)
     if drawPos.x >= 0 and shift > 0:
