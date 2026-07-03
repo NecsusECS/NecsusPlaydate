@@ -17,6 +17,11 @@ type
 proc size*(he: AnyHEBitmap): IVec2 {.inline.} =
   he.size
 
+proc isOpaque*(he: AnyHEBitmap): bool {.inline.} =
+  ## True when the bitmap has no mask, meaning drawing it writes every pixel
+  ## it covers
+  he.mask.len == 0
+
 proc bswap32*(n: uint32): uint32 {.importc: "__builtin_bswap32", nodecl, noSideEffect.}
 
 proc shl32(n: uint32, s: uint32): uint32 {.inline.} =

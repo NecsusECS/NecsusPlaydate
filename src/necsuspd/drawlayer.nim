@@ -138,16 +138,26 @@ proc setImage*(item: DrawItem, img: HEBitmap) {.inline.} =
   item.he = img
   item.size = img.calcSize
 
+proc coversScreen(item: DrawItem): bool =
+  ## True when drawing this item alone repaints the entire framebuffer,
+  ## making a screen clear before it redundant
+  item.kind == dikHE and item.he.isOpaque and item.pos.x <= 0 and item.pos.y <= 0 and
+    item.pos.x + item.size.x >= LCD_COLUMNS and item.pos.y + item.size.y >= LCD_ROWS
+
 proc drawSprites*() =
-  playdate.graphics.clear(kColorWhite)
   playdate.sprite.addDirtyRect(LCD_SCREEN_RECT)
   playdate.graphics.setDrawMode(kDrawModeCopy)
   # log "START"
+  var needsClear = true
   # Iterating with `items` instead of `pairs` matters here: `pairs` yields a
   # tuple, which copies the inner seq (and increfs every DrawItem) per bucket
   for bucket in gDrawLayer.items:
     for item in bucket:
       if item.visible:
+        if needsClear:
+          if not item.coversScreen:
+            playdate.graphics.clear(kColorWhite)
+          needsClear = false
         case item.kind
         of dikHE:
           item.he.draw(item.pos, item.flipY)
@@ -166,6 +176,9 @@ proc drawSprites*() =
               capturedItem.dimens.y.int, kColorWhite,
             )
             playdate.graphics.popContext()
+
+  if needsClear:
+    playdate.graphics.clear(kColorWhite)
 
   when defined(simulator):
     var img = playdate.graphics.getDebugBitmap()
