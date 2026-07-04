@@ -13,12 +13,23 @@ type
     beamOrigin, beamTarget: FPVec2 ## world position of beam start
     draw: BeamDrawProc ## draw proc for this beam's visual style
     maskColor: LCDSolidColor ## mask color applied before the step-0 draw
+    inverted: bool ## colour-invert the beam (dark-on-light) when drawn
 
 proc beam*(
-    origin, target: FPVec2, draw: BeamDrawProc, maskColor: LCDSolidColor = kColorBlack
+    origin, target: FPVec2,
+    draw: BeamDrawProc,
+    maskColor: LCDSolidColor = kColorBlack,
+    inverted: bool = false,
 ): BeamEvent =
-  ## Generates a BeamEvent
-  BeamEvent(beamOrigin: origin, beamTarget: target, draw: draw, maskColor: maskColor)
+  ## Generates a BeamEvent. `inverted` renders the (white) beam colour-inverted
+  ## to black so it stays visible against a light background.
+  BeamEvent(
+    beamOrigin: origin,
+    beamTarget: target,
+    draw: draw,
+    maskColor: maskColor,
+    inverted: inverted,
+  )
 
 template makeBeamPool*(
     Name: untyped,
@@ -83,6 +94,7 @@ template makeBeamPool*(
     let localTarget = localOrigin + delta
     let worldPos = event.beamOrigin - toFPVec2(localOrigin - center)
     let (sprite, handle) = `Name Pool`()
+    sprite.inverted = event.inverted
     sprite.getBitmapMask.clear(event.maskColor)
     let beam = `Name BeamState`(
       origin: localOrigin, target: localTarget, draw: event.draw, step: 1

@@ -226,6 +226,56 @@ suite "draw":
     check row[16 ..< 48] == "................................"
     check row[48] == 'X'
 
+suite "draw inverted":
+  setup:
+    resetFrameBuffer()
+
+  test "inverts an opaque black bitmap to white":
+    let img = newImage("t", 8, 1, kColorBlack)
+    let bmp = fromLCDBitmap(img)
+    bmp.draw(ivec2(0, 0), inverted = true)
+    check framebufferRow(0)[0 ..< 8] == "........"
+
+  test "inverts an opaque white bitmap to black":
+    # Seed the row white so the inverted (black) result is observable.
+    fromLCDBitmap(newImage("w", 8, 1, kColorWhite)).draw(ivec2(0, 0))
+    check framebufferRow(0)[0 ..< 8] == "........"
+    let bmp = fromLCDBitmap(newImage("t", 8, 1, kColorWhite))
+    bmp.draw(ivec2(0, 0), inverted = true)
+    check framebufferRow(0)[0 ..< 8] == "XXXXXXXX"
+
+  test "inverted masked draw only touches opaque pixels":
+    let img = newImage("img", 8, 1, kColorBlack)
+    let mask = newImage("mask", 8, 1, kColorBlack)
+    for x in 0 ..< 4:
+      mask.set(x, 0, kColorWhite)
+    img.setBitmapMask(mask)
+    let bmp = fromLCDBitmap(img)
+    bmp.draw(ivec2(0, 0), inverted = true)
+    let row = framebufferRow(0)
+    # opaque black pixels 0-3 invert to white; 4-7 stay untouched (black)
+    check row[0 ..< 4] == "...."
+    check row[4 ..< 8] == "XXXX"
+
+  test "inverted shifted (right-shift path) at unaligned x":
+    let bmp = fromLCDBitmap(newImage("t", 8, 1, kColorBlack))
+    bmp.draw(ivec2(4, 0), inverted = true)
+    let row = framebufferRow(0)
+    check row[0 ..< 4] == "XXXX"
+    check row[4 ..< 12] == "........"
+
+  test "inverted clipped off left edge (left-shift path)":
+    let bmp = fromLCDBitmap(newImage("t", 8, 1, kColorBlack))
+    bmp.draw(ivec2(-4, 0), inverted = true)
+    let row = framebufferRow(0)
+    check row[0 ..< 4] == "...."
+    check row[4] == 'X'
+
+  test "inverted=false is unchanged (opaque white stays white)":
+    let bmp = fromLCDBitmap(newImage("t", 8, 1, kColorWhite))
+    bmp.draw(ivec2(0, 0), inverted = false)
+    check framebufferRow(0)[0 ..< 8] == "........"
+
 suite "toBytes/fromBytes":
   privateAccess(HEBitmap)
 

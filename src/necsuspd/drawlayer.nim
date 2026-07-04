@@ -10,6 +10,9 @@ type
     zIndex: int16
     pos: IVec2
     flipY: bool
+    inverted: bool
+      ## Colour-invert (black<->white) at draw time while preserving
+      ## transparency; used to keep light-on-dark art visible on light themes
     size: IVec2
       ## Cached bitmap dimensions; querying an LCDBitmap's size goes through
       ## the Playdate C API, which is too slow to do per sprite per frame
@@ -32,6 +35,7 @@ proc newDrawItem*(
     visible: bool = true,
     pos: IVec2 = ivec2(0, 0),
     flipY: bool = false,
+    inverted: bool = false,
 ): DrawItem {.inline.} =
   DrawItem(
     kind: dikLCD,
@@ -40,6 +44,7 @@ proc newDrawItem*(
     visible: visible,
     pos: pos,
     flipY: flipY,
+    inverted: inverted,
     size: lcd.calcSize,
   )
 
@@ -49,6 +54,7 @@ proc newDrawItem*(
     visible: bool = true,
     pos: IVec2 = ivec2(0, 0),
     flipY: bool = false,
+    inverted: bool = false,
 ): DrawItem {.inline.} =
   DrawItem(
     kind: dikHE,
@@ -57,6 +63,7 @@ proc newDrawItem*(
     visible: visible,
     pos: pos,
     flipY: flipY,
+    inverted: inverted,
     size: he.calcSize,
   )
 
@@ -96,6 +103,12 @@ proc flipY*(d: DrawItem): bool {.inline.} =
 
 proc `flipY=`*(d: DrawItem, v: bool) {.inline.} =
   d.flipY = v
+
+proc inverted*(d: DrawItem): bool {.inline.} =
+  d.inverted
+
+proc `inverted=`*(d: DrawItem, v: bool) {.inline.} =
+  d.inverted = v
 
 var gDrawLayer*: seq[seq[DrawItem]]
 
@@ -160,10 +173,17 @@ proc drawSprites*() =
           needsClear = false
         case item.kind
         of dikHE:
-          item.he.draw(item.pos, item.flipY)
+          item.he.draw(item.pos, item.flipY, item.inverted)
         of dikLCD:
           let flip = if item.flipY: kBitmapFlippedY else: kBitmapUnflipped
-          item.lcd.draw(item.pos.x, item.pos.y, flip)
+          if item.inverted:
+            # The loop-wide draw mode is kDrawModeCopy; flip to inverted just
+            # for this item and restore afterwards.
+            playdate.graphics.setDrawMode(kDrawModeInverted)
+            item.lcd.draw(item.pos.x, item.pos.y, flip)
+            playdate.graphics.setDrawMode(kDrawModeCopy)
+          else:
+            item.lcd.draw(item.pos.x, item.pos.y, flip)
         # log "RENDERING: (",  item.pos.x, ", ", item.pos.y, ") ",
         #   item.dimens.x, "x", item.dimens.y, " at ", bucketId
 

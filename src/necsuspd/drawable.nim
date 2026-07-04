@@ -67,6 +67,12 @@ proc flipY*(d: Drawable | ptr Drawable): bool {.inline.} =
 proc `flipY=`*(d: Drawable | ptr Drawable, v: bool) {.inline.} =
   d.drawItem.flipY = v
 
+proc inverted*(d: Drawable | ptr Drawable): bool {.inline.} =
+  d.drawItem.inverted
+
+proc `inverted=`*(d: Drawable | ptr Drawable, v: bool) {.inline.} =
+  d.drawItem.inverted = v
+
 proc zIndex*(d: Drawable | ptr Drawable): int16 {.inline.} =
   d.drawItem.zIndex
 
