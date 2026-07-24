@@ -177,28 +177,12 @@ proc canExpand[W, H: static int32](
         safePassable[W, H](input, rangeMax + 1, newEdge)
   )
 
-proc canExpandLeft[W, H: static int32](
-    map: ZoneMap[W, H], input: ZoneFillInput, b: ZoneRect
-): bool =
-  ## Returns true if b can grow one column to the left.
-  canExpand[W, H](
-    map, input, b.minCol > 0, b.minCol - 1, b.minCol, b.minRow, b.maxRow, true
-  )
-
 proc canExpandRight[W, H: static int32](
     map: ZoneMap[W, H], input: ZoneFillInput, b: ZoneRect
 ): bool =
   ## Returns true if b can grow one column to the right.
   canExpand[W, H](
     map, input, b.maxCol < W - 1, b.maxCol + 1, b.maxCol, b.minRow, b.maxRow, true
-  )
-
-proc canExpandUp[W, H: static int32](
-    map: ZoneMap[W, H], input: ZoneFillInput, b: ZoneRect
-): bool =
-  ## Returns true if b can grow one row upward.
-  canExpand[W, H](
-    map, input, b.minRow > 0, b.minRow - 1, b.minRow, b.minCol, b.maxCol, false
   )
 
 proc canExpandDown[W, H: static int32](
@@ -219,14 +203,8 @@ proc floodZone[W, H: static int32](
   var changed = true
   while changed:
     changed = false
-    if canExpandLeft(map, input, result):
-      result.minCol -= 1
-      changed = true
     if canExpandRight(map, input, result):
       result.maxCol += 1
-      changed = true
-    if canExpandUp(map, input, result):
-      result.minRow -= 1
       changed = true
     if canExpandDown(map, input, result):
       result.maxRow += 1
