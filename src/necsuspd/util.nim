@@ -1,5 +1,5 @@
 import
-  std/[macros, options, strutils, macrocache, importutils, setutils],
+  std/[macros, options, strutils, macrocache, importutils, setutils, hashes, staticos],
   types,
   import_playdate
 
@@ -316,3 +316,29 @@ macro enumCase(typ: typedesc, value: typed, otherwise: typed) =
 proc strToEnum*[T: enum](value: string, otherwise: T = default(T)): T =
   ## Same as parseEnum, but more efficient
   enumCase(T, value, otherwise)
+
+proc stampOf*(inputs: varargs[string]): string {.compileTime.} =
+  ## Combines `inputs` into a stamp key for `cachedArtifact`
+  var accum = 0.Hash
+  for input in inputs:
+    accum = accum !& input.hash
+  return $(!$accum)
+
+template cachedArtifact*(destination, stamp: string, body: untyped) =
+  ## Executes `body` only when the build artifact at `destination` is out of date
+  ##
+  ## Compile-time asset pipelines -- slurping a file, parsing it in the Nim VM,
+  ## transforming it, then writing the result into `source/` to be bundled -- can
+  ## dominate build times, even though the output is a pure function of the inputs.
+  ## This records `stamp` next to the artifact and skips `body` entirely while both
+  ## are unchanged. Must be called from a compile-time context.
+  ##
+  ## `stamp` has to capture everything `body` depends on, which means the code doing
+  ## the transformation and not just the file it reads. Combine several sources with
+  ## `stampOf`, and include `slurp(currentSourcePath())` to invalidate on code edits.
+  block:
+    let stampPath = destination & ".stamp"
+    if not staticFileExists(destination) or not staticFileExists(stampPath) or
+        readFile(stampPath) != stamp:
+      body
+      writeFile(stampPath, stamp)
