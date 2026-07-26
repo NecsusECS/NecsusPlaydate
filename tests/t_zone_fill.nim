@@ -112,6 +112,28 @@ suite "Zone detection":
       ..........
     """
 
+  test "U-shaped zones":
+    # The fill grows rightward before downward, so it claims cols 4..8 while
+    # still one tile tall. Row 3 is impassable under col 4 and passable under
+    # cols 5..8, so the trim clips the zone back to col 4 alone and cols 5..8
+    # re-seed as zone 'c'.
+    let m = detect(
+      """
+      ##########
+      #........#
+      #........#
+      #...#....#
+      ##########
+    """
+    )
+    check m == """
+      ..........
+      .aaabcccc.
+      .aaabcccc.
+      .ddd.eeee.
+      ..........
+    """
+
 # ---------------------------------------------------------------------------
 
 suite "Predefined zones":
@@ -249,15 +271,15 @@ suite "Complex map":
       .......aaabbbbbccc.......
       .......aaabbbbbccc.......
       .......aaabbbbbccc.......
-      .......ddd.....eee.......
-      .ffff..dddgg.hhiij..kkkk.
-      .ffff..dddgg.hhiij..kkkk.
-      .ffff...lll...mmm...kkkk.
-      .ffff...lll...mmm...kkkk.
-      ..nnno..pppq.rsss..tuuu..
-      ..nnno..pppq.rsss..tuuu..
-      ..nnnvwwxxx...yyyzz{uuu..
-      ..nnnvwwxxx...yyyzz{uuu..
+      .......dee.....fff.......
+      .ghhh..diijk.lmnno..pppq.
+      .ghhh..diijk.lmnno..pppq.
+      .ghhh...rrr...sss...pppq.
+      .ghhh...rrr...sss...pppq.
+      ..tttu..vvvw.xyyy..zAAA..
+      ..tttu..vvvw.xyyy..zAAA..
+      ..tttBCCDDD...EEEFFGAAA..
+      ..tttBCCDDD...EEEFFGAAA..
       .........................
       .........................
     """

@@ -8,6 +8,13 @@
 ## that stop expansion, so irregular map shapes naturally decompose into
 ## multiple zones at their narrowest points.
 ##
+## Each filled rectangle is then trimmed so it does not straddle a passability
+## transition: the row below it and the column to its right must each be
+## uniformly passable or uniformly blocked along the rectangle's extent. Because
+## the fill grows rightward before it grows downward, a rectangle can otherwise
+## commit to columns before the wall beneath one of them becomes relevant.
+## Trimmed tiles are left unmapped and seed zones of their own on a later pass.
+##
 ## Callers may register predefined zones (e.g. spawn points, targets) with
 ## `addZone` before calling `detectZones`. These zones are validated and seeded
 ## first, making them boundaries the flood fill cannot cross or absorb.
@@ -157,6 +164,28 @@ proc safePassable[W, H: static int32](
   ## Returns whether (x, y) is within bounds and passable; false if out of bounds.
   x >= 0 and x < W and y >= 0 and y < H and input.isPassable(ivec2(x, y))
 
+proc constantRow[W, H: static int32](
+    input: ZoneFillInput, row, minCol, maxCol: int32
+): int32 =
+  ## Returns the largest column in minCol..maxCol up to which `row` has uniform
+  ## passability, starting from minCol.
+  let first = safePassable[W, H](input, minCol, row)
+  for col in minCol + 1 .. maxCol:
+    if safePassable[W, H](input, col, row) != first:
+      return col - 1
+  return maxCol
+
+proc constantCol[W, H: static int32](
+    input: ZoneFillInput, col, minRow, maxRow: int32
+): int32 =
+  ## Returns the largest row in minRow..maxRow up to which `col` has uniform
+  ## passability, starting from minRow.
+  let first = safePassable[W, H](input, col, minRow)
+  for row in minRow + 1 .. maxRow:
+    if safePassable[W, H](input, col, row) != first:
+      return row - 1
+  return maxRow
+
 proc canExpand[W, H: static int32](
     map: ZoneMap[W, H],
     input: ZoneFillInput,
@@ -210,6 +239,29 @@ proc floodZone[W, H: static int32](
       result.maxRow += 1
       changed = true
 
+proc trimToBoundary[W, H: static int32](
+    input: ZoneFillInput, bounds: ZoneRect
+): ZoneRect =
+  ## Shrinks `bounds` from the right and bottom until neither the row below it
+  ## nor the column to its right straddles a passability transition. Shrinking
+  ## one axis moves the boundary the other axis is measured against, so both
+  ## checks repeat until the rectangle is stable. Trimmed tiles are left
+  ## unmapped for `detectZones` to seed into zones of their own.
+  ##
+  ## The matching checks above and to the left hold by construction: `floodZone`
+  ## never moves minCol or minRow, and shrinking preserves uniformity.
+  result = bounds
+  while true:
+    let col = constantRow[W, H](input, result.maxRow + 1, result.minCol, result.maxCol)
+    if col < result.maxCol:
+      result.maxCol = col
+      continue
+    let row = constantCol[W, H](input, result.maxCol + 1, result.minRow, result.maxRow)
+    if row < result.maxRow:
+      result.maxRow = row
+      continue
+    break
+
 proc buildAdjacency[W, H: static int32](map: ZoneMap[W, H]) =
   ## Registers adjacency between every pair of zones whose bounds share an edge.
   for i in 0 ..< map.zones.len:
@@ -218,16 +270,19 @@ proc buildAdjacency[W, H: static int32](map: ZoneMap[W, H]) =
         map.zones[i].adjacent.add(map.zones[j].id)
         map.zones[j].adjacent.add(map.zones[i].id)
 
+const zoneSymbols = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
 proc `$`*[W, H: static int32](map: ZoneMap[W, H]): string =
   ## Returns a debug string of the zone map. Each tile with an assigned zone
-  ## is shown as a letter (a=zone 0, b=zone 1, …). Unassigned tiles show as '.'.
+  ## is shown as a symbol (a=zone 0, b=zone 1, …), wrapping once the symbols
+  ## run out. Unassigned tiles show as '.'.
   var lines: seq[string]
   for row in 0'i32 ..< H:
     var line = ""
     for col in 0'i32 ..< W:
       let zid = map[ivec2(col, row)]
       if zid.isSome:
-        line.add(char(ord('a') + int32(zid.get)))
+        line.add(zoneSymbols[int32(zid.get) mod zoneSymbols.len])
       else:
         line.add('.')
     lines.add(line)
@@ -245,5 +300,5 @@ proc detectZones*[W, H: static int32](map: ZoneMap[W, H], input: ZoneFillInput) 
     for col in 0'i32 ..< W:
       let pos = ivec2(col, row)
       if input.isPassable(pos) and map.tileToZone[row][col].isNone:
-        discard addZone(map, floodZone(map, input, pos))
+        discard addZone(map, trimToBoundary[W, H](input, floodZone(map, input, pos)))
   buildAdjacency(map)
