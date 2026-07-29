@@ -30,3 +30,19 @@ suite "Utilities":
     check(strToEnum[TestEnum]("C") == C)
     check(strToEnum[TestEnum]("D") == A)
     check(strToEnum[TestEnum]("D", B) == B)
+
+  test "Compile time modification times":
+    const
+      thisFile = currentSourcePath()
+      missing = thisFile & ".nope"
+
+    check(static(modifiedTime(thisFile)) > 0)
+    check(static(modifiedTime(missing)) == -1)
+
+    # A missing artifact always needs building
+    check(static(isOutOfDate(missing, thisFile)))
+
+    # A file is never out of date against itself, or against sources that are gone
+    check(not static(isOutOfDate(thisFile, thisFile)))
+    check(not static(isOutOfDate(thisFile, missing)))
+    check(not static(isOutOfDate(thisFile, [thisFile, missing])))

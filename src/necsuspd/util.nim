@@ -1,5 +1,5 @@
 import
-  std/[macros, options, strutils, macrocache, importutils, setutils, hashes, staticos],
+  std/[macros, options, strutils, sequtils, macrocache, importutils, setutils, staticos],
   types,
   import_playdate
 
@@ -317,28 +317,27 @@ proc strToEnum*[T: enum](value: string, otherwise: T = default(T)): T =
   ## Same as parseEnum, but more efficient
   enumCase(T, value, otherwise)
 
-proc stampOf*(inputs: varargs[string]): string {.compileTime.} =
-  ## Combines `inputs` into a stamp key for `cachedArtifact`
-  var accum = 0.Hash
-  for input in inputs:
-    accum = accum !& input.hash
-  return $(!$accum)
+proc modifiedTime*(path: string): int {.compileTime.} =
+  ## Returns the modification time of `path` as a unix timestamp, or `-1` when it
+  ## does not exist. The Nim VM has no way to stat a file, so this shells out.
+  if not staticFileExists(path):
+    return -1
 
-template cachedArtifact*(destination, stamp: string, body: untyped) =
-  ## Executes `body` only when the build artifact at `destination` is out of date
-  ##
-  ## Compile-time asset pipelines -- slurping a file, parsing it in the Nim VM,
-  ## transforming it, then writing the result into `source/` to be bundled -- can
-  ## dominate build times, even though the output is a pure function of the inputs.
-  ## This records `stamp` next to the artifact and skips `body` entirely while both
-  ## are unchanged. Must be called from a compile-time context.
-  ##
-  ## `stamp` has to capture everything `body` depends on, which means the code doing
-  ## the transformation and not just the file it reads. Combine several sources with
-  ## `stampOf`, and include `slurp(currentSourcePath())` to invalidate on code edits.
+  # GNU stat and BSD stat spell this differently; try both
+  let (output, exitCode) =
+    gorgeEx("stat -c %Y '$1' 2>/dev/null || stat -f %m '$1'" % [path])
+  if exitCode != 0:
+    error("Unable to read the modification time of " & path & ": " & output)
+  return output.strip.parseInt
+
+proc isOutOfDate*(destination: string, sources: varargs[string]): bool {.compileTime.} =
+  ## Whether `destination` is missing or older than any of `sources`
+  let target = modifiedTime(destination)
+  return target < 0 or sources.anyIt(modifiedTime(it) > target)
+
+template cachedArtifact*(sources: untyped, destination: string, body: untyped) =
+  ## Executes `body` only when the build artifact at `destination` is older than
+  ## `sources`, which is either a single path or an array of them.
   block:
-    let stampPath = destination & ".stamp"
-    if not staticFileExists(destination) or not staticFileExists(stampPath) or
-        readFile(stampPath) != stamp:
+    if isOutOfDate(destination, sources):
       body
-      writeFile(stampPath, stamp)
