@@ -1,18 +1,22 @@
 import std/[unittest, options], necsuspd/[aseprite, triggerBox], vmath
 
+# Helper for building a rectangle
+proc rect(h, w, x, y: int): AseRectangle =
+  AseRectangle(h: h, w: w, x: x, y: y)
+
 # Helper for creating an AseFrame
 proc makeAseFrame(
     duration: int32 = 100,
     filename: string = "frame0.png",
-    frame: AseRectangle = (h: 32'i32, w: 32'i32, x: 0'i32, y: 0'i32),
+    frame: AseRectangle = rect(32, 32, 0, 0),
     rotated: bool = false,
     trimmed: bool = false,
-    sourceSize: AseSize = (h: 32'i32, w: 32'i32),
-    spriteSourceSize: AseRectangle = (h: 32'i32, w: 32'i32, x: 0'i32, y: 0'i32),
+    sourceSize: AseSize = AseSize(h: 32, w: 32),
+    spriteSourceSize: AseRectangle = rect(32, 32, 0, 0),
 ): AseFrame =
   AseFrame(
     duration: duration,
-    filename: filename,
+    filename: some(filename),
     frame: frame,
     rotated: rotated,
     trimmed: trimmed,
@@ -22,27 +26,27 @@ proc makeAseFrame(
 
 # Helper for creating an AseLayer
 proc makeAseLayer(
-    blendMode: AseBlendMode = normal,
+    blendMode: AseBlendMode = Normal,
     color: string = "#000000",
     data: string = "",
     group: string = "",
     name: string = "Events",
     opacity: int32 = 255,
-    cels: seq[AseCel] = @[(frame: 0, data: "jump")],
+    cels: seq[AseCel] = @[AseCel(frame: 0, data: some("jump"))],
 ): AseLayer =
   AseLayer(
-    blendMode: blendMode,
-    color: color,
-    data: data,
-    group: group,
+    blendMode: some(blendMode),
+    color: some(color),
+    data: some(data),
+    group: some(group),
     name: name,
-    opacity: opacity,
+    opacity: some(opacity.BiggestInt),
     cels: cels,
   )
 
 # Helper for creating an AseSliceKey
 proc makeAseSliceKey(h: int = 10, w: int = 20, x: int = 5, y: int = 15): AseSliceKey =
-  AseSliceKey(bounds: (h: h.int32, w: w.int32, x: x.int32, y: y.int32), frame: 0)
+  AseSliceKey(bounds: rect(h, w, x, y), frame: 0)
     # frame will be set by makeAseSlice
 
 # Helper for creating an AseSlice (now uses varargs for keys)
@@ -52,7 +56,7 @@ proc makeAseSlice(
     data: string = "",
     keys: varargs[AseSliceKey],
 ): AseSlice =
-  result = AseSlice(name: name, color: color, data: data, keys: @[])
+  result = AseSlice(name: name, color: some(color), data: some(data), keys: @[])
   for i, k in keys:
     result.keys.add(AseSliceKey(bounds: k.bounds, frame: i.int32))
 
@@ -74,7 +78,7 @@ proc makeAseSliceWithKey(
 # Helper for AseFrameTag
 proc makeAseFrameTag(
     name: string = "Idle",
-    direction: AseDirection = forward,
+    direction: AseDirection = Forward,
     color: string = "#FFFFFF",
     fromIdx: int32 = 0,
     toIdx: int32 = 0,
@@ -84,11 +88,11 @@ proc makeAseFrameTag(
   AseFrameTag(
     name: name,
     direction: direction,
-    color: color,
+    color: some(color),
     `from`: fromIdx,
     to: toIdx,
-    data: data,
-    repeat: repeat,
+    data: some(data),
+    repeat: some(repeat),
   )
 
 # Helper for SpriteSheet, allowing easy inline slices/tags
@@ -98,7 +102,7 @@ proc makeSpriteSheet(
     layers: seq[AseLayer] = @[makeAseLayer()],
     slices: seq[AseSlice] = @[makeAseSliceWithKey()],
     image: string = "sprite.png",
-    size: AseSize = (h: 32'i32, w: 32'i32),
+    size: AseSize = AseSize(h: 32, w: 32),
 ): SpriteSheet =
   SpriteSheet(
     frames: frames,
@@ -133,17 +137,16 @@ suite "Aseprite SpriteSheet Utilities":
     check sheet.slice("HitBox").name == "HitBox"
 
   test "firstKey returns first slice key":
-    check sheet.slice("HitBox").firstKey(sheet).bounds ==
-      (h: 10'i32, w: 20'i32, x: 5'i32, y: 15'i32)
+    check sheet.slice("HitBox").firstKey(sheet).bounds == rect(10, 20, 5, 15)
 
   test "center returns correct IVec2":
-    check center((h: 10'i32, w: 20'i32, x: 5'i32, y: 15'i32)) == ivec2(15, 20)
+    check center(rect(10, 20, 5, 15)) == ivec2(15, 20)
 
   test "dimensions returns correct sprite dimensions":
     check sheet.dimensions() == ivec2(32, 32)
 
   test "hitBox returns correct bounds":
-    check sheet.hitBox == (h: 10'i32, w: 20'i32, x: 5'i32, y: 15'i32)
+    check sheet.hitBox == rect(10, 20, 5, 15)
 
   test "anchorOffset falls back to hitBox if Anchor slice missing":
     check sheet.anchorOffset == ivec2(15, 25)

@@ -1,9 +1,13 @@
 ##
 ## Types generated from: https://kayahr.github.io/aseprite/aseprite.schema.json
 ##
+## The schema is a lightly modified copy of the upstream document. See
+## `aseprite-schema.json` for what was changed and why.
+##
 
 import
   std/[macros, json, jsonutils, options, strformat, tables, sets, algorithm, strutils],
+  json_schema_import,
   vmath,
   triggerBox,
   util,
@@ -13,97 +17,16 @@ import
 
 export anchor
 
+importJsonSchema("./aseprite-schema.json", "Ase")
+
 type
-  AseFrame* = object
-    duration*: int32
-    filename*: string
-    frame*: AseRectangle
-    rotated*, trimmed*: bool
-    sourceSize*: AseSize
-    spriteSourceSize*: AseRectangle
-
-  AseBlendMode* = enum
-    normal
-    darken
-    multiply
-    color_burn
-    lighten
-    screen
-    color_dodge
-    addition
-    overlay
-    soft_light
-    hard_light
-    difference
-    exclusion
-    subtract
-    divide
-    hsl_hue
-    hsl_saturation
-    hsl_color
-    hsl_luminosity
-
-  AseDirection* = enum
-    forward
-    reverse
-    pingpong
-
-  AseFormat* = enum
-    RGBA8888
-    I8
-
-  AseFrameTag* = object
-    name*: string
-    `from`*: int32
-    to*: int32
-    direction*: AseDirection
-    color*: string
-    data*: string
-    repeat*: string
-
-  AseCel* = tuple[frame: int32, data: string]
-
-  AseLayer* = object
-    blendMode*: AseBlendMode
-    color*: string
-    data*: string
-    group*: string
-    name*: string
-    opacity*: int32
-    cels*: seq[AseCel]
-
-  AseMeta* = object
-    app*: string
-    format*: AseFormat
-    frameTags*: seq[AseFrameTag]
-    image*: string
-    layers*: seq[AseLayer]
-    scale*: string
-    size*: AseSize
-    slices*: seq[AseSlice]
-    version*: string
-
-  AsePoint* = tuple[x, y: int32]
-
-  AseRectangle* = tuple[h, w, x, y: int32]
-
-  AseSize* = tuple[h, w: int32]
-
-  AseSlice* = object
-    color*: string
-    data*: string
-    keys*: seq[AseSliceKey]
-    name*: string
-
-  AseSliceKey* = object
-    bounds*: AseRectangle
-    frame*: int32
-
-  SpriteSheet* = object
-    frames*: seq[AseFrame]
-    meta*: AseMeta
+  SpriteSheet* = AseSpriteSheet
 
   KeyframeTable[K: enum] = Table[int32, K]
+
+template userData(field: Option[string]): string =
+  ## Aseprite omits the custom data fields entirely when they are empty
+  field.get("")
 
 proc findTag*(sheet: SpriteSheet, name: string): Option[AseFrameTag] =
   let searchName = name.toLowerAscii
@@ -124,11 +47,11 @@ proc eventFrames*(sheet: SpriteSheet, event: string): seq[int32] =
   ## Returns the frames at which an event occurs
   for layer in sheet.meta.layers:
     for cel in layer.cels:
-      if cel.data == event:
-        result.add(cel.frame)
+      if cel.data.userData == event:
+        result.add(cel.frame.int32)
 
 iterator frames(sheet: SpriteSheet, tag: AseFrameTag): (int32, AseFrame) =
-  for i in tag.`from` .. tag.to:
+  for i in tag.`from`.int32 .. tag.to.int32:
     yield (i, sheet.frames[i])
 
 proc timeUntil*(sheet: SpriteSheet, tagName: string, event: string): float32 =
@@ -178,11 +101,7 @@ proc hitBox*(sheet: SpriteSheet): AseRectangle =
 
 proc center*(rect: AseRectangle): IVec2 =
   ## Returns the dimensions of the hitbox
-  ivec2(rect.x + (rect.w div 2), rect.y + (rect.h div 2))
-
-proc center*(sliceKey: AseSliceKey): IVec2 =
-  ## Returns the first AseSliceKey for a named slice or fails the compile
-  sliceKey.bounds.center
+  ivec2((rect.x + (rect.w div 2)).int32, (rect.y + (rect.h div 2)).int32)
 
 proc readFrame(sheet: SpriteSheet, frame: SomeInteger): AseFrame {.discardable.} =
   if frame >= sheet.frames.len:
@@ -208,15 +127,15 @@ proc slicePointFromTopLeft*(
 
   let bounds = slice.firstKey(sheet).bounds
   return some(
-    ivec2(bounds.x, bounds.y) +
-      slice.data.anchorLock(defaultAnchor).resolve(bounds.w, bounds.h)
+    ivec2(bounds.x.int32, bounds.y.int32) +
+      slice.data.userData.anchorLock(defaultAnchor).resolve(bounds.w.int32, bounds.h.int32)
   )
 
 proc dimensions*(sheet: SpriteSheet): IVec2 =
   ## Returns the dimensions (width, height) of the sprite as IVec2 from the first frame's sourceSize
   if sheet.frames.len > 0:
     let sz = sheet.frames[0].sourceSize
-    return ivec2(sz.w, sz.h)
+    return ivec2(sz.w.int32, sz.h.int32)
   else:
     sheet.error("SpriteSheet has no frames to determine dimensions")
 
@@ -248,10 +167,11 @@ proc sliceKeyAsOffset*(sheet: SpriteSheet, key: string): IVec2 =
   return sliceKey - anchor
 
 proc loop(tag: AseFrameTag): LoopMode =
-  if tag.repeat == "":
+  let repeat = tag.repeat.userData
+  if repeat == "":
     return InfiniteLoop.init().LoopMode
   else:
-    return FiniteLoop.init(tag.repeat.parseInt().uint32).LoopMode
+    return FiniteLoop.init(repeat.parseInt().uint32).LoopMode
 
 proc findKeyframes[K: enum](sheet: SpriteSheet, ignore: set[K]): KeyframeTable[K] =
   ## Searches the layers in a sprite sheet and creates a table of frame # to keyframe trigger
@@ -262,9 +182,9 @@ proc findKeyframes[K: enum](sheet: SpriteSheet, ignore: set[K]): KeyframeTable[K
   for layer in sheet.meta.layers:
     for cel in layer.cels:
       try:
-        let parsed = strToEnum[K](cel.data)
+        let parsed = strToEnum[K](cel.data.userData)
         usedKeyframes.incl(parsed)
-        result[cel.frame] = parsed
+        result[cel.frame.int32] = parsed
       except:
         discard
 
@@ -273,7 +193,7 @@ proc findKeyframes[K: enum](sheet: SpriteSheet, ignore: set[K]): KeyframeTable[K
       sheet.error(fmt"Keyframe '{key}' is not specified in sprite sheet")
 
 proc totalDurationMs(sheet: SpriteSheet, frameRange: Slice[int32]): float32 =
-  var totalMs: int32
+  var totalMs: BiggestInt
   for frame in frameRange:
     totalMs += sheet.frames[frame].duration
   return totalMs.float32
@@ -290,8 +210,8 @@ proc strideToSpeed*(sheet: SpriteSheet, sliceName: string): float32 =
   if slice.keys.len == 1:
     let key = slice.keys[0]
     let distance = max(key.bounds.w, key.bounds.h).float32
-    let lastFrame = key.frame + slice.data.parseInt().int32
-    let totalMs = sheet.totalDurationMs(key.frame ..< lastFrame)
+    let lastFrame = key.frame.int32 + slice.data.userData.parseInt().int32
+    let totalMs = sheet.totalDurationMs(key.frame.int32 ..< lastFrame)
     return distance / totalMs * 1000
   else:
     let sorted = slice.keys.sortedByIt(it.bounds.x)
@@ -301,22 +221,21 @@ proc strideToSpeed*(sheet: SpriteSheet, sliceName: string): float32 =
     let lastCoord = vec2(last.bounds.x.float32, last.bounds.y.float32)
     let distance = firstCoord.dist(lastCoord) + 1
     let totalMs = sheet.totalDurationMs(
-      min(first.frame, last.frame) .. max(first.frame, last.frame)
+      min(first.frame, last.frame).int32 .. max(first.frame, last.frame).int32
     )
     return distance / totalMs * 1000
 
 proc loadAsepriteJson*(path: string): SpriteSheet {.compileTime.} =
-  let json = parseJson(slurp(getProjectPath() & "/../" & path))
-  result.fromJson(json, Joptions(allowMissingKeys: true, allowExtraKeys: true))
+  parseJson(slurp(getProjectPath() & "/../" & path)).jsonTo(SpriteSheet)
 
 proc getTriggerBox*(sprite: SpriteSheet, sliceName: string, zIndex: enum): TriggerBox =
   ## Creates the attack trigger box from a sprite sheet
   let anchor = sprite.anchorOffset
   let slice = sprite.slice(sliceName).firstKey(sprite)
-  let width = slice.bounds.w
-  let height = slice.bounds.h
-  let x = slice.bounds.x - anchor.x
-  let y = slice.bounds.y - anchor.y
+  let width = slice.bounds.w.int32
+  let height = slice.bounds.h.int32
+  let x = slice.bounds.x.int32 - anchor.x
+  let y = slice.bounds.y.int32 - anchor.y
   return triggerBox(
     width = width, height = height, zIndex = zIndex, offset = ivec2(x.int32, y.int32)
   )
@@ -327,10 +246,10 @@ proc animationTime*(sheet: SpriteSheet, animation: enum): Option[int32] =
     .findTag(removeSuffix($animation, "Anim"))
     .fallback(sheet.findTag($animation)).orElse:
       return none(int32)
-  var duration: int32
+  var duration: BiggestInt
   for _, frame in frames(sheet, tag):
     duration += frame.duration
-  return some(duration)
+  return some(duration.int32)
 
 when LIVE_COMPILE:
   proc createFrameDef(
@@ -351,8 +270,8 @@ proc asAnimationDef[S: enum](
     discard sheet.readFrame(tag.`from`)
     discard sheet.readFrame(tag.to)
 
-    var frames = newSeqOfCap[Frame](tag.to - tag.`from` + 1)
-    for frameId in (tag.`from` .. tag.to):
+    var frames = newSeqOfCap[Frame](tag.to.int - tag.`from`.int + 1)
+    for frameId in (tag.`from`.int32 .. tag.to.int32):
       frames.add(createFrameDef(sheet, keyframes, frameId))
 
     return animation(sheetId, frames, sheet.spriteAnchor, tag.loop())
@@ -401,7 +320,7 @@ proc stateAnimationTable*[A, B: enum](
         sheet.error(fmt"Missing tag '{tagName}'")
         return
       for state in B:
-        let frameId = tag.from + ord(state).int32
+        let frameId = tag.`from`.int32 + ord(state).int32
         let dur = sheet.frames[frameId].duration.float32 / 1000'f32
         result[category][state] =
           animation(sheetId, @[frame(frameId, dur)], sheet.spriteAnchor, tag.loop())
