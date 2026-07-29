@@ -6,7 +6,7 @@
 ##
 
 import
-  std/[macros, json, jsonutils, options, strformat, tables, sets, algorithm, strutils],
+  std/[macros, options, strformat, tables, sets, algorithm, strutils, streams],
   json_schema_import,
   vmath,
   triggerBox,
@@ -226,7 +226,8 @@ proc strideToSpeed*(sheet: SpriteSheet, sliceName: string): float32 =
     return distance / totalMs * 1000
 
 proc loadAsepriteJson*(path: string): SpriteSheet {.compileTime.} =
-  parseJson(slurp(getProjectPath() & "/../" & path)).jsonTo(SpriteSheet)
+  let fullPath = getProjectPath() & "/../" & path
+  SpriteSheet.fromStream(newStringStream(slurp(fullPath)), fullPath)
 
 proc getTriggerBox*(sprite: SpriteSheet, sliceName: string, zIndex: enum): TriggerBox =
   ## Creates the attack trigger box from a sprite sheet
