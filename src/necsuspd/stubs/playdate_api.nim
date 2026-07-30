@@ -1,4 +1,4 @@
-import std/[tables, sequtils], graphics, sprites, sounds
+import std/[tables, sequtils, streams], graphics, sprites, sounds
 
 export graphics, sprites, sounds
 
@@ -16,6 +16,10 @@ type
 
   PDFile* = ref object
     content, path: string
+    mode: FileOptions
+
+  MockWriteStream = ref object of Stream
+    file: PDFile
 
   FileOptions* = enum
     kFileRead
@@ -61,8 +65,14 @@ proc exists*(_: PlaydateFiles, path: string): bool =
   mockFiles.hasKey(path)
 
 proc open*(api: PlaydateFiles, path: string, options: FileOptions): PDFile =
-  assert(api.exists(path), "File not found")
-  return PDFile(path: path, content: mockFiles[path])
+  case options
+  of kFileRead, kFileReadData:
+    assert(api.exists(path), "File not found")
+    return PDFile(path: path, content: mockFiles[path], mode: options)
+  of kFileWrite:
+    return PDFile(path: path, content: "", mode: options)
+  of kFileAppend:
+    return PDFile(path: path, content: mockFiles.getOrDefault(path), mode: options)
 
 proc readString*(file: PDFile): string =
   file.content
@@ -80,6 +90,26 @@ proc write*(
   for i in 0 ..< len:
     toWrite &= content[i].chr
   write(file, toWrite)
+
+proc mwsWriteData(
+    s: Stream, buffer: pointer, bufLen: int
+) {.nimcall, raises: [], tags: [], gcsafe.} =
+  ## Appends to the mock file, flushing straight back so writes are immediately visible
+  let file = MockWriteStream(s).file
+  if bufLen > 0:
+    let start = file.content.len
+    file.content.setLen(start + bufLen)
+    copyMem(addr file.content[start], buffer, bufLen)
+    {.cast(gcsafe).}:
+      mockFiles[file.path] = file.content
+
+proc toStream*(file: PDFile): Stream =
+  ## Wraps a mock file in a `std/streams` `Stream`, mirroring the real playdate file api
+  return
+    if file.mode in {kFileWrite, kFileAppend}:
+      MockWriteStream(file: file, writeDataImpl: mwsWriteData)
+    else:
+      newStringStream(file.content)
 
 proc getSecondsSinceEpoch*(
     _: PlaydateSystem
