@@ -26,17 +26,23 @@ type
     time: GameTime
     changed: Outbox[CarouselChanged[T]]
 
-proc firstElement[T](bundle: Bundle[Carousel[T]]): auto =
-  ## Return the first visible element in the carousel
-  for eid, (_, drawable, positioned) in bundle.elements:
-    if drawable.visible:
-      return some((eid, positioned))
-  return none((EntityId, ptr Positioned))
+proc isBefore(a, b: IVec2): bool =
+  ## Orders carousel positions top-to-bottom, then left-to-right
+  a.y < b.y or (a.y == b.y and a.x < b.x)
 
-proc lastElement[T](bundle: Bundle[Carousel[T]]): auto =
-  ## Return the last visible element in the carousel
+proc firstElement[T](bundle: Bundle[Carousel[T]]): Option[(EntityId, ptr Positioned)] =
+  ## Return the visible element positioned first in the carousel. This goes by position
+  ## rather than query order, which makes no promises about spawn order
   for eid, (_, drawable, positioned) in bundle.elements:
-    if drawable.visible:
+    if drawable.visible and
+        result.mapIt(positioned.toIVec2.isBefore(it[1].toIVec2)).orElse(true):
+      result = some((eid, positioned))
+
+proc lastElement[T](bundle: Bundle[Carousel[T]]): Option[(EntityId, ptr Positioned)] =
+  ## Return the visible element positioned last in the carousel
+  for eid, (_, drawable, positioned) in bundle.elements:
+    if drawable.visible and
+        result.mapIt(it[1].toIVec2.isBefore(positioned.toIVec2)).orElse(true):
       result = some((eid, positioned))
 
 proc moveAllBy[T](bundle: Bundle[Carousel[T]], delta: IVec2) =
