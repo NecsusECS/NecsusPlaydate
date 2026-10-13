@@ -1,4 +1,4 @@
-import necsus, debug, util
+import necsus, debug, util, fpvec
 
 type
   TimeValue = float32
@@ -10,6 +10,12 @@ type
   DeltaValue = float32
 
   GameTimeDelta* = Shared[DeltaValue]
+
+  FPDeltaValue = object
+    value: FPInt
+
+  FPTimeDelta* = Shared[FPDeltaValue]
+    ## The game time delta for this frame, in fixed point. Populated by `updateFPTimeDelta`
 
   Speed* = Shared[tuple[numerator, denominator: int32]]
 
@@ -71,6 +77,20 @@ proc buildGameTime*(StateType: typedesc[enum]): auto =
     # Update the global game time, which isn't localized to the current state
     globalElapsed += tickDelta
     globalGameTime := globalElapsed
+
+proc fp*(delta: FPTimeDelta): FPInt =
+  delta.get(FPDeltaValue()).value
+
+proc updateFPTimeDelta*(
+    delta: GameTimeDelta, fpDelta: FPTimeDelta, carry: Local[float32]
+) =
+  ## Converts the frame's game time delta to fixed point. `fp` truncates to the
+  ## format's precision, which at 50fps drops over a fifth of every frame, so the
+  ## truncated remainder carries into the next frame to keep the total exact.
+  let exact = delta.get() + carry.get(0.0'f32)
+  let value = exact.fp()
+  carry := exact - value.toFloat.float32
+  fpDelta := FPDeltaValue(value: value)
 
 proc timeDebugger*(slowDownKey, speedUpKey: char): auto =
   ## Hooks in debug key monitors for adjusting the time
