@@ -14,7 +14,9 @@ proc shouldSubdivide(
 ): bool =
   ## Calculate whether a single branch of lightning should be subdivided into a zig zag line
   let distSq = a.distSq(b)
-  if distSq > (lightning.fullDistSq div 3):
+  if subdivisions >= 10:
+    return false
+  elif distSq > (lightning.fullDistSq div 3):
     return true
   elif distSq < 32:
     return false
@@ -96,6 +98,8 @@ proc drawLightning*(
     initialLineSize: SomeInteger = 2,
 ) =
   img.getBitmapMask.clear(kColorBlack)
+  if a == b:
+    return
   playdate.graphics.pushContext(img.getBitmapMask)
   try:
     var lightning = LightningConf(

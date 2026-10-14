@@ -51,3 +51,14 @@ suite "Drawing lightning":
       "___________________________________________________XXXXXX_____XXXXXXXXXXXXXXXXX_",
       "____________________________________________________XXX________XXXXXXXXX________",
     ]
+
+  test "terminates for short bolts":
+    let img = newImage("primary", 40, 40, kColorBlack)
+    img.setBitmapMask(newImage("mask", img.width, img.height, kColorWhite))
+    for seed in 0'u64 .. 20'u64:
+      img.drawLightning(seed, ivec2(10, 10), ivec2(16, 10), 20, 0)
+
+  test "draws nothing for zero length bolts":
+    let img = newImage("primary", 40, 40, kColorBlack)
+    img.setBitmapMask(newImage("mask", img.width, img.height, kColorWhite))
+    img.drawLightning(1, ivec2(10, 10), ivec2(10, 10), 20, 0)
