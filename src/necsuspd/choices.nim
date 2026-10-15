@@ -44,6 +44,10 @@ proc choose*[T](choices: Choices[T], eid: EntityId): EntityId {.discardable.} =
   for (value, anim, drawable, defs) in choices.find(eid).items:
     for existing, (_, _, existingAnim, existingDrawable, existingDefs) in choices.chosen:
       if existing == eid:
+        # The animation may have been changed externally since it was chosen, so restore
+        # the active frame; skip it when already active to avoid restarting the animation.
+        if anim.isSome and defs.isSome and anim.unsafeGet.def != defs.unsafeGet.active:
+          setAnimation(anim, drawable, defs, it.active)
         return
       choices.unmark(existing)
       setAnimation(existingAnim, existingDrawable, existingDefs, it.inactive)

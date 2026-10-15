@@ -21,7 +21,8 @@ template runTest(name: string, body: untyped) =
     let animB {.inject.}: ChosenAnim = (newAnimationDef(3), newAnimationDef(4))
 
     template createStdEntities() {.inject.} =
-      let (aDrawable, aAnim) = newDrawableAnim("foo", 10, 10, animA.inactive)
+      let (aDrawable {.inject.}, aAnim {.inject.}) =
+        newDrawableAnim("foo", 10, 10, animA.inactive)
       let a {.inject.} = create.with("a", aDrawable, aAnim, animA)
       let (bDrawable, bAnim) = newDrawableAnim("bar", 10, 10, animB.inactive)
       let b {.inject.} = create.with("b", bDrawable, bAnim, animB)
@@ -96,3 +97,14 @@ runTest "Choosing the same value should not change the choice":
     check a.getAnim == animA.active
     check b.getAnim == animB.inactive
     check events.len == 1
+
+runTest "Re-choosing the current value restores an externally changed animation":
+  createStdEntities()
+  choices.choose(a)
+  change(aAnim, aDrawable, animA.inactive)
+  check a.getAnim == animA.inactive
+
+  choices.choose(a)
+  check choices.chosen == some("a")
+  check a.getAnim == animA.active
+  check events.len == 1
