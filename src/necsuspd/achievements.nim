@@ -103,7 +103,7 @@ proc defineAchievements*[T: enum](
     version: string = pdxVersion,
     iconPath: Option[string] = none(string),
     cardPath: Option[string] = none(string),
-    achievements: openarray[AchievementDef[T]],
+    achievements: sink openarray[AchievementDef[T]],
 ): AppAchievementDef[T] =
   ## Configures the achievements for the application
   result = AppAchievementDef[T](
@@ -117,9 +117,9 @@ proc defineAchievements*[T: enum](
   )
 
   var seen: set[T]
-  for achievement in achievements:
+  for achievement in achievements.mitems:
     seen.incl(achievement.id)
-    result.achievements[achievement.id] = achievement
+    result.achievements[achievement.id] = move(achievement)
 
   if complement(seen).card != 0:
     raiseAssert("Not all achievements are defined. Missing: " & $complement(seen))
