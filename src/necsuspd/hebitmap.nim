@@ -412,7 +412,16 @@ proc draw*(bmp: HEBitmap, pos: IVec2, flipY: bool = false, inverted: bool = fals
   ## Blits the bitmap at `pos`. When `inverted` is true the source pixels are
   ## colour-inverted (black<->white) while transparency is preserved untouched,
   ## producing a dark-on-light rendering for light-themed backgrounds.
-  let drawPos = pos + bmp.boundsCoords
+  ## Bounds are trimmed to the opaque region, so a flipped bitmap mirrors the
+  ## trimmed margins: the bottom margin becomes the top one.
+  let drawPos =
+    if flipY:
+      ivec2(
+        pos.x + bmp.boundsCoords.x,
+        pos.y + bmp.size.y - bmp.boundsCoords.y - bmp.boundsSize.y,
+      )
+    else:
+      pos + bmp.boundsCoords
 
   let x1 = max(drawPos.x, 0'i32)
   let y1 = max(drawPos.y, 0'i32)
@@ -428,10 +437,9 @@ proc draw*(bmp: HEBitmap, pos: IVec2, flipY: bool = false, inverted: bool = fals
   let frameStart = advanceU8(framebuf, y1 * LCD_ROWSIZE + (x1 div 32) * 4)
   let hasMask = bmp.mask.len > 0
 
-  let numRows = y2 - y1
   let startRow =
     if flipY:
-      offsetTop + numRows - 1
+      bmp.boundsSize.y - 1 - offsetTop
     else:
       offsetTop
   let rowStep =

@@ -276,6 +276,44 @@ suite "draw inverted":
     bmp.draw(ivec2(0, 0), inverted = false)
     check framebufferRow(0)[0 ..< 8] == "........"
 
+suite "draw flipped":
+  setup:
+    resetFrameBuffer()
+
+  proc trimmedBitmap(): HEBitmap =
+    ## 8x6 white bitmap whose opaque rows (1 and 2) leave a 1px top margin and a
+    ## 3px bottom margin. Row 1 is fully opaque; row 2 only pixels 0-3.
+    let img = newImage("img", 8, 6, kColorWhite)
+    let mask = newImage("mask", 8, 6, kColorBlack)
+    for x in 0 ..< 8:
+      mask.set(x, 1, kColorWhite)
+    for x in 0 ..< 4:
+      mask.set(x, 2, kColorWhite)
+    img.setBitmapMask(mask)
+    fromLCDBitmap(img)
+
+  test "mirrors trimmed margins within the full bitmap height":
+    trimmedBitmap().draw(ivec2(0, 0), flipY = true)
+    # Source row r lands on row 5 - r
+    check framebufferRow(0)[0 ..< 8] == "XXXXXXXX"
+    check framebufferRow(1)[0 ..< 8] == "XXXXXXXX"
+    check framebufferRow(2)[0 ..< 8] == "XXXXXXXX"
+    check framebufferRow(3)[0 ..< 8] == "....XXXX"
+    check framebufferRow(4)[0 ..< 8] == "........"
+    check framebufferRow(5)[0 ..< 8] == "XXXXXXXX"
+
+  test "clips flipped rows off the top edge":
+    trimmedBitmap().draw(ivec2(0, -4), flipY = true)
+    # Source row 2 lands on row -1 (clipped); source row 1 on row 0
+    check framebufferRow(0)[0 ..< 8] == "........"
+    check framebufferRow(1)[0 ..< 8] == "XXXXXXXX"
+
+  test "clips flipped rows off the bottom edge":
+    trimmedBitmap().draw(ivec2(0, LCD_ROWS - 4), flipY = true)
+    # Source row 2 lands on the last row; source row 1 is clipped
+    check framebufferRow(LCD_ROWS - 2)[0 ..< 8] == "XXXXXXXX"
+    check framebufferRow(LCD_ROWS - 1)[0 ..< 8] == "....XXXX"
+
 suite "toBytes/fromBytes":
   privateAccess(HEBitmap)
 
