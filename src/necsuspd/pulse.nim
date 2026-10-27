@@ -5,7 +5,9 @@ export fixedpoint.`<=`, fixedpoint.`$`, fixedpoint.`<`
 type PulseConfig*[S: static int] = object
   size, steps, thickness: int32
   fgColor: LCDSolidColor
-  noise: array[S, array[S, FPInt]]
+  # Flattened because the Nim VM zeroes nested arrays with more than 32 rows,
+  # and configs are built at compile time
+  noise: array[S * S, FPInt]
 
 proc `=copy`*[T: static int](x: var PulseConfig[T], y: PulseConfig[T]) {.error.}
 
@@ -22,7 +24,7 @@ proc newPulseConfig*(
   let noise = newNoise(seed)
   for y in 0 ..< size:
     for x in 0 ..< size:
-      result.noise[y][x] = noise.simplex(x, y).fp()
+      result.noise[y * size + x] = noise.simplex(x, y).fp()
 
 proc buildPulseStep*[T](config: static PulseConfig, frame: int32, target: var T) =
   ## Builds a single step of the pulse animation.
@@ -52,7 +54,7 @@ proc buildPulseStep*[T](config: static PulseConfig, frame: int32, target: var T)
 
     let t = radiusT * overallT
 
-    if config.noise[y][x] <= t:
+    if config.noise[y * config.size + x] <= t:
       target.set(x, y, kColorWhite)
 
 proc buildPulseStep*(config: static PulseConfig, frame: int32): LCDBitmap =
