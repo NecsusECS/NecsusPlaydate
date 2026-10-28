@@ -1,4 +1,5 @@
-import necsus, achievements, drawable, positioned, files, util, std/options
+import
+  necsus, achievements, drawable, positioned, files, util, import_playdate, std/options
 export achievements
 
 type
@@ -71,9 +72,9 @@ template buildAwardSystems*[T: enum](
       timer: Bundle[TimerControl[AwardPopupTimer]],
   ) {.eventSys, depends(debugAchievements).} =
     ## Shows a notification for a granted achievement
-    let sprite = assets.newAssetDrawable(
-      achievementImgAsset, AnchorTopMiddle, popupZIndex, absolutePos = true
-    )
+
+    # Draw into a copy, to ensure we have an LCDBitmap and we keep the base image clean
+    let img = assets.asset(achievementImgAsset).copy()
 
     stack(
       text(
@@ -89,7 +90,10 @@ template buildAwardSystems*[T: enum](
       ),
     )
       .pad(left = 36, top = 4)
-      .draw(sprite.getImage, assets.font(subtitleFont))
+      .draw(img, assets.font(subtitleFont))
+
+    let sprite =
+      newBitmapDrawable(img, popupZIndex, AnchorTopMiddle, absolutePos = true)
 
     let AwardPopupY = -sprite.height - 10
     const AwardPopupX = 200
