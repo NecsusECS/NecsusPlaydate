@@ -23,12 +23,14 @@ proc complete*[T: enum](api: Award[T], kind: T) =
   api.send((kind, AchievementGranted.init().AchievementState))
 
 proc progress*[T: enum](
-    grant: Award[T], kind: T, progress: int, max: int, step: int = 10
+    grant: Award[T], kind: T, progress: int, max: int, step: int = 1
 ) =
-  ## Progresses an achievement
-  if progress in max .. (max + 3):
+  ## Progresses an achievement, granting it once `progress` reaches `max`.
+  ## In-progress updates are only sent on multiples of `step`, so callers that
+  ## report often can throttle them.
+  if progress >= max:
     grant.complete(kind)
-  elif progress < max and progress mod step == 0:
+  elif progress mod step == 0:
     grant.send((kind, AchievementInProgress.init(progress).AchievementState))
 
 proc copyFiles(srcFile, targetFile: Option[string]) =
@@ -46,7 +48,7 @@ template buildAwardSystems*[T: enum](
 ) =
   ## Creates a suite of systems for managing achievements
 
-  proc progress*(grant: Award[T], kind: T, progress: int, step: int = 10) =
+  proc progress*(grant: Award[T], kind: T, progress: int, step: int = 1) =
     ## Marks progress of an achievement
     grant.progress(kind, progress, def.achievements[kind].progressMax.get(), step)
 
