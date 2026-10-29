@@ -1,5 +1,13 @@
 import
-  necsus, achievements, drawable, positioned, files, util, import_playdate, std/options
+  necsus,
+  achievements,
+  drawable,
+  positioned,
+  files,
+  util,
+  import_playdate,
+  suspend,
+  std/options
 export achievements
 
 type
@@ -10,6 +18,12 @@ type
     send: Outbox[Awarded[T]]
 
   Award*[T: enum] = Bundle[AwardApi[T]] ## External Necsus API for granting achievements
+
+  AwardsChanged = object
+    ## Sent whenever the achievement data changes and needs writing to disk
+
+  AwardStorage[T: enum] = Shared[Achievements[T]]
+    ## The loaded achievement data, written to disk at most once per frame
 
   ShowAwardPopup[T] = T ## An event that is triggered when an achievement is granted
 
@@ -110,26 +124,45 @@ template buildAwardSystems*[T: enum](
         ) do() -> void:
           delete(id)
 
+  proc writeAwards(storage: AwardStorage[T]) =
+    def.write(storage.get())
+
+  proc flushAwards(changes: Inbox[AwardsChanged], storage: AwardStorage[T]) =
+    ## Writes the achievement data at most once per frame, so several updates in
+    ## one frame (like those made when a level ends) share a single write
+    if changes.len > 0:
+      storage.writeAwards()
+
+  proc writeAwardsOnSuspend(_: AppSuspended, storage: AwardStorage[T]) {.eventSys.} =
+    ## Writes the achievement data before the game is paused, locked or closed,
+    ## in case changes from this frame haven't been written yet
+    storage.writeAwards()
+
   proc systemName*(
-      granted: Outbox[ShowAwardPopup[T]]
-  ): EventSystemInstance[Awarded[T]] {.eventSys, depends(showAwardPop).} =
+      granted: Outbox[ShowAwardPopup[T]],
+      changed: Outbox[AwardsChanged],
+      storage: AwardStorage[T],
+  ): EventSystemInstance[Awarded[T]] {.
+      eventSys, depends(showAwardPop, flushAwards, writeAwardsOnSuspend)
+  .} =
     ## Initialize achievements system. Sets up an event listener for when achievements are granted.
 
-    var loaded = def.load()
-    def.write(loaded)
+    storage := def.load()
+    storage.writeAwards()
     copyFiles(def.iconPath, def.iconTargetPath)
     copyFiles(def.cardPath, def.cardTargetPath)
 
-    log "Achievements initialized: ", loaded
+    log "Achievements initialized: ", storage.get()
 
     return proc(event: Awarded[T]) =
-      if not event.state.isAdvancement(loaded[event.kind]):
-        log "Achievement is not an advancement: ", event, " vs ", loaded[event.kind]
+      let current = storage.get()[event.kind]
+      if not event.state.isAdvancement(current):
+        log "Achievement is not an advancement: ", event, " vs ", current
         return
 
       log "Achievement updated: ", event
-      loaded.advance(event.kind, event.state)
-      def.write(loaded)
+      storage.getOrPut().advance(event.kind, event.state)
+      changed(AwardsChanged())
 
       if event.state.kind == AchievementGrantedKind:
         granted(event.kind)
