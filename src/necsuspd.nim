@@ -7,7 +7,7 @@ import
     particles, percent, pool, positioned, pulse, rand, hebitmap, shake, singleton,
     textwrap, time, timer, treeSeq, triggerBox, types, util, vec_tools, viewport,
     visibleState, choices, intersects, rotations, raycasts, paused, beam, beamfx, ldtk,
-    ldtk_draw, zone_fill, drawlayer, steps,
+    ldtk_draw, zone_fill, drawlayer, steps, suspend
   ]
 
 export achievements
@@ -67,6 +67,7 @@ export rotations
 export shake
 export singleton
 export steps
+export suspend
 export textwrap
 export time
 export timer

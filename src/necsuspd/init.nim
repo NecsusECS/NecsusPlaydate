@@ -1,4 +1,6 @@
-import import_playdate, vmath, util, debug
+import import_playdate, vmath, util, debug, suspend
+
+export suspend
 
 proc getTime*(): float {.gcsafe.} =
   {.cast(gcsafe).}:
@@ -19,6 +21,11 @@ template initNecsusPlaydate*(
     appTyp: typedesc, initNecsusApp: untyped, handle: untyped
 ) =
   var appInst {.inject.}: ref appTyp
+
+  template sendSuspended() =
+    when compiles(appInst.sendAppSuspended(AppSuspended())):
+      reportError:
+        appInst.sendAppSuspended(AppSuspended())
 
   proc update(): int {.raises: [].} =
     reportError:
@@ -44,8 +51,13 @@ template initNecsusPlaydate*(
         appInst = initNecsusApp
         handle
       log "Initialization done"
+    of kEventPause, kEventLock:
+      sendSuspended()
+      reportError:
+        handle
     of kEventTerminate:
       log "Shutting down"
+      sendSuspended()
       reportError:
         handle
         `=destroy`(appInst[])
