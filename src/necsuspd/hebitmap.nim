@@ -235,6 +235,12 @@ proc fromLCDBitmap*(src: LCDBitmap): HEBitmap =
   assert(not src.isNil, "fromLCDBitmap called with nil LCDBitmap")
   result = HEBitmap(size: ivec2(src.width.int32, src.height.int32))
   var bitmapData = src.getDataObj()
+  # pdc trims image-table cells; the SDK then reports the full size but the
+  # trimmed rowbytes, with no way to recover the trim offset or real height
+  assert(
+    bitmapData.rowbytes * 8 >= bitmapData.width,
+    "fromLCDBitmap can't convert a trimmed image-table cell; prebuild a .hebs instead",
+  )
   let srcLen = int32(bitmapData.rowbytes) * int32(bitmapData.height)
   let srcPtr = cast[ptr UncheckedArray[uint8]](bitmapData.data)
   let maskBmp = src.getBitmapMask()
