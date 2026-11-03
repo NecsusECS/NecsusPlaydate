@@ -1,7 +1,7 @@
 import time, necsus
 
 type Debounce*[T] = object ## Uses a type as a flag for debouncing an action
-  gameTime: GameTime
+  gameTime: GlobalGameTime
   at: Shared[(bool, float32, T)]
 
 proc mark*[T](debounce: Bundle[Debounce[T]]) =

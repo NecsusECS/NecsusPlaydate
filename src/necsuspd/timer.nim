@@ -13,7 +13,7 @@ type
 
   TimerControl*[T] = object
     spawn: Spawn[(Timer, T)]
-    time: GameTime
+    time: GlobalGameTime
 
 proc startTimer*[T](
     control: Bundle[TimerControl[T]], name: string, delta: float32, action: proc(): void
@@ -43,7 +43,7 @@ proc lifetimes*(
       delete(eid)
 
 proc runTimers*(
-    timers: FullQuery[(Timer,)], time: GameTime, delete: Delete
+    timers: FullQuery[(Timer,)], time: GlobalGameTime, delete: Delete
 ) {.depends(lifetimes).} =
   ## System for triggering timers
   for eid, (timer) in timers:

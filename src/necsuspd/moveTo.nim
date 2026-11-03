@@ -4,7 +4,7 @@ type
   MoveTo*[Filter] = object ## Bundle needed to attach a movement
     lookup: Lookup[(Positioned, Filter)]
     attach: Attach[(MovingTo,)]
-    time: GameTime
+    time: GlobalGameTime
 
   MovingTo* {.accessory.} = ref object
     ## Component that defines the movement behavior of an entity
@@ -19,7 +19,7 @@ type
 
   CallbackMoveTo*[T] = object ## Creates callback based movers
     spawn: Spawn[(MoveCallback, T)]
-    time: GameTime
+    time: GlobalGameTime
 
 proc defaultOnComplete() =
   discard
@@ -109,7 +109,7 @@ proc calculate*(
 proc updateMoveTos*(
     movers: FullQuery[(ptr Positioned, ptr MovingTo)],
     done: Detach[(MovingTo,)],
-    time: GameTime,
+    time: GlobalGameTime,
     callbacks: FullQuery[(ptr MoveCallback,)],
     delete: Delete,
 ) =

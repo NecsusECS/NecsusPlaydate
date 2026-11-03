@@ -23,7 +23,7 @@ type
     onPress: Outbox[T]
     buttons: Inbox[ButtonPushed]
     data: Shared[CarouselData[T]]
-    time: GameTime
+    time: GlobalGameTime
     changed: Outbox[CarouselChanged[T]]
 
 proc isBefore(a, b: IVec2): bool =

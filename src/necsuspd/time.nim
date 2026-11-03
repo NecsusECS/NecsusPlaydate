@@ -1,11 +1,15 @@
 import necsus, debug, util, fpvec
 
 type
+  # Necsus gives every `Shared` aliased over the same type one slot, so each
+  # clock needs its own value type to keep from overwriting the other
   TimeValue = float32
 
-  GameTime* = Shared[TimeValue]
+  GlobalTimeValue = float32
 
-  GlobalGameTime* = Shared[TimeValue]
+  GameTime* = Shared[TimeValue] ## Time spent in the current state
+
+  GlobalGameTime* = Shared[GlobalTimeValue] ## Time spent across all states
 
   DeltaValue = float32
 
