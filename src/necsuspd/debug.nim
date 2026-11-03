@@ -25,10 +25,14 @@ proc debugInputHandler*(messages: Outbox[DebugInput]) {.startupSys.} =
     )
 
 proc reportFPS*(delta: TimeDelta): SystemInstance =
-  var times = newSeq[float]()
-  return proc() =
-    if times.len > 100:
-      let fps = 100.0 / times.sum()
-      playdate.system.logToConsole("FPS: " & $fps)
-      times.setLen(0)
-    times.add(delta())
+  when defined(noLogging):
+    return proc() =
+      discard
+  else:
+    var times = newSeq[float]()
+    return proc() =
+      if times.len > 100:
+        let fps = 100.0 / times.sum()
+        log "FPS: ", fps
+        times.setLen(0)
+      times.add(delta())

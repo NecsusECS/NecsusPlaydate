@@ -7,8 +7,9 @@ proc getTime*(): float {.gcsafe.} =
     playdate.system.getElapsedTime()
 
 proc log*(message: string) {.gcsafe.} =
-  {.cast(gcsafe).}:
-    playdate.system.logToConsole(message)
+  when not defined(noLogging):
+    {.cast(gcsafe).}:
+      playdate.system.logToConsole(message)
 
 template reportError(body: untyped) =
   try:
