@@ -320,6 +320,11 @@ proc stateAnimationTable*[A, B: enum](
       let tag = sheet.findTag(tagName).orElse:
         sheet.error(fmt"Missing tag '{tagName}'")
         return
+      let tagFrames = tag.to.int - tag.`from`.int + 1
+      if tagFrames < ord(B.high) + 1:
+        sheet.error(
+          fmt"Tag '{tagName}' has {tagFrames} frames, but {$B} needs {ord(B.high) + 1}"
+        )
       for state in B:
         let frameId = tag.`from`.int32 + ord(state).int32
         let dur = sheet.frames[frameId].duration.float32 / 1000'f32
