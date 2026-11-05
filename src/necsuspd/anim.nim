@@ -80,6 +80,15 @@ proc toKeyframe*(frame: Frame, sheet: EnumValue, entityId: EntityId): Option[Key
 proc `$`*(def: AnimationDef | AnimationDefObj): string =
   fmt"AnimationDef({def.sheet}, frames={def.frames}, {def.anchor}, loop={def.loop})"
 
+proc toAnimationDefs*[A, B: enum](
+    objs: array[A, array[B, AnimationDefObj]]
+): array[A, array[B, AnimationDef]] =
+  ## Wraps a table of plain animation objects, such as one stored in a `const`, in refs
+  for category in A:
+    for state in B:
+      result[category][state] = new(AnimationDef)
+      result[category][state][] = objs[category][state]
+
 proc frame*(cellId: int32, time: float32): Frame =
   Frame(cellId: cellId, time: time, isKeyframe: false)
 

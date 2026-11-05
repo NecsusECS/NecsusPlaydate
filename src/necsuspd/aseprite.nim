@@ -330,3 +330,19 @@ proc stateAnimationTable*[A, B: enum](
         let dur = sheet.frames[frameId].duration.float32 / 1000'f32
         result[category][state] =
           animation(sheetId, @[frame(frameId, dur)], sheet.spriteAnchor, tag.loop())
+
+type StateAnimObjs*[A, B] = array[A, array[B, AnimationDefObj]]
+  ## `stateAnimationTable` resolved at compile time. `AnimationDef` is a ref, so it
+  ## can't be stored in a `const`; this holds the plain objects instead.
+
+proc stateAnimationObjs*[A, B: enum](
+    sheet: SpriteSheet, sheetId: enum, prefix = "", suffix = ""
+): StateAnimObjs[A, B] {.compileTime.} =
+  ## Resolves the tags of a state animation table during the build, so a missing tag
+  ## fails compilation and the parsed sheet stays out of the binary. Assign the result
+  ## to a `const` and wrap it with `toAnimationDefs` at runtime.
+  when LIVE_COMPILE:
+    let table = stateAnimationTable[A, B](sheet, sheetId, prefix, suffix)
+    for category in A:
+      for state in B:
+        result[category][state] = table[category][state][]
