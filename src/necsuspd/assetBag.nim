@@ -226,16 +226,26 @@ proc buildAssetLoader*[ImgId, SheetId, FontId, NineSliceId, MidiId, SfxId](
     task.createLoaders(bag, midis, midi, MidiId)
     task.createLoaders(bag, sounds, sound, SfxId)
 
-proc findAssetBagKey*(path: string, typ: typedesc[enum], suffix: string = ""): typ =
+proc assetBagKeyName(path: string, suffix: string): string =
   # Takes a string in the form "../source/images/map-background-1.png"
   # It strips the 'png', removes all the leading directories, then converts
   # from lower kebab case to upper camel case. So the result iS: MapBackground1
   # This will also strip the '-table-16-16' style suffixes added to the filename
   let filename = path[(path.rfind('/') + 1) .. ^1].removeSuffix(".png")
-  var key = ""
   for part in filename.split('-'):
     if part == "table":
       break
     else:
-      key.add(part.capitalizeAscii())
-  return strToEnum[typ](key & suffix)
+      result.add(part.capitalizeAscii())
+  result.add(suffix)
+
+proc findAssetBagKey*(path: string, typ: typedesc[enum], suffix: string = ""): typ =
+  ## Converts an asset path to its enum key, falling back to the first value when
+  ## nothing matches. See `tryFindAssetBagKey` to detect a mismatch.
+  return strToEnum[typ](assetBagKeyName(path, suffix))
+
+proc tryFindAssetBagKey*(
+    path: string, typ: typedesc[enum], suffix: string = ""
+): Option[typ] =
+  ## Converts an asset path to its enum key, or `none` when nothing matches
+  return findEnum[typ](assetBagKeyName(path, suffix))

@@ -32,6 +32,13 @@ type
 template getLevel*(data: LdtkJsonRoot, levelIdx: int32): LdtkLevel =
   data.levels[levelIdx]
 
+proc tilesetSheetKey[Sheets: enum](
+    tileset: LdtkTilesetDef, sheets: typedesc[Sheets]
+): Sheets =
+  ## The sheet named by a tileset's identifier
+  return findEnum[Sheets](tileset.identifier).orElse:
+    raiseAssert "No " & $Sheets & " value for LDtk tileset: " & tileset.identifier
+
 proc findSourceImage(
     data: LdtkJsonRoot,
     assets: SharedOrT[AssetBag],
@@ -45,14 +52,15 @@ proc findSourceImage(
 
   for it in data.defs.tilesets:
     if it.uid == layerTilesetUid:
-      return some(assets.unwrap.sheet(strToEnum[sheets](it.identifier)))
+      return some(assets.unwrap.sheet(it.tilesetSheetKey(sheets)))
 
   raiseAssert "Could not find source image for layer"
 
 proc findBgImageKey[Images: enum](level: LdtkLevel, images: typedesc[Images]): Images =
   let bgPath = level.bgRelPath.orElse:
     raiseAssert "Could not find 'bgRelPath' key for level: " & level.identifier
-  bgPath.findAssetBagKey(images)
+  bgPath.tryFindAssetBagKey(images).orElse:
+    raiseAssert "No " & $Images & " value for LDtk background: " & bgPath
 
 proc findBackgroundImage[Images: enum](
     level: LdtkLevel, assets: SharedOrT[AssetBag], images: typedesc[Images]
@@ -170,7 +178,7 @@ proc findSourceSheetKey[Sheets: enum](
     return none(Sheets)
   for it in data.defs.tilesets:
     if it.uid == layerTilesetUid:
-      return some(strToEnum[Sheets](it.identifier))
+      return some(it.tilesetSheetKey(Sheets))
   raiseAssert "Could not find source image for layer"
 
 proc extractDrawInstructions*(

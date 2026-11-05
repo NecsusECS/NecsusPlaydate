@@ -1,5 +1,8 @@
 import
-  std/[macros, options, strutils, sequtils, macrocache, importutils, setutils, staticos],
+  std/[
+    macros, options, strutils, sequtils, macrocache, importutils, setutils, staticos,
+    enumutils,
+  ],
   types,
   import_playdate
 
@@ -316,6 +319,12 @@ macro enumCase(typ: typedesc, value: typed, otherwise: typed) =
 proc strToEnum*[T: enum](value: string, otherwise: T = default(T)): T =
   ## Same as parseEnum, but more efficient
   enumCase(T, value, otherwise)
+
+proc findEnum*[T: enum](value: string): Option[T] =
+  ## Like `strToEnum`, but returns `none` when `value` names no member of `T`
+  for item in T:
+    if symbolName(item) == value:
+      return some(item)
 
 proc modifiedTime*(path: string): int {.compileTime.} =
   ## Returns the modification time of `path` as a unix timestamp, or `-1` when it

@@ -1,4 +1,4 @@
-import std/unittest, necsuspd/util
+import std/[unittest, options], necsuspd/util
 
 type TestEnum = enum
   A
@@ -30,6 +30,11 @@ suite "Utilities":
     check(strToEnum[TestEnum]("C") == C)
     check(strToEnum[TestEnum]("D") == A)
     check(strToEnum[TestEnum]("D", B) == B)
+
+  test "findEnum":
+    check(findEnum[TestEnum]("A") == some(A))
+    check(findEnum[TestEnum]("C") == some(C))
+    check(findEnum[TestEnum]("D") == none(TestEnum))
 
   test "Compile time modification times":
     const
