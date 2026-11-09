@@ -135,6 +135,11 @@ proc asBool(color: Color): bool =
   of kColorBlack:
     return true
 
+proc set*(this: var BitmapDataObj, x, y: SomeInteger, color: LCDSolidColor) =
+  if x >= 0 and x.int32 < this.width:
+    if y >= 0 and y.int32 < this.height:
+      this.pixels[y.int32][x.int32] = color.asBool
+
 proc newBitmapData(width, height: int, color: LCDSolidColor): BitmapDataObj =
   result =
     BitmapDataObj(width: width, height: height, pixels: newSeq[seq[bool]](height))
@@ -193,6 +198,10 @@ proc clear*(graphics: PlaydateGraphics, color: LCDSolidColor) =
 
 proc fillRect*(graphics: PlaydateGraphics, x, y, width, height: int, color: Color) =
   record("fillRect", x, y, width, height, color)
+  if graphics.context.len > 0:
+    for py in y ..< y + height:
+      for px in x ..< x + width:
+        graphics.context[^1].data.set(px, py, color)
 
 proc drawRect*(graphics: PlaydateGraphics, x, y, width, height: int, color: Color) =
   record("drawRect", x, y, width, height, color)
@@ -235,11 +244,6 @@ proc setMany*[W: static int](this: var Image, pixels: openarray[array[W, Color]]
         asStr &= "."
   let img = this.name
   record("setMany", img, asStr)
-
-proc set*(this: var BitmapDataObj, x, y: SomeInteger, color: LCDSolidColor) =
-  if x >= 0 and x.int32 < this.width:
-    if y >= 0 and y.int32 < this.height:
-      this.pixels[y.int32][x.int32] = color.asBool
 
 proc clear*(this: Image, color: Color) =
   for y in 0 ..< this.height:

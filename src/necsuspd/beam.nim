@@ -7,19 +7,41 @@ const
   MAX_TICK_HALF_LEN = 6
 
 const
-  SINUS_STEP = 2.0
-  SINUS_WAVELENGTH = 20.0
-  SINUS_MAX_AMPLITUDE = 3.0
+  SINUS_STEP = 2'i32
+  SINUS_WAVELENGTH = 20'i32
+  SINUS_MAX_AMPLITUDE = 3'i32
 
 const
   COMB_BEAM_SPREAD* = int32(MAX_TICK_HALF_LEN + 1)
     ## How far `drawCombBeam` strays from the line between its endpoints
-  SINUS_BEAM_SPREAD* = SINUS_MAX_AMPLITUDE.int32 + 1
+  SINUS_BEAM_SPREAD* = SINUS_MAX_AMPLITUDE + 1
     ## How far `drawSinusoidalBeam` strays from the line between its endpoints
   LASER_BEAM_SPREAD* = 2'i32
     ## How far `drawLaserBeam` strays from the line between its endpoints
   JAGGED_BEAM_SPREAD* = 48'i32
     ## How far `drawJaggedBeam` strays from the line between its endpoints.
+
+const SINE_STEPS = 256'i32 ## Angle steps in a full turn for `sinSteps`
+
+const SINE_TABLE = block:
+  var table: array[SINE_STEPS, FPInt]
+  for i in 0 ..< SINE_STEPS:
+    table[i] = fp(sin(i.float * 2.0 * PI / SINE_STEPS.float))
+  table
+
+proc sinSteps(angle: int32): FPInt {.inline.} =
+  ## The sine of an angle measured in 1/SINE_STEPS of a turn
+  SINE_TABLE[angle and (SINE_STEPS - 1)]
+
+proc clearAround(a, b: IVec2, spread: int32) =
+  ## Clears the bounding box of `a` and `b`, grown by `spread`
+  playdate.graphics.fillRect(
+    int(min(a.x, b.x) - spread),
+    int(min(a.y, b.y) - spread),
+    int(abs(b.x - a.x) + spread * 2 + 1),
+    int(abs(b.y - a.y) + spread * 2 + 1),
+    kColorBlack,
+  )
 
 proc drawCombBeam*(img: LCDBitmap, a, b: IVec2, rng: var Rand) =
   ## Draws a comb beam from `a` to `b`. A solid core line runs between the
@@ -50,30 +72,29 @@ proc drawCombBeam*(img: LCDBitmap, a, b: IVec2, rng: var Rand) =
 proc drawSinusoidalBeam*(img: LCDBitmap, a, b: IVec2, phase: float) =
   ## Draws two sinusoidal waves from `a` to `b`, tapering at both endpoints.
   ## `phase` controls the wave animation offset.
-  img.getBitmapMask.clear(kColorBlack)
   img.getBitmapMask.drawContext:
+    clearAround(a, b, SINUS_BEAM_SPREAD)
     let delta = (b - a).toFPVec2()
-    let dist = delta.length.toFloat()
-    if dist < 1.0:
+    let dist = delta.length.toInt
+    if dist < 1:
       return
 
     let dir = delta.normalize()
     let perp = dir.perpendicular()
+    let phaseSteps = int32(phase * SINE_STEPS.float / (2.0 * PI))
 
     var prevPoint1 = toIVec2(toFPVec2(a))
     var prevPoint2 = prevPoint1
     var first = true
 
-    var t = 0.0
+    var t = 0'i32
     while t <= dist:
-      let taper = sin(t / dist * PI)
-      let wavePhase1 = (t / SINUS_WAVELENGTH) * 2.0 * PI + phase
-      let wavePhase2 = wavePhase1 + PI
-      let offset1 = sin(wavePhase1) * SINUS_MAX_AMPLITUDE * taper
-      let offset2 = sin(wavePhase2) * SINUS_MAX_AMPLITUDE * taper
+      let taper = sinSteps(t * (SINE_STEPS div 2) div dist)
+      let wave = sinSteps(t * SINE_STEPS div SINUS_WAVELENGTH + phaseSteps)
+      let offset = wave * fp(SINUS_MAX_AMPLITUDE) * taper
       let base = toFPVec2(a) + dir * fp(t)
-      let point1 = toIVec2(base + perp * fp(offset1))
-      let point2 = toIVec2(base + perp * fp(offset2))
+      let point1 = toIVec2(base + perp * offset)
+      let point2 = toIVec2(base - perp * offset)
       if not first:
         playdate.graphics.drawLine(
           prevPoint1.x.int, prevPoint1.y.int, point1.x.int, point1.y.int, 1, kColorWhite
@@ -132,7 +153,7 @@ proc drawJaggedSegment(
     rng: var Rand,
     perp: FPVec2,
     beamOrigin, beamTarget: IVec2,
-    beamDistSq: float,
+    beamDistSq: int32,
     a, b: IVec2,
     width, depth: int32,
     step: uint,
@@ -143,11 +164,10 @@ proc drawJaggedSegment(
   let mid = a + ((b - a) div 2)
   let beamDelta = beamTarget - beamOrigin
   let projected =
-    float(mid.x - beamOrigin.x) * float(beamDelta.x) +
-    float(mid.y - beamOrigin.y) * float(beamDelta.y)
-  let s = sin(projected / beamDistSq * PI)
+    (mid.x - beamOrigin.x) * beamDelta.x + (mid.y - beamOrigin.y) * beamDelta.y
+  let s = sinSteps(projected * (SINE_STEPS div 2) div beamDistSq)
   let taper = s * s
-  let maxJitter = max(1'i32, int32(float(width * 8 div (depth + 3)) * taper))
+  let maxJitter = max(1'i32, (fp(width * 8 div (depth + 3)) * taper).toInt)
   let offset = (rng.rand(0'i32 .. maxJitter) - maxJitter div 2).fp
   let displaced = toIVec2(mid.toFPVec2() + perp * offset)
   drawJaggedSegment(
@@ -168,7 +188,7 @@ proc drawJaggedBeam*(img: LCDBitmap, step: uint, origin, target: IVec2): bool =
     BiggestUInt(target.x) * 83492791 xor BiggestUInt(target.y) * 53842781
   var rng = initRand(seed.int64)
   let delta = target - origin
-  let beamDistSq = float(delta.x * delta.x + delta.y * delta.y)
+  let beamDistSq = delta.x * delta.x + delta.y * delta.y
   let perp = delta.toFPVec2().perpendicular().normalize()
 
   img.getBitmapMask.clear(kColorBlack)
