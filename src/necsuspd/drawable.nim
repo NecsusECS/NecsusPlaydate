@@ -21,11 +21,13 @@ type
     table.heAsset(A) is HEBitmap
 
   DrawableObj* = object
-    anchorOffset*: IVec2
+    anchorOffset: IVec2
     manualOffset: IVec2
     absolutePos: bool
     link: Drawable
     drawItem*: DrawItem
+    stale: bool ## Set so `moveDrawables` re-places it
+    placedPos, placedViewport: IVec2 ## The position and viewport last used
 
   Drawable* = ref DrawableObj
 
@@ -90,6 +92,14 @@ proc offset*(d: Drawable | ptr Drawable): IVec2 {.inline.} =
 
 proc `offset=`*(d: Drawable | ptr Drawable, offset: IVec2) {.inline.} =
   d.manualOffset = offset
+  d.stale = true
+
+proc anchorOffset*(d: Drawable | ptr Drawable): IVec2 {.inline.} =
+  d.anchorOffset
+
+proc `anchorOffset=`*(d: Drawable | ptr Drawable, offset: IVec2) {.inline.} =
+  d.anchorOffset = offset
+  d.stale = true
 
 proc remove*(d: Drawable | ptr Drawable) =
   unregister(d.drawItem)
@@ -114,9 +124,11 @@ proc setBitmapMask*(
 
 proc setImage*(d: Drawable, img: LCDBitmap) {.inline.} =
   d.drawItem.setImage(img)
+  d.stale = true
 
 proc setImage*(d: Drawable, img: HEBitmap) {.inline.} =
   d.drawItem.setImage(img)
+  d.stale = true
 
 iterator linked*(d: Drawable): Drawable {.inline.} =
   var current {.cursor.} = d
@@ -134,6 +146,7 @@ proc `link=`*(parent, child: Drawable) {.inline.} =
     for d in child.linked:
       assert(addr(d[]) != addr(parent[]))
   parent.link = child
+  parent.stale = true
 
 proc dimens*(d: Drawable | ptr Drawable): IVec2 {.inline.} =
   return ivec2(d.width.int32, d.height.int32)
@@ -167,6 +180,7 @@ proc newBitmapDrawable*(
   result = Drawable(
     anchorOffset: offsetFix(img, anchor.toAnchor),
     absolutePos: absolutePos,
+    stale: true,
     drawItem: newDrawItem(img, zIndex),
   )
   register(result.drawItem)
@@ -180,6 +194,7 @@ proc newHEDrawable*(
   result = Drawable(
     anchorOffset: offsetFix(img, anchor.toAnchor),
     absolutePos: absolutePos,
+    stale: true,
     drawItem: newDrawItem(img, zIndex),
   )
   register(result.drawItem)
@@ -218,6 +233,11 @@ template newBlankDrawable*(
 ): Drawable =
   newBlankDrawable(width.int32, height.int32, zIndex, anchor, color, absolutePos)
 
+proc isStale(d: Drawable): bool {.inline.} =
+  for linked in d.linked:
+    if linked.stale:
+      return true
+
 proc moveDrawables*(
     drawables: Query[(ptr Drawable, Positioned)],
     viewport: Shared[ViewPort],
@@ -231,7 +251,13 @@ proc moveDrawables*(
   let noViewport = ivec2(0, 0)
   for (parent, pos) in drawables:
     let posIVec = pos.toIVec2
+    if parent.placedPos == posIVec and parent.placedViewport == viewportOffset and
+        not parent[].isStale:
+      continue
+    parent.placedPos = posIVec
+    parent.placedViewport = viewportOffset
     for d in parent[].linked:
+      d.stale = false
       let vpOff = if d.absolutePos: noViewport else: viewportOffset
       let absolutePos = posIVec + d.anchorOffset + d.manualOffset - vpOff
       d.drawItem.moveTo(absolutePos - d.drawItem.dimens div 2)
