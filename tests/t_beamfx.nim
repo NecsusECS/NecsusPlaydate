@@ -1,4 +1,25 @@
-import std/unittest, necsuspd/beamfx, vmath
+import
+  std/unittest,
+  necsus,
+  necsuspd/[beamfx, drawable, fpvec, pool, positioned],
+  necsuspd/stubs/graphics,
+  vmath
+
+const TEST_POOL_SIZE = 3
+
+makeBeamPool(TestBeam, 0, 20, TEST_POOL_SIZE)
+
+proc keepAlive(img: LCDBitmap, step: uint, origin, target: IVec2): bool =
+  true
+
+runSystemOnce do(
+  spawn: Spawn[(TestBeamBeamState, Positioned, Drawable, Handle[Drawable])],
+  live: Query[(TestBeamBeamState,)]
+) -> void:
+  test "drops beams fired while the pool is full":
+    for _ in 0 ..< TEST_POOL_SIZE + 2:
+      TestBeam(beam(fpvec2(0, 0), fpvec2(5, 5), keepAlive, 1), spawn, live)
+    check live.len == TEST_POOL_SIZE
 
 suite "beamClip":
   test "grows the endpoints' bounding box by the spread":

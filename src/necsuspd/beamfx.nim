@@ -102,7 +102,10 @@ template makeBeamPool*(
   proc `Name`*(
       event: BeamEvent,
       spawn: Spawn[(`Name BeamState`, Positioned, Drawable, Handle[Drawable])],
+      live: Query[(`Name BeamState`,)],
   ) {.eventSys, depends(`update Name Beams`).} =
+    if live.len >= poolSize:
+      return
     let delta = toIVec2(event.beamTarget - event.beamOrigin)
     const center = ivec2(maxBeamLength div 2, maxBeamLength div 2)
     let localOrigin = `Name BeamLocalOrigin`(delta)
