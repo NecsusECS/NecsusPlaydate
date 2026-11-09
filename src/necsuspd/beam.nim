@@ -107,6 +107,49 @@ proc drawSinusoidalBeam*(img: LCDBitmap, a, b: IVec2, phase: float) =
       first = false
       t += SINUS_STEP
 
+const CROSS_HATCH_CORNER = SINUS_WAVELENGTH div 4
+  ## Distance along the beam between a zigzag's peaks and crossings
+
+proc drawCrossHatchBeam*(img: LCDBitmap, a, b: IVec2, phase: float) =
+  ## Draws two mirrored zigzags from `a` to `b` that cross every half
+  ## wavelength, forming a chain of Xs that tapers at both endpoints.
+  img.getBitmapMask.drawContext:
+    clearAround(a, b, SINUS_BEAM_SPREAD)
+    let delta = (b - a).toFPVec2()
+    let dist = delta.length.toInt
+    if dist < 1:
+      return
+
+    let dir = delta.normalize()
+    let perp = dir.perpendicular()
+    let shift =
+      euclMod(int32(phase * SINUS_WAVELENGTH.float / (2.0 * PI)), SINUS_WAVELENGTH)
+
+    var prevPoint1 = a
+    var prevPoint2 = a
+    template lineTo(next1, next2: IVec2) =
+      let point1 = next1
+      let point2 = next2
+      playdate.graphics.drawLine(
+        prevPoint1.x.int, prevPoint1.y.int, point1.x.int, point1.y.int, 1, kColorWhite
+      )
+      playdate.graphics.drawLine(
+        prevPoint2.x.int, prevPoint2.y.int, point2.x.int, point2.y.int, 1, kColorWhite
+      )
+      prevPoint1 = point1
+      prevPoint2 = point2
+
+    var t = CROSS_HATCH_CORNER - (shift mod CROSS_HATCH_CORNER)
+    while t < dist:
+      const sides = [0'i32, 1, 0, -1]
+      let side = sides[((t + shift) div CROSS_HATCH_CORNER) mod 4]
+      let taper = sinSteps(t * (SINE_STEPS div 2) div dist)
+      let offset = fp(SINUS_MAX_AMPLITUDE * side) * taper
+      let base = toFPVec2(a) + dir * fp(t)
+      lineTo(toIVec2(base + perp * offset), toIVec2(base - perp * offset))
+      t += CROSS_HATCH_CORNER
+    lineTo(b, b)
+
 let sparse = block:
   ## A sparse checkerboard pattern used for rendering the laser
   let X = kColorBlack

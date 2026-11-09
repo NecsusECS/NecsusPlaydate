@@ -115,6 +115,63 @@ suite "Drawing beams":
     check rows[10] == "XXXXXXXXXXXXXXXXXXXX"
     check rows[6][0 .. 12] == "_____________"
 
+  test "draws a cross-hatch beam":
+    let img = newImage("primary", 60, 12, kColorBlack)
+    img.setBitmapMask(newImage("mask", img.width, img.height, kColorWhite))
+
+    img.drawCrossHatchBeam(ivec2(3, 6), ivec2(56, 6), 0.0)
+
+    check img == [
+      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+      "____________________________________________________________",
+      "__________________X_________X_________X_____________________",
+      "________________XX_XX_____XX_XX_____XX_XX______XXX__________",
+      "______XXXXX___XX_____XX_XX_____XX_XX_____XX__XX___XX________",
+      "___XXXXXXXXXXXX_______XXX_______XXX_______XXXX_____XXXXXX___",
+      "_______________XX___XX___XX___XX___XX___XX____XXXXX_________",
+      "_________________XXX_______XXX_______XXX____________________",
+      "____________________________________________________________",
+      "____________________________________________________________",
+      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    ]
+
+  test "a cross-hatch beam's phase slides the Xs along it":
+    proc render(phase: float): seq[string] =
+      let img = newImage("primary", 60, 12, kColorBlack)
+      img.setBitmapMask(newImage("mask", img.width, img.height, kColorWhite))
+      img.drawCrossHatchBeam(ivec2(3, 6), ivec2(56, 6), phase)
+      for row in img.rows:
+        result.add(row)
+
+    check render(0.0) != render(1.2)
+    # Negative phases wrap around rather than indexing out of the corner sides
+    check render(-1.2) != render(0.0)
+
+  test "a cross-hatch beam only clears the area it can draw to":
+    let img = newImage("primary", 20, 12, kColorBlack)
+    img.setBitmapMask(newImage("mask", img.width, img.height, kColorWhite))
+
+    img.drawCrossHatchBeam(ivec2(2, 2), ivec2(8, 2), 0.0)
+
+    var rows: seq[string]
+    for row in img.rows:
+      rows.add(row)
+    check rows[2][13 ..^ 1] == "XXXXXXX"
+    check rows[10] == "XXXXXXXXXXXXXXXXXXXX"
+
+  test "a zero-length cross-hatch beam draws nothing":
+    let img = newImage("primary", 20, 12, kColorBlack)
+    img.setBitmapMask(newImage("mask", img.width, img.height, kColorWhite))
+
+    img.drawCrossHatchBeam(ivec2(6, 6), ivec2(6, 6), 0.0)
+
+    var rows: seq[string]
+    for row in img.rows:
+      rows.add(row)
+    # Only the cleared box around the point, with no line drawn in it
+    check rows[6] == "XX_________XXXXXXXXX"
+
   test "draws a laser beam (step 0 - bright)":
     let img = newImage("primary", 80, 40, kColorBlack)
     img.setBitmapMask(newImage("mask", img.width, img.height, kColorWhite))
