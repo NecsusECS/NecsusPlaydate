@@ -16,6 +16,9 @@ type
     size: IVec2
       ## Cached bitmap dimensions; querying an LCDBitmap's size goes through
       ## the Playdate C API, which is too slow to do per sprite per frame
+    clipped: bool
+    clipPos, clipSize: IVec2
+      ## Region of the bitmap to draw, relative to its top left corner
     case kind: DrawItemKind
     of dikHE: he: HEBitmap
     of dikLCD: lcd: LCDBitmap
@@ -110,6 +113,15 @@ proc inverted*(d: DrawItem): bool {.inline.} =
 proc `inverted=`*(d: DrawItem, v: bool) {.inline.} =
   d.inverted = v
 
+proc clipTo*(d: DrawItem, pos, size: IVec2) {.inline.} =
+  ## Only draw the `size` at `pos`, relative to the top left corner
+  d.clipped = true
+  d.clipPos = pos
+  d.clipSize = size
+
+proc unclip*(d: DrawItem) {.inline.} =
+  d.clipped = false
+
 var gDrawLayer*: seq[seq[DrawItem]]
 
 when defined(simulator):
@@ -175,6 +187,11 @@ proc drawSprites*() =
         of dikHE:
           item.he.draw(item.pos, item.flipY, item.inverted)
         of dikLCD:
+          if item.clipped:
+            let clipAt = item.pos + item.clipPos
+            playdate.graphics.setClipRect(
+              clipAt.x.int, clipAt.y.int, item.clipSize.x.int, item.clipSize.y.int
+            )
           let flip = if item.flipY: kBitmapFlippedY else: kBitmapUnflipped
           if item.inverted:
             # The loop-wide draw mode is kDrawModeCopy; flip to inverted just
@@ -184,6 +201,8 @@ proc drawSprites*() =
             playdate.graphics.setDrawMode(kDrawModeCopy)
           else:
             item.lcd.draw(item.pos.x, item.pos.y, flip)
+          if item.clipped:
+            playdate.graphics.clearClipRect()
         # log "RENDERING: (",  item.pos.x, ", ", item.pos.y, ") ",
         #   item.dimens.x, "x", item.dimens.y, " at ", bucketId
 

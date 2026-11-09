@@ -90,6 +90,10 @@ proc drawBranch(
     let newLineSize = lightning.forkLineSize(depth, lineSize)
     lightning.drawBranch(a, forkTo, subdivisions, depth, newLineSize)
 
+proc lightningSpread*(width: SomeInteger, initialLineSize: SomeInteger = 2): int32 =
+  ## How far `drawLightning` strays from the line between its endpoints.
+  int32(width) * 2 div 5 + int32(initialLineSize) + 1
+
 proc drawLightning*(
     img: LCDBitmap,
     seed: BiggestUInt,

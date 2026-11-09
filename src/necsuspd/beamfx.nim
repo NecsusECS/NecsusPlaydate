@@ -12,12 +12,14 @@ type
   BeamEvent* = object
     beamOrigin, beamTarget: FPVec2 ## world position of beam start
     draw: BeamDrawProc ## draw proc for this beam's visual style
+    spread: int32 ## How many px `draw` can stray from the line between the endpoints
     maskColor: LCDSolidColor ## mask color applied before the step-0 draw
     inverted: bool ## colour-invert the beam (dark-on-light) when drawn
 
 proc beam*(
     origin, target: FPVec2,
     draw: BeamDrawProc,
+    spread: int32,
     maskColor: LCDSolidColor = kColorBlack,
     inverted: bool = false,
 ): BeamEvent =
@@ -27,9 +29,22 @@ proc beam*(
     beamOrigin: origin,
     beamTarget: target,
     draw: draw,
+    spread: spread,
     maskColor: maskColor,
     inverted: inverted,
   )
+
+proc beamClip*(origin, target: IVec2, spread, imageSize: int32): (IVec2, IVec2) =
+  ## The position and size of the region of a beam image that a beam between
+  ## `origin` and `target` can draw to
+  proc axis(a, b: int32): (int32, int32) =
+    let lo = clamp(min(a, b) - spread, 0, imageSize)
+    let hi = clamp(max(a, b) + spread + 1, 0, imageSize)
+    (lo, hi - lo)
+
+  let (x, width) = axis(origin.x, target.x)
+  let (y, height) = axis(origin.y, target.y)
+  (ivec2(x, y), ivec2(width, height))
 
 template makeBeamPool*(
     Name: untyped,
@@ -94,6 +109,9 @@ template makeBeamPool*(
     let localTarget = localOrigin + delta
     let worldPos = event.beamOrigin - toFPVec2(localOrigin - center)
     let (sprite, handle) = `Name Pool`()
+    let (clipPos, clipSize) =
+      beamClip(localOrigin, localTarget, event.spread, maxBeamLength)
+    sprite.clipTo(clipPos, clipSize)
     sprite.inverted = event.inverted
     sprite.getBitmapMask.clear(event.maskColor)
     let beam = `Name BeamState`(

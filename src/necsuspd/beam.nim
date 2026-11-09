@@ -11,6 +11,16 @@ const
   SINUS_WAVELENGTH = 20.0
   SINUS_MAX_AMPLITUDE = 3.0
 
+const
+  COMB_BEAM_SPREAD* = int32(MAX_TICK_HALF_LEN + 1)
+    ## How far `drawCombBeam` strays from the line between its endpoints
+  SINUS_BEAM_SPREAD* = SINUS_MAX_AMPLITUDE.int32 + 1
+    ## How far `drawSinusoidalBeam` strays from the line between its endpoints
+  LASER_BEAM_SPREAD* = 2'i32
+    ## How far `drawLaserBeam` strays from the line between its endpoints
+  JAGGED_BEAM_SPREAD* = 48'i32
+    ## How far `drawJaggedBeam` strays from the line between its endpoints.
+
 proc drawCombBeam*(img: LCDBitmap, a, b: IVec2, rng: var Rand) =
   ## Draws a comb beam from `a` to `b`. A solid core line runs between the
   ## two points, with randomly-spaced perpendicular tick marks of random length.

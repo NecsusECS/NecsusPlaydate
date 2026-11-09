@@ -82,3 +82,25 @@ suite "drawSprites":
     unregister(item)
     drawSprites()
     check framebufferRow(0)[0] == 'X'
+
+  test "clipped LCD item draws inside its clip rect":
+    let item = newDrawItem(newImage("c", 8, 8, kColorWhite), 0, pos = ivec2(10, 20))
+    item.clipTo(ivec2(2, 3), ivec2(4, 5))
+    register(item)
+    discard graphicActions()
+    drawSprites()
+    check graphicActions() ==
+      @[
+        "drawMode(drawMode: kDrawModeCopy)", "clear(color: kColorWhite)",
+        "setClipRect(x: 12, y: 23, width: 4, height: 5)",
+        "drawBitmap(name: c, x: 10, y: 20)", "clearClipRect()",
+      ]
+
+  test "unclipped LCD item draws without a clip rect":
+    let item = newDrawItem(newImage("c", 8, 8, kColorWhite), 0)
+    item.clipTo(ivec2(2, 3), ivec2(4, 5))
+    item.unclip()
+    register(item)
+    discard graphicActions()
+    drawSprites()
+    check "clearClipRect()" notin graphicActions()

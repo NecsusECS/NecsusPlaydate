@@ -209,6 +209,12 @@ proc setFont*(graphics: PlaydateGraphics, font: Font) =
 proc setDrawMode*(graphics: PlaydateGraphics, drawMode: LCDBitmapDrawMode) =
   record("drawMode", drawMode)
 
+proc setClipRect*(graphics: PlaydateGraphics, x, y, width, height: int) =
+  record("setClipRect", x, y, width, height)
+
+proc clearClipRect*(graphics: PlaydateGraphics) =
+  record("clearClipRect")
+
 proc drawText*(graphics: PlaydateGraphics, text: string, x, y: int) =
   record("drawText", text, x, y)
 

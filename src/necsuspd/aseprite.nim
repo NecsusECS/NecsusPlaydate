@@ -128,7 +128,9 @@ proc slicePointFromTopLeft*(
   let bounds = slice.firstKey(sheet).bounds
   return some(
     ivec2(bounds.x.int32, bounds.y.int32) +
-      slice.data.userData.anchorLock(defaultAnchor).resolve(bounds.w.int32, bounds.h.int32)
+      slice.data.userData.anchorLock(defaultAnchor).resolve(
+        bounds.w.int32, bounds.h.int32
+      )
   )
 
 proc dimensions*(sheet: SpriteSheet): IVec2 =

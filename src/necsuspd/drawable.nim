@@ -73,6 +73,9 @@ proc inverted*(d: Drawable | ptr Drawable): bool {.inline.} =
 proc `inverted=`*(d: Drawable | ptr Drawable, v: bool) {.inline.} =
   d.drawItem.inverted = v
 
+proc clipTo*(d: Drawable | ptr Drawable, pos, size: IVec2) {.inline.} =
+  d.drawItem.clipTo(pos, size)
+
 proc zIndex*(d: Drawable | ptr Drawable): int16 {.inline.} =
   d.drawItem.zIndex
 
