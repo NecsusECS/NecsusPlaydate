@@ -3,12 +3,10 @@ on: [push]
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: nimlang/choosenim
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v3
-      - run: git config --global --add safe.directory "$(pwd)"
       - name: Check exported that everything is exported
         run: |
           find src/necsuspd -maxdepth 1 -name "*.nim" -not -name import_playdate.nim \
@@ -18,7 +16,11 @@ jobs:
             | sort > /tmp/exports_expected.txt
           grep "export" src/necsuspd.nim | sort > /tmp/exports_actual.txt
           diff /tmp/exports_expected.txt /tmp/exports_actual.txt
-      - run: choosenim update -y 2.2.0
+      - uses: jiro4989/setup-nim-action@v2
+        with:
+          nim-version: 2.4.0
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - run: nim --version
       - run: nimble install --depsOnly --accept
       - run: nimble setup
       - run: nim check -d:simulator src/necsuspd.nim
